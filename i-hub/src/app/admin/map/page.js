@@ -1,9 +1,7 @@
-import styles from '../pages.module.css';
-
 export default function Map() {
   return (
-    <div className={styles.page}>
-      <h1 className={styles.pageTitle}>Map</h1>
+    <div className="max-w-6xl">
+      <h1 className="text-slate-800 text-3xl font-bold mb-8">Map</h1>
     </div>
   );
 }
