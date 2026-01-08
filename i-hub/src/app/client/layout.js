@@ -15,7 +15,7 @@ export default function ClientLayout({ children }) {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+      <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <Link href="/client" className="flex items-center gap-3">
             <div className="w-10 h-10 bg-gradient-to-br from-teal-600 to-teal-700 rounded-xl flex items-center justify-center text-xl shadow-lg shadow-teal-600/20">🏢</div>
@@ -28,9 +28,6 @@ export default function ClientLayout({ children }) {
               </Link>
             ))}
           </nav>
-          <Link href="/client/login" className="px-5 py-2.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-lg text-sm font-semibold shadow-md shadow-teal-600/20 hover:-translate-y-0.5 hover:shadow-lg transition-all">
-            Login
-          </Link>
         </div>
       </header>
       <main>{children}</main>
