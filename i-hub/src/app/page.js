@@ -1,5 +1,11 @@
-import { redirect } from 'next/navigation';
+import Header from './landingpage/components/header';
+import Hero from './landingpage/hero';
 
 export default function Home() {
-  redirect('/client');
+  return (
+    <div className="min-h-screen">
+      <Header />
+      <Hero />
+    </div>
+  );
 }
