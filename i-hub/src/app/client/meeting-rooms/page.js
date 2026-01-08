@@ -173,7 +173,7 @@ export default function MeetingRooms() {
 
               <div className="mb-4">
                 <label className="block text-slate-800 mb-2 font-semibold text-sm">Number of Guests</label>
-                <input type="number" name="guests" value={formData.guests} onChange={handleChange} placeholder="Enter number of guests" min="1" max={selectedRoom.capacity} required className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all" />
+                <input type="number" name="guests" value={formData.guests} onChange={handleChange} onWheel={(e) => e.target.blur()} placeholder="Enter number of guests" min="1" max={selectedRoom.capacity} required className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all" />
                 <p className="text-gray-400 text-xs mt-1">Maximum capacity: {selectedRoom.capacity} people</p>
               </div>
 

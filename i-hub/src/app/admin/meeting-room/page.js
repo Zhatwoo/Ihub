@@ -191,12 +191,12 @@ export default function MeetingRoom() {
   };
 
   const statCards = [
-    { key: 'total', icon: '📊', label: 'Total', color: 'border-l-teal-600', iconBg: 'from-cyan-50 to-cyan-100' },
-    { key: 'upcoming', icon: '📅', label: 'Upcoming', color: 'border-l-teal-500', iconBg: 'from-teal-100 to-teal-200' },
-    { key: 'ongoing', icon: '▶️', label: 'Ongoing', color: 'border-l-blue-500', iconBg: 'from-blue-100 to-blue-200' },
-    { key: 'pending', icon: '⏳', label: 'Pending', color: 'border-l-yellow-500', iconBg: 'from-yellow-100 to-yellow-200' },
-    { key: 'completed', icon: '✅', label: 'Completed', color: 'border-l-green-500', iconBg: 'from-green-100 to-green-200' },
-    { key: 'rejected', icon: '❌', label: 'Rejected', color: 'border-l-red-500', iconBg: 'from-red-100 to-red-200' },
+    { key: 'total', icon: '📊', label: 'Total', color: 'border-l-teal-600', iconBg: 'from-cyan-50 to-cyan-100', ring: 'ring-teal-600 shadow-teal-600/20' },
+    { key: 'upcoming', icon: '📅', label: 'Upcoming', color: 'border-l-teal-500', iconBg: 'from-teal-100 to-teal-200', ring: 'ring-teal-500 shadow-teal-500/20' },
+    { key: 'ongoing', icon: '▶️', label: 'Ongoing', color: 'border-l-blue-500', iconBg: 'from-blue-100 to-blue-200', ring: 'ring-blue-500 shadow-blue-500/20' },
+    { key: 'pending', icon: '⏳', label: 'Pending', color: 'border-l-yellow-500', iconBg: 'from-yellow-100 to-yellow-200', ring: 'ring-yellow-500 shadow-yellow-500/20' },
+    { key: 'completed', icon: '✅', label: 'Completed', color: 'border-l-green-500', iconBg: 'from-green-100 to-green-200', ring: 'ring-green-500 shadow-green-500/20' },
+    { key: 'rejected', icon: '❌', label: 'Rejected', color: 'border-l-red-500', iconBg: 'from-red-100 to-red-200', ring: 'ring-red-500 shadow-red-500/20' },
   ];
 
   return (
@@ -213,7 +213,7 @@ export default function MeetingRoom() {
 
       <div className="bg-white rounded-2xl p-7 shadow-lg shadow-slate-800/5 border border-gray-200">
         {activeTab === 'rooms' && (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-6 animate-fadeIn">
             <div className="flex justify-between items-center gap-4">
               <input type="text" placeholder="Search rooms..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="flex-1 max-w-xs px-4 py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all" />
               <button onClick={openAddModal} className="px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl text-sm font-semibold shadow-lg shadow-teal-600/30 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-600/40 transition-all">+ Add Room</button>
@@ -244,7 +244,7 @@ export default function MeetingRoom() {
         )}
 
         {activeTab === 'requests' && (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-6 animate-fadeIn">
             <div className="flex items-center justify-between pb-4 border-b border-gray-200">
               <div>
                 <h2 className="text-slate-800 text-xl font-bold">Pending Requests</h2>
@@ -279,7 +279,7 @@ export default function MeetingRoom() {
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {schedules.filter(s => s.status === 'pending').map((request) => (
-                      <tr key={request.id} className="bg-white hover:bg-gray-50 transition-colors">
+                      <tr key={request.id} className="bg-gray-50 hover:bg-gray-100 transition-colors">
                         <td className="px-4 py-4">
                           <p className="text-slate-800 font-semibold">{request.clientName}</p>
                         </td>
@@ -316,10 +316,10 @@ export default function MeetingRoom() {
         )}
 
         {activeTab === 'schedule' && (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-6 animate-fadeIn">
             <div className="grid grid-cols-6 gap-4">
               {statCards.map(card => (
-                <div key={card.key} onClick={() => setSelectedFilter(card.key)} className={`bg-white rounded-xl p-4 flex items-center gap-3 border border-gray-200 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-800/10 border-l-[3px] ${card.color} ${selectedFilter === card.key ? 'ring-2 ring-teal-600 shadow-lg shadow-teal-600/20 -translate-y-0.5' : ''}`}>
+                <div key={card.key} onClick={() => setSelectedFilter(card.key)} className={`bg-white rounded-xl p-4 flex items-center gap-3 border border-gray-200 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-800/10 border-l-[3px] ${card.color} ${selectedFilter === card.key ? `ring-2 ${card.ring} -translate-y-0.5` : ''}`}>
                   <div className={`text-2xl w-11 h-11 rounded-xl flex items-center justify-center bg-gradient-to-br ${card.iconBg} shrink-0`}>{card.icon}</div>
                   <div className="flex flex-col gap-0.5">
                     <span className="text-2xl font-bold text-slate-800">{card.key === 'total' ? schedules.length : schedules.filter(s => s.status === card.key).length}</span>
@@ -407,7 +407,7 @@ export default function MeetingRoom() {
               </div>
               <div className="mb-5">
                 <label className="block text-slate-800 mb-2 font-semibold text-sm">Maximum Capacity</label>
-                <input type="number" name="capacity" value={formData.capacity} onChange={handleChange} placeholder="Enter max capacity" min="1" required className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all" />
+                <input type="number" name="capacity" value={formData.capacity} onChange={handleChange} onWheel={(e) => e.target.blur()} placeholder="Enter max capacity" min="1" required className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all" />
               </div>
               <div className="mb-5">
                 <label className="block text-slate-800 mb-2 font-semibold text-sm">Inclusions</label>
