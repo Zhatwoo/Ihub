@@ -37,7 +37,7 @@ export default function Hero() {
             <p className="text-[20.7px] lg:text-[23px] text-slate-700 leading-relaxed max-w-lg">
               The community, workspaces, and technology to make a good impression and get down to business.
             </p>
-            <button className="bg-[#0F766E] hover:bg-[#0d6b64] text-white font-semibold px-8 py-4 rounded-[20px] transform scale-x-[0.95] scale-y-[0.85] mt-[15%] ml-[10%] border-[3px] border-white transition-colors duration-200">
+            <button className="bg-[#0F766E] hover:bg-[#0d6b64] text-white font-semibold px-8 py-4 rounded-[20px] transform scale-x-[1.9] scale-y-[1.7] mt-[15%] ml-[10%] border-[3px] border-white transition-colors duration-200">
               Inquire
             </button>
           </div>
@@ -45,7 +45,7 @@ export default function Hero() {
           {/* Right Side - Overlapping Images */}
           <div className="relative h-[500px] lg:h-[600px]">
             {/* Mid Image */}
-            <div className="absolute bottom-[-25%] left-[20%] w-[362.25px] lg:w-[410.55px] h-[301.875px] lg:h-[338.1px] rounded-2xl overflow-hidden z-[60] border-8 border-white">
+            <div className="absolute bottom-[15%] left-[20%] w-[362.25px] lg:w-[410.55px] h-[301.875px] lg:h-[338.1px] rounded-2xl overflow-hidden z-[60] border-8 border-white">
               <div className="relative w-full h-full">
                 <Image
                   src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&h=600&fit=crop"
@@ -78,7 +78,7 @@ export default function Hero() {
             </div>
 
             {/* Top Image */}
-            <div className="absolute top-[-50%] right-[-50%] w-[362.25px] lg:w-[410.55px] h-[301.875px] lg:h-[338.1px] rounded-2xl overflow-hidden z-30 border-8 border-[#0F766E]">
+            <div className="absolute top-[5%] right-[-35%] w-[362.25px] lg:w-[410.55px] h-[301.875px] lg:h-[338.1px] rounded-2xl overflow-hidden z-30 border-8 border-[#0F766E]">
               <div className="relative w-full h-full">
                 <Image
                   src="https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=800&h=600&fit=crop"
@@ -104,7 +104,7 @@ export default function Hero() {
             </div>
 
             {/* Bottom Image */}
-            <div className="absolute bottom-[65%] right-[-60%] w-[362.25px] lg:w-[410.55px] h-[301.875px] lg:h-[338.1px] rounded-2xl overflow-hidden z-50 border-8 border-white">
+            <div className="absolute bottom-[5%] right-[-45%] w-[362.25px] lg:w-[410.55px] h-[301.875px] lg:h-[338.1px] rounded-2xl overflow-hidden z-50 border-8 border-white">
               <div className="relative w-full h-full">
                 <Image
                   src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=800&h=600&fit=crop"
