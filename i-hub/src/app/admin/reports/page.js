@@ -27,13 +27,13 @@ export default function Reports() {
   const maxReservations = Math.max(...monthlyData.map(d => d.reservations));
 
   return (
-    <div className="max-w-6xl animate-fadeIn">
-      <h1 className="text-slate-800 text-3xl font-bold mb-8 animate-slideInLeft">Reports</h1>
+    <div className="w-full animate-fadeIn">
+      <h1 className="text-slate-800 text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 animate-slideInLeft">Reports</h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <div className="lg:col-span-2 bg-white rounded-2xl p-6 border border-gray-200 shadow-sm animate-slideUp" style={{ animationDelay: '0.1s', animationFillMode: 'backwards' }}>
-          <h2 className="text-slate-800 text-lg font-bold mb-4">Reservation Trends</h2>
-          <div className="flex items-end justify-between h-48 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 lg:gap-6 mb-4 sm:mb-6">
+        <div className="lg:col-span-2 bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 lg:p-6 border border-gray-200 shadow-sm animate-slideUp" style={{ animationDelay: '0.1s', animationFillMode: 'backwards' }}>
+          <h2 className="text-slate-800 text-base sm:text-lg font-bold mb-3 sm:mb-4">Reservation Trends</h2>
+          <div className="flex items-end justify-between h-40 sm:h-44 lg:h-48 gap-2 sm:gap-3 lg:gap-4">
             {monthlyData.map((data, i) => (
               <div key={i} className="flex-1 flex flex-col items-center gap-2">
                 <div className="w-full bg-gradient-to-t from-teal-500 to-teal-400 rounded-t-lg transition-all hover:from-teal-600 hover:to-teal-500 animate-slideUp" style={{ height: `${(data.reservations / maxReservations) * 100}%`, animationDelay: `${0.2 + i * 0.05}s`, animationFillMode: 'backwards' }}></div>
@@ -43,9 +43,9 @@ export default function Reports() {
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm animate-slideInRight" style={{ animationDelay: '0.15s', animationFillMode: 'backwards' }}>
-          <h2 className="text-slate-800 text-lg font-bold mb-4">Summary</h2>
-          <div className="space-y-4">
+        <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 lg:p-6 border border-gray-200 shadow-sm animate-slideInRight" style={{ animationDelay: '0.15s', animationFillMode: 'backwards' }}>
+          <h2 className="text-slate-800 text-base sm:text-lg font-bold mb-3 sm:mb-4">Summary</h2>
+          <div className="space-y-3 sm:space-y-4">
             <div className="p-4 bg-teal-50 rounded-xl">
               <p className="text-teal-700 text-sm font-medium">Total Reports</p>
               <p className="text-2xl font-bold text-teal-800">{dummyReports.length}</p>
@@ -62,10 +62,10 @@ export default function Reports() {
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm animate-scaleIn" style={{ animationDelay: '0.25s', animationFillMode: 'backwards' }}>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-slate-800 text-lg font-bold">Report History</h2>
-          <div className="flex gap-2">
+      <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 lg:p-6 border border-gray-200 shadow-sm animate-scaleIn" style={{ animationDelay: '0.25s', animationFillMode: 'backwards' }}>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-5 lg:mb-6 gap-3 sm:gap-0">
+          <h2 className="text-slate-800 text-base sm:text-lg font-bold">Report History</h2>
+          <div className="flex flex-wrap gap-2">
             {types.map(type => (
               <button key={type} onClick={() => setSelectedType(type)} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${selectedType === type ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                 {type === 'all' ? 'All' : type}

@@ -6,20 +6,36 @@ import { db } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc } from 'firebase/firestore';
 
 export default function PrivateOffices() {
+  // Currency symbol helper
+  const getCurrencySymbol = (currency) => {
+    const symbols = {
+      'PHP': '₱',
+      'USD': '$',
+      'EUR': '€',
+      'GBP': '£',
+      'JPY': '¥',
+      'AUD': 'A$',
+      'CAD': 'C$',
+      'CNY': '¥',
+      'INR': '₹',
+      'SGD': 'S$'
+    };
+    return symbols[currency] || '₱';
+  };
+
   const [rooms, setRooms] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [showReservationModal, setShowReservationModal] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [detailsRoom, setDetailsRoom] = useState(null);
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState({ show: false, type: '', message: '' });
   const [formData, setFormData] = useState({
-    name: '',
-    date: '',
-    timeStart: '',
-    timeEnd: '',
-    guests: '',
-    purpose: '',
-    specialRequest: ''
+    fullName: '',
+    email: '',
+    contactNumber: '',
+    startDate: ''
   });
 
   useEffect(() => {
@@ -44,7 +60,7 @@ export default function PrivateOffices() {
   const closeReservationModal = () => {
     setShowReservationModal(false);
     setSelectedRoom(null);
-    setFormData({ name: '', date: '', timeStart: '', timeEnd: '', guests: '', purpose: '', specialRequest: '' });
+    setFormData({ fullName: '', email: '', contactNumber: '', startDate: '' });
   };
 
   const showAlert = (type, message) => {
@@ -57,16 +73,12 @@ export default function PrivateOffices() {
     setLoading(true);
     try {
       const reservationData = {
-        clientName: formData.name,
+        clientName: formData.fullName,
+        email: formData.email,
+        contactNumber: formData.contactNumber,
         room: selectedRoom.name,
         roomId: selectedRoom.id,
-        date: formData.date,
-        timeStart: formData.timeStart,
-        timeEnd: formData.timeEnd,
-        time: `${formData.timeStart} - ${formData.timeEnd}`,
-        guests: parseInt(formData.guests),
-        purpose: formData.purpose,
-        specialRequest: formData.specialRequest || '',
+        startDate: formData.startDate,
         status: 'pending',
         createdAt: new Date().toISOString()
       };
@@ -82,65 +94,76 @@ export default function PrivateOffices() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12">
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-slate-800">Private Offices</h1>
-          <p className="text-gray-600 mt-1">Browse and book available private offices</p>
+    <div className="min-h-[calc(100vh-80px)] flex flex-col px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+      <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 lg:mb-8">
+          <div>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-800">Private Offices</h1>
+            <p className="text-gray-600 mt-1 text-sm lg:text-base">Browse and book available private offices</p>
+          </div>
+          <input 
+            type="text" 
+            placeholder="Search offices..." 
+            value={searchTerm} 
+            onChange={(e) => setSearchTerm(e.target.value)} 
+            className="px-4 py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white w-full md:w-72 transition-all" 
+          />
         </div>
-        <input 
-          type="text" 
-          placeholder="Search offices..." 
-          value={searchTerm} 
-          onChange={(e) => setSearchTerm(e.target.value)} 
-          className="px-4 py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white w-full md:w-72 transition-all" 
-        />
+
+        {filteredRooms.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center bg-white rounded-2xl border border-gray-200">
+            <div className="text-center py-12">
+              <div className="text-5xl lg:text-6xl mb-4">🏢</div>
+              <p className="text-gray-500 text-base lg:text-lg">{searchTerm ? 'No offices found.' : 'No private offices available yet.'}</p>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-6">
+            {filteredRooms.map((room) => (
+              <div 
+                key={room.id} 
+                className="bg-white rounded-2xl overflow-hidden border border-gray-200 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-slate-800/10 group flex flex-col"
+              >
+                <div className="relative w-full h-40 lg:h-48 xl:h-52 bg-gray-100">
+                  {room.image ? (
+                    <Image src={room.image} alt={room.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-5xl">🏢</div>
+                  )}
+                  <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/50 to-transparent" />
+                </div>
+                <div className="p-4 lg:p-5 flex flex-col flex-1">
+                  <h3 className="text-slate-800 font-bold text-lg lg:text-xl mb-2">{room.name}</h3>
+                  <div className="flex items-center gap-2 text-gray-500 text-xs lg:text-sm mb-2">
+                    <span className="text-teal-600">💰</span>
+                    <span>Rental Fee: {getCurrencySymbol(room.currency || 'PHP')}{room.rentFee?.toLocaleString() || '0'} {room.rentFeePeriod || 'per hour'}</span>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDetailsRoom(room);
+                      setShowDetailsModal(true);
+                    }}
+                    className="text-teal-600 hover:text-teal-700 text-xs lg:text-sm font-semibold mb-2 transition-colors text-left"
+                  >
+                    Full Details
+                  </button>
+                  <button 
+                    onClick={() => openReservationModal(room)}
+                    className="mt-auto w-full py-2.5 lg:py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-teal-600/30 transition-all"
+                  >
+                    Add Reservation
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {filteredRooms.length === 0 ? (
-        <div className="text-center py-20 bg-white rounded-2xl border border-gray-200">
-          <div className="text-5xl mb-4">🏢</div>
-          <p className="text-gray-500">{searchTerm ? 'No offices found.' : 'No private offices available yet.'}</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredRooms.map((room) => (
-            <div 
-              key={room.id} 
-              className="bg-white rounded-2xl overflow-hidden border border-gray-200 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-slate-800/10 group"
-            >
-              <div className="relative w-full h-48 bg-gray-100">
-                {room.image ? (
-                  <Image src={room.image} alt={room.name} fill className="object-cover group-hover:scale-105 transition-transform duration-300" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-400 text-5xl">🏢</div>
-                )}
-                <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/50 to-transparent" />
-              </div>
-              <div className="p-5">
-                <h3 className="text-slate-800 font-bold text-xl mb-2">{room.name}</h3>
-                <div className="flex items-center gap-2 text-gray-500 text-sm mb-3">
-                  <span className="text-teal-600">👥</span>
-                  <span>Up to {room.capacity} people</span>
-                </div>
-                {room.inclusions && (
-                  <p className="text-gray-500 text-sm line-clamp-2">{room.inclusions}</p>
-                )}
-                <button 
-                  onClick={() => openReservationModal(room)}
-                  className="mt-4 w-full py-2.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-teal-600/30 transition-all"
-                >
-                  Add Reservation
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-
       {showReservationModal && selectedRoom && (
-        <div className="fixed inset-0 bg-slate-800/60 backdrop-blur-sm flex items-center justify-center z-50 animate-[fadeIn_0.2s_ease]" onClick={closeReservationModal}>
-          <div className="bg-white rounded-2xl p-7 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl animate-[slideUp_0.3s_ease]" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 bg-slate-800/60 backdrop-blur-sm flex items-center justify-center z-50 animate-[fadeIn_0.2s_ease]">
+          <div className="bg-white rounded-2xl p-7 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl animate-[slideUp_0.3s_ease]">
             <div className="flex justify-between items-center mb-6 pb-4 border-b-2 border-gray-100">
               <div>
                 <h2 className="text-slate-800 text-xl font-bold">Add Reservation</h2>
@@ -151,40 +174,29 @@ export default function PrivateOffices() {
             
             <form onSubmit={handleSubmit}>
               <div className="mb-4">
-                <label className="block text-slate-800 mb-2 font-semibold text-sm">Your Name</label>
-                <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Enter your full name" required className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all" />
+                <label className="block text-slate-800 mb-2 font-semibold text-sm">Full Name</label>
+                <input type="text" name="fullName" value={formData.fullName} onChange={handleChange} placeholder="Enter your full name" required className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all" />
               </div>
 
               <div className="mb-4">
-                <label className="block text-slate-800 mb-2 font-semibold text-sm">Date</label>
-                <input type="date" name="date" value={formData.date} onChange={handleChange} required className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all" />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-slate-800 mb-2 font-semibold text-sm">Time Start</label>
-                  <input type="time" name="timeStart" value={formData.timeStart} onChange={handleChange} required className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all" />
-                </div>
-                <div>
-                  <label className="block text-slate-800 mb-2 font-semibold text-sm">Time End</label>
-                  <input type="time" name="timeEnd" value={formData.timeEnd} onChange={handleChange} required className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all" />
-                </div>
+                <label className="block text-slate-800 mb-2 font-semibold text-sm">Email</label>
+                <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Enter your email address" required className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all" />
               </div>
 
               <div className="mb-4">
-                <label className="block text-slate-800 mb-2 font-semibold text-sm">Number of Guests</label>
-                <input type="number" name="guests" value={formData.guests} onChange={handleChange} onWheel={(e) => e.target.blur()} placeholder="Enter number of guests" min="1" max={selectedRoom.capacity} required className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all" />
-                <p className="text-gray-400 text-xs mt-1">Maximum capacity: {selectedRoom.capacity} people</p>
+                <label className="block text-slate-800 mb-2 font-semibold text-sm">Contact Number</label>
+                <input type="tel" name="contactNumber" value={formData.contactNumber} onChange={handleChange} placeholder="Enter your contact number" required className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all" />
               </div>
 
               <div className="mb-4">
-                <label className="block text-slate-800 mb-2 font-semibold text-sm">Purpose</label>
-                <input type="text" name="purpose" value={formData.purpose} onChange={handleChange} placeholder="e.g. Team Meeting, Workshop" required className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all" />
+                <label className="block text-slate-800 mb-2 font-semibold text-sm">Start Date</label>
+                <input type="date" name="startDate" value={formData.startDate} onChange={handleChange} required className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all" />
               </div>
 
               <div className="mb-6">
-                <label className="block text-slate-800 mb-2 font-semibold text-sm">Special Request <span className="text-gray-400 font-normal">(optional)</span></label>
-                <textarea name="specialRequest" value={formData.specialRequest} onChange={handleChange} placeholder="Any special requirements or requests" rows="3" className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all resize-none" />
+                <label className="block text-slate-800 mb-2 font-semibold text-sm">Rental Fee</label>
+                <input type="text" value={`${getCurrencySymbol(selectedRoom.currency || 'PHP')}${selectedRoom.rentFee?.toLocaleString() || '0'} ${selectedRoom.rentFeePeriod || 'per hour'}`} disabled className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-base text-slate-900 bg-gray-100 cursor-not-allowed transition-all" />
+                <p className="text-gray-400 text-xs mt-1">Rental fee for this office</p>
               </div>
 
               <div className="flex gap-3">
@@ -194,6 +206,76 @@ export default function PrivateOffices() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {showDetailsModal && detailsRoom && (
+        <div className="fixed inset-0 bg-slate-800/60 backdrop-blur-sm flex items-center justify-center z-50 animate-[fadeIn_0.2s_ease]">
+          <div className="bg-white rounded-2xl p-7 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-[slideUp_0.3s_ease]">
+            <div className="flex justify-between items-center mb-6 pb-4 border-b-2 border-gray-100">
+              <h2 className="text-slate-800 text-2xl font-bold">Full Details</h2>
+              <button 
+                onClick={() => {
+                  setShowDetailsModal(false);
+                  setDetailsRoom(null);
+                }} 
+                className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 text-xl hover:bg-gray-200 hover:text-slate-800 transition-all"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="relative w-full h-64 rounded-xl overflow-hidden mb-6 shadow-lg bg-gray-100">
+              {detailsRoom.image ? (
+                <Image src={detailsRoom.image} alt={detailsRoom.name} fill className="object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400 text-6xl">🏢</div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1 p-4 bg-gray-50 rounded-xl">
+                <span className="text-gray-500 text-xs uppercase tracking-wide font-semibold">Office Name</span>
+                <span className="text-slate-800 text-xl font-semibold">{detailsRoom.name}</span>
+              </div>
+
+              <div className="flex flex-col gap-1 p-4 bg-gray-50 rounded-xl">
+                <span className="text-gray-500 text-xs uppercase tracking-wide font-semibold">Rental Fee</span>
+                <span className="text-slate-800 text-xl font-semibold">
+                  {getCurrencySymbol(detailsRoom.currency || 'PHP')}{detailsRoom.rentFee?.toLocaleString() || '0'} {detailsRoom.rentFeePeriod || 'per hour'}
+                </span>
+              </div>
+
+              {detailsRoom.inclusions && (
+                <div className="flex flex-col gap-1 p-4 bg-gray-50 rounded-xl">
+                  <span className="text-gray-500 text-xs uppercase tracking-wide font-semibold">Inclusions</span>
+                  <span className="text-slate-800 text-lg whitespace-pre-line">{detailsRoom.inclusions}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 flex gap-3">
+              <button
+                onClick={() => {
+                  setShowDetailsModal(false);
+                  setDetailsRoom(null);
+                }}
+                className="flex-1 px-6 py-3 bg-gray-100 text-gray-600 rounded-xl font-semibold hover:bg-gray-200 transition-all"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  setShowDetailsModal(false);
+                  setDetailsRoom(null);
+                  openReservationModal(detailsRoom);
+                }}
+                className="flex-1 px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl font-semibold shadow-lg shadow-teal-600/30 hover:-translate-y-0.5 hover:shadow-xl transition-all"
+              >
+                Add Reservation
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -210,4 +292,5 @@ export default function PrivateOffices() {
     </div>
   );
 }
+
 

@@ -6,6 +6,8 @@ import { usePathname } from 'next/navigation';
 const navItems = [
   { name: 'Home', href: '/client' },
   { name: 'Private Offices', href: '/client/private-offices' },
+  { name: 'Dedicated Desk', href: '/client/dedicated-desk' },
+  { name: 'Virtual Office', href: '/client/virtual-office' },
   { name: 'My Bookings', href: '/client/bookings' },
   { name: 'Contact', href: '/client/contact' },
 ];

@@ -23,43 +23,43 @@ export default function Billing() {
   const formatCurrency = (amount) => `₱${amount.toLocaleString()}`;
 
   return (
-    <div className="max-w-6xl animate-fadeIn">
-      <h1 className="text-slate-800 text-3xl font-bold mb-8 animate-slideInLeft">Billing</h1>
+    <div className="w-full animate-fadeIn">
+      <h1 className="text-slate-800 text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 animate-slideInLeft">Billing</h1>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm animate-stagger animate-stagger-1">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center text-2xl shadow-lg">💰</div>
-            <div>
-              <p className="text-gray-500 text-sm">Total Revenue</p>
-              <p className="text-2xl font-bold text-slate-800">{formatCurrency(totalRevenue)}</p>
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3 sm:gap-4 lg:gap-5 xl:gap-6 mb-4 sm:mb-6">
+        <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 lg:p-6 border border-gray-200 shadow-sm animate-stagger animate-stagger-1">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-lg">💰</div>
+            <div className="min-w-0 flex-1">
+              <p className="text-gray-500 text-xs sm:text-sm truncate">Total Revenue</p>
+              <p className="text-xl sm:text-2xl font-bold text-slate-800 truncate">{formatCurrency(totalRevenue)}</p>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm animate-stagger animate-stagger-2">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center text-2xl shadow-lg">⏳</div>
-            <div>
-              <p className="text-gray-500 text-sm">Pending</p>
-              <p className="text-2xl font-bold text-slate-800">{formatCurrency(pendingAmount)}</p>
+        <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 lg:p-6 border border-gray-200 shadow-sm animate-stagger animate-stagger-2">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-lg">⏳</div>
+            <div className="min-w-0 flex-1">
+              <p className="text-gray-500 text-xs sm:text-sm truncate">Pending</p>
+              <p className="text-xl sm:text-2xl font-bold text-slate-800 truncate">{formatCurrency(pendingAmount)}</p>
             </div>
           </div>
         </div>
-        <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm animate-stagger animate-stagger-3">
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center text-2xl shadow-lg">⚠️</div>
-            <div>
-              <p className="text-gray-500 text-sm">Overdue</p>
-              <p className="text-2xl font-bold text-slate-800">{formatCurrency(overdueAmount)}</p>
+        <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 lg:p-6 border border-gray-200 shadow-sm animate-stagger animate-stagger-3">
+          <div className="flex items-center gap-3 sm:gap-4">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-red-500 to-red-600 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-lg">⚠️</div>
+            <div className="min-w-0 flex-1">
+              <p className="text-gray-500 text-xs sm:text-sm truncate">Overdue</p>
+              <p className="text-xl sm:text-2xl font-bold text-slate-800 truncate">{formatCurrency(overdueAmount)}</p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm animate-slideUp" style={{ animationDelay: '0.2s', animationFillMode: 'backwards' }}>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-slate-800 text-lg font-bold">Invoices</h2>
-          <div className="flex gap-2">
+      <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 lg:p-6 border border-gray-200 shadow-sm animate-slideUp" style={{ animationDelay: '0.2s', animationFillMode: 'backwards' }}>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-5 lg:mb-6 gap-3 sm:gap-0">
+          <h2 className="text-slate-800 text-base sm:text-lg font-bold">Invoices</h2>
+          <div className="flex flex-wrap gap-2">
             {['all', 'Paid', 'Pending', 'Overdue'].map(status => (
               <button key={status} onClick={() => setFilter(status)} className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${filter === status ? 'bg-teal-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}>
                 {status === 'all' ? 'All' : status}
