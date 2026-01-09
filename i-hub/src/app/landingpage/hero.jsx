@@ -11,9 +11,9 @@ export default function Hero() {
   return (
     <div className="relative min-h-screen bg-white overflow-hidden">
       {/* Organic Teal Wave Background */}
-      <div className="absolute bottom-[-5%] left-0 right-0 w-full h-full pointer-events-none">
+      <div className="absolute bottom-[1%] left-0 right-0 w-full h-full pointer-events-none">
         <svg
-          className="absolute bottom-[-5%] left-0 w-full h-full"
+          className="absolute bottom-[1%] left-0 w-full h-full"
           viewBox="0 0 1440 800"
           preserveAspectRatio="none"
           fill="none"
@@ -27,7 +27,7 @@ export default function Hero() {
       </div>
 
       {/* Main Content Container */}
-      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 pt-32 pb-20">
+      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 pt-[12.8px] pb-20">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center min-h-[600px]">
           {/* Left Side - Text Content */}
           <div className="space-y-8 -ml-[10%] mt-[15%]">
@@ -136,12 +136,12 @@ export default function Hero() {
 
         {/* Search Bar - Bottom Center */}
         <div className="mt-16 lg:mt-24 flex justify-center">
-          <div className="relative w-full max-w-2xl">
-            <div className="flex items-center bg-[#0F766E] rounded-[30px] border-[5px] border-white overflow-hidden">
+          <div className="relative w-full max-w-[44.1rem]">
+            <div className="flex items-center bg-[#0F766E] rounded-[31.5px] border-[5.25px] border-white overflow-hidden">
               {/* Search Icon */}
-              <div className="pl-4 pr-2">
+              <div className="pl-[1.05rem] pr-[0.525rem]">
                 <svg
-                  className="w-6 h-6 text-teal-300"
+                  className="w-[1.575rem] h-[1.575rem] text-teal-300"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -159,11 +159,11 @@ export default function Hero() {
               <input
                 type="text"
                 placeholder="Search by room, capacity, or location..."
-                className="flex-1 px-4 py-4 bg-[#0F766E] text-teal-300 placeholder-teal-300 focus:outline-none rounded-l-[30px]"
+                className="flex-1 px-[1.05rem] py-[1.05rem] bg-[#0F766E] text-teal-300 placeholder-teal-300 focus:outline-none rounded-l-[31.5px]"
               />
               
               {/* Search Button */}
-              <button className="bg-white hover:bg-gray-100 text-[#0F766E] font-semibold px-8 py-4 rounded-r-xl transition-colors duration-200">
+              <button className="bg-white hover:bg-gray-100 text-[#0F766E] font-semibold px-[2.1rem] py-[1.05rem] rounded-r-[0.7875rem] transition-colors duration-200">
                 Search
               </button>
             </div>
