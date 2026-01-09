@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc } from 'firebase/firestore';
 
-export default function MeetingRooms() {
+export default function PrivateOffices() {
   const [rooms, setRooms] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRoom, setSelectedRoom] = useState(null);
@@ -85,12 +85,12 @@ export default function MeetingRooms() {
     <div className="max-w-7xl mx-auto px-6 py-12">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800">Meeting Rooms</h1>
-          <p className="text-gray-600 mt-1">Browse and book available meeting rooms</p>
+          <h1 className="text-3xl font-bold text-slate-800">Private Offices</h1>
+          <p className="text-gray-600 mt-1">Browse and book available private offices</p>
         </div>
         <input 
           type="text" 
-          placeholder="Search rooms..." 
+          placeholder="Search offices..." 
           value={searchTerm} 
           onChange={(e) => setSearchTerm(e.target.value)} 
           className="px-4 py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white w-full md:w-72 transition-all" 
@@ -100,7 +100,7 @@ export default function MeetingRooms() {
       {filteredRooms.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-2xl border border-gray-200">
           <div className="text-5xl mb-4">🏢</div>
-          <p className="text-gray-500">{searchTerm ? 'No rooms found.' : 'No meeting rooms available yet.'}</p>
+          <p className="text-gray-500">{searchTerm ? 'No offices found.' : 'No private offices available yet.'}</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -210,3 +210,4 @@ export default function MeetingRooms() {
     </div>
   );
 }
+
