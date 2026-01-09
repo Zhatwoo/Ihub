@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Header() {
   return (
@@ -7,13 +8,15 @@ export default function Header() {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center gap-1 px-2">
-              <div className="w-0.5 h-2 bg-white"></div>
-              <div className="w-0.5 h-3 bg-white"></div>
-              <div className="w-0.5 h-4 bg-white"></div>
-              <div className="w-0.5 h-5 bg-white"></div>
-            </div>
-            <span className="text-xl font-semibold text-black">Inspire Hub</span>
+            <Image
+              src="/Gemini_Generated_Image_6qx9a16qx9a16qx9.png"
+              alt="I-HUB Office Rentals"
+              width={120}
+              height={120}
+              className="h-auto w-auto"
+              priority
+            />
+            <span className="text-xl font-semibold text-black">I-HUB</span>
           </Link>
 
           {/* Navigation Links - Bold Dark Navy */}
