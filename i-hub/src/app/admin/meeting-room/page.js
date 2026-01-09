@@ -1,32 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
-
-const dummyRooms = [
-  { id: 'dummy1', name: 'Buffet Hall', capacity: 50, inclusions: 'Projector, Sound System, Buffet Setup', image: '/dining/buffet.png' },
-  { id: 'dummy2', name: 'Fine Dining Room', capacity: 20, inclusions: 'TV, Whiteboard, Premium Furniture', image: '/dining/fine_dining.png' },
-  { id: 'dummy3', name: 'Private Chef Suite', capacity: 12, inclusions: 'Kitchen Access, Private Chef, Wine Selection', image: '/dining/private_chef.png' },
-  { id: 'dummy4', name: 'Rooftop Lounge', capacity: 30, inclusions: 'Open Air, Bar, City View', image: '/dining/rooftop.png' },
-];
-
-const dummySchedules = [
-  { id: 1, clientName: 'John Smith', room: 'Buffet Hall', date: 'Jan 10, 2026', time: '2hrs (9am - 11am)', guests: 25, purpose: 'Team Meeting', inclusions: 'Projector, Coffee', status: 'upcoming' },
-  { id: 2, clientName: 'Sarah Johnson', room: 'Fine Dining Room', date: 'Jan 8, 2026', time: '1hr (2pm - 3pm)', guests: 8, purpose: 'Client Presentation', inclusions: 'TV, Whiteboard', status: 'ongoing' },
-  { id: 3, clientName: 'Mike Chen', room: 'Rooftop Lounge', date: 'Jan 12, 2026', time: '3hrs (6pm - 9pm)', guests: 20, purpose: 'Birthday Party', inclusions: 'Bar, Sound System', status: 'pending' },
-  { id: 4, clientName: 'Emily Davis', room: 'Private Chef Suite', date: 'Jan 5, 2026', time: '2hrs (12pm - 2pm)', guests: 6, purpose: 'Business Lunch', inclusions: 'Private Chef', status: 'completed' },
-  { id: 5, clientName: 'Robert Wilson', room: 'Buffet Hall', date: 'Jan 15, 2026', time: '4hrs (1pm - 5pm)', guests: 40, purpose: 'Workshop', inclusions: 'Projector, Mics', status: 'upcoming' },
-  { id: 6, clientName: 'Lisa Anderson', room: 'Fine Dining Room', date: 'Jan 3, 2026', time: '1hr (10am - 11am)', guests: 10, purpose: 'Interview', inclusions: 'None', status: 'rejected' },
-  { id: 7, clientName: 'David Brown', room: 'Rooftop Lounge', date: 'Jan 7, 2026', time: '2hrs (7pm - 9pm)', guests: 15, purpose: 'Networking Event', inclusions: 'Bar', status: 'completed' },
-  { id: 8, clientName: 'Anna Martinez', room: 'Private Chef Suite', date: 'Jan 9, 2026', time: '1hr (7am - 8am)', guests: 4, purpose: 'Breakfast Meeting', inclusions: 'Private Chef', status: 'ongoing' },
-  { id: 9, clientName: 'James Taylor', room: 'Buffet Hall', date: 'Jan 11, 2026', time: '2hrs (3pm - 5pm)', guests: 30, purpose: 'Training Session', inclusions: 'Projector', status: 'pending' },
-  { id: 10, clientName: 'Karen White', room: 'Fine Dining Room', date: 'Jan 6, 2026', time: '1hr (4pm - 5pm)', guests: 12, purpose: 'Board Meeting', inclusions: 'TV, Coffee', status: 'completed' },
-];
+import { db } from '@/lib/firebase';
+import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from 'firebase/firestore';
 
 export default function MeetingRoom() {
   const [activeTab, setActiveTab] = useState('rooms');
-  const [rooms, setRooms] = useState(dummyRooms);
-  const [schedules] = useState(dummySchedules);
+  const [rooms, setRooms] = useState([]);
+  const [schedules, setSchedules] = useState([]);
   const [selectedFilter, setSelectedFilter] = useState(null);
   const [scheduleSearch, setScheduleSearch] = useState('');
   const [sortBy, setSortBy] = useState('date');
@@ -39,38 +21,133 @@ export default function MeetingRoom() {
   const [editingRoom, setEditingRoom] = useState(null);
   const [formData, setFormData] = useState({ name: '', capacity: '', inclusions: '' });
   const [searchTerm, setSearchTerm] = useState('');
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [uploading, setUploading] = useState(false);
+
+  // Fetch rooms from Firebase
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'rooms'), (snapshot) => {
+      const roomsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setRooms(roomsData);
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // Fetch schedules from Firebase
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'schedules'), (snapshot) => {
+      const schedulesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setSchedules(schedulesData);
+    });
+    return () => unsubscribe();
+  }, []);
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setLoading(true);
-    const newRoom = { id: Date.now().toString(), name: formData.name, capacity: parseInt(formData.capacity), inclusions: formData.inclusions, image: '/dining/buffet.png' };
-    if (editingRoom) {
-      setRooms(rooms.map(r => r.id === editingRoom.id ? { ...r, ...newRoom, id: editingRoom.id, image: editingRoom.image } : r));
-    } else {
-      setRooms([...rooms, newRoom]);
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => setImagePreview(reader.result);
+      reader.readAsDataURL(file);
     }
-    setFormData({ name: '', capacity: '', inclusions: '' });
-    setEditingRoom(null);
-    setShowFormModal(false);
-    setLoading(false);
   };
 
-  const handleEdit = () => { setShowViewModal(false); setEditingRoom(selectedRoom); setFormData({ name: selectedRoom.name, capacity: selectedRoom.capacity.toString(), inclusions: selectedRoom.inclusions || '' }); setShowFormModal(true); };
-  const handleDelete = () => { 
-    if (!selectedRoom) return;
-    const roomId = selectedRoom.id;
-    if (confirm('Delete this room?')) { 
-      setShowViewModal(false); 
-      setSelectedRoom(null); 
-      setRooms(rooms.filter(r => r.id !== roomId)); 
-    } 
+  const uploadImage = async () => {
+    if (!imageFile) return null;
+    setUploading(true);
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append('file', imageFile);
+      const response = await fetch('/api/upload', { method: 'POST', body: formDataUpload });
+      const data = await response.json();
+      if (data.success) return data.path;
+      throw new Error(data.error);
+    } catch (error) {
+      console.error('Upload error:', error);
+      alert('Failed to upload image');
+      return null;
+    } finally {
+      setUploading(false);
+    }
   };
-  const openAddModal = () => { setEditingRoom(null); setFormData({ name: '', capacity: '', inclusions: '' }); setShowFormModal(true); };
-  const closeFormModal = () => { setShowFormModal(false); setEditingRoom(null); setFormData({ name: '', capacity: '', inclusions: '' }); };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      let imagePath = editingRoom?.image || '/rooms/default.png';
+      if (imageFile) {
+        const uploadedPath = await uploadImage();
+        if (uploadedPath) imagePath = uploadedPath;
+      }
+      const roomData = { name: formData.name, capacity: parseInt(formData.capacity), inclusions: formData.inclusions, image: imagePath };
+      if (editingRoom) {
+        await updateDoc(doc(db, 'rooms', editingRoom.id), roomData);
+      } else {
+        await addDoc(collection(db, 'rooms'), roomData);
+      }
+      resetForm();
+    } catch (error) {
+      console.error('Error saving room:', error);
+      alert('Failed to save room');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({ name: '', capacity: '', inclusions: '' });
+    setImageFile(null);
+    setImagePreview(null);
+    setEditingRoom(null);
+    setShowFormModal(false);
+  };
+
+  const handleEdit = () => {
+    setShowViewModal(false);
+    setEditingRoom(selectedRoom);
+    setFormData({ name: selectedRoom.name, capacity: selectedRoom.capacity.toString(), inclusions: selectedRoom.inclusions || '' });
+    setImagePreview(selectedRoom.image);
+    setShowFormModal(true);
+  };
+
+  const handleDelete = async () => {
+    if (!selectedRoom) return;
+    if (confirm('Delete this room?')) {
+      try {
+        await deleteDoc(doc(db, 'rooms', selectedRoom.id));
+        setShowViewModal(false);
+        setSelectedRoom(null);
+      } catch (error) {
+        console.error('Error deleting room:', error);
+        alert('Failed to delete room');
+      }
+    }
+  };
+
+  const openAddModal = () => { setEditingRoom(null); setFormData({ name: '', capacity: '', inclusions: '' }); setImageFile(null); setImagePreview(null); setShowFormModal(true); };
+  const closeFormModal = () => resetForm();
   const openViewModal = (room) => { setSelectedRoom(room); setShowViewModal(true); };
   const closeViewModal = () => { setShowViewModal(false); setSelectedRoom(null); };
+
+  const handleApprove = async (id) => {
+    try {
+      await updateDoc(doc(db, 'schedules', id), { status: 'upcoming' });
+    } catch (error) {
+      console.error('Error approving request:', error);
+    }
+  };
+
+  const handleReject = async (id) => {
+    try {
+      await updateDoc(doc(db, 'schedules', id), { status: 'rejected' });
+    } catch (error) {
+      console.error('Error rejecting request:', error);
+    }
+  };
 
   const filteredRooms = rooms.filter(room => room.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
@@ -83,7 +160,7 @@ export default function MeetingRoom() {
     let result = [...data];
     if (scheduleSearch) {
       const search = scheduleSearch.toLowerCase();
-      result = result.filter(s => s.clientName.toLowerCase().includes(search) || s.room.toLowerCase().includes(search) || s.purpose.toLowerCase().includes(search));
+      result = result.filter(s => s.clientName?.toLowerCase().includes(search) || s.room?.toLowerCase().includes(search) || s.purpose?.toLowerCase().includes(search));
     }
     if (roomFilter !== 'all') {
       result = result.filter(s => s.room === roomFilter);
@@ -91,21 +168,21 @@ export default function MeetingRoom() {
     result.sort((a, b) => {
       let comparison = 0;
       if (sortBy === 'date') comparison = new Date(a.date) - new Date(b.date);
-      else if (sortBy === 'client') comparison = a.clientName.localeCompare(b.clientName);
-      else if (sortBy === 'room') comparison = a.room.localeCompare(b.room);
-      else if (sortBy === 'guests') comparison = a.guests - b.guests;
+      else if (sortBy === 'client') comparison = (a.clientName || '').localeCompare(b.clientName || '');
+      else if (sortBy === 'room') comparison = (a.room || '').localeCompare(b.room || '');
+      else if (sortBy === 'guests') comparison = (a.guests || 0) - (b.guests || 0);
       return sortOrder === 'asc' ? comparison : -comparison;
     });
     return result;
   };
 
   const filteredSchedules = selectedFilter ? applyFiltersAndSort(getSchedulesByStatus(selectedFilter)) : [];
-  const uniqueRooms = [...new Set(schedules.map(s => s.room))];
+  const uniqueRooms = [...new Set(schedules.map(s => s.room).filter(Boolean))];
 
   const getStatusBadge = (status) => {
     const styles = {
       pending: 'bg-yellow-100 text-yellow-700',
-      upcoming: 'bg-amber-100 text-amber-700',
+      upcoming: 'bg-teal-100 text-teal-700',
       ongoing: 'bg-blue-100 text-blue-700',
       completed: 'bg-green-100 text-green-700',
       rejected: 'bg-red-100 text-red-700'
@@ -114,12 +191,12 @@ export default function MeetingRoom() {
   };
 
   const statCards = [
-    { key: 'total', icon: '📊', label: 'Total', color: 'border-l-teal-600', iconBg: 'from-cyan-50 to-cyan-100' },
-    { key: 'upcoming', icon: '📅', label: 'Upcoming', color: 'border-l-amber-500', iconBg: 'from-amber-100 to-amber-200' },
-    { key: 'ongoing', icon: '▶️', label: 'Ongoing', color: 'border-l-blue-500', iconBg: 'from-blue-100 to-blue-200' },
-    { key: 'pending', icon: '⏳', label: 'Pending', color: 'border-l-yellow-500', iconBg: 'from-yellow-100 to-yellow-200' },
-    { key: 'completed', icon: '✅', label: 'Completed', color: 'border-l-green-500', iconBg: 'from-green-100 to-green-200' },
-    { key: 'rejected', icon: '❌', label: 'Rejected', color: 'border-l-red-500', iconBg: 'from-red-100 to-red-200' },
+    { key: 'total', icon: '📊', label: 'Total', color: 'border-l-teal-600', iconBg: 'from-cyan-50 to-cyan-100', ring: 'ring-teal-600 shadow-teal-600/20' },
+    { key: 'upcoming', icon: '📅', label: 'Upcoming', color: 'border-l-teal-500', iconBg: 'from-teal-100 to-teal-200', ring: 'ring-teal-500 shadow-teal-500/20' },
+    { key: 'ongoing', icon: '▶️', label: 'Ongoing', color: 'border-l-blue-500', iconBg: 'from-blue-100 to-blue-200', ring: 'ring-blue-500 shadow-blue-500/20' },
+    { key: 'pending', icon: '⏳', label: 'Pending', color: 'border-l-yellow-500', iconBg: 'from-yellow-100 to-yellow-200', ring: 'ring-yellow-500 shadow-yellow-500/20' },
+    { key: 'completed', icon: '✅', label: 'Completed', color: 'border-l-green-500', iconBg: 'from-green-100 to-green-200', ring: 'ring-green-500 shadow-green-500/20' },
+    { key: 'rejected', icon: '❌', label: 'Rejected', color: 'border-l-red-500', iconBg: 'from-red-100 to-red-200', ring: 'ring-red-500 shadow-red-500/20' },
   ];
 
   return (
@@ -136,7 +213,7 @@ export default function MeetingRoom() {
 
       <div className="bg-white rounded-2xl p-7 shadow-lg shadow-slate-800/5 border border-gray-200">
         {activeTab === 'rooms' && (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-6 animate-fadeIn">
             <div className="flex justify-between items-center gap-4">
               <input type="text" placeholder="Search rooms..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="flex-1 max-w-xs px-4 py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all" />
               <button onClick={openAddModal} className="px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl text-sm font-semibold shadow-lg shadow-teal-600/30 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-600/40 transition-all">+ Add Room</button>
@@ -147,8 +224,12 @@ export default function MeetingRoom() {
               ) : (
                 filteredRooms.map((room) => (
                   <div key={room.id} onClick={() => openViewModal(room)} className="bg-white rounded-2xl overflow-hidden cursor-pointer border border-gray-200 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-slate-800/10 hover:border-transparent relative before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-gradient-to-r before:from-slate-800 before:to-teal-600 before:opacity-0 hover:before:opacity-100 before:transition-opacity">
-                    <div className="relative w-full h-44">
-                      <Image src={room.image} alt={room.name} fill className="object-cover" />
+                    <div className="relative w-full h-44 bg-gray-100">
+                      {room.image ? (
+                        <Image src={room.image} alt={room.name} fill className="object-cover" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center text-gray-400 text-4xl">🏢</div>
+                      )}
                       <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/40 to-transparent" />
                     </div>
                     <div className="p-4 pt-3">
@@ -163,17 +244,82 @@ export default function MeetingRoom() {
         )}
 
         {activeTab === 'requests' && (
-          <div className="text-center py-16">
-            <h2 className="text-slate-800 text-xl font-semibold mb-3">Request List</h2>
-            <p className="text-gray-500">No pending requests.</p>
+          <div className="flex flex-col gap-6 animate-fadeIn">
+            <div className="flex items-center justify-between pb-4 border-b border-gray-200">
+              <div>
+                <h2 className="text-slate-800 text-xl font-bold">Pending Requests</h2>
+                <p className="text-gray-500 text-sm mt-0.5">Review and manage reservation requests</p>
+              </div>
+              <span className="px-4 py-2 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-lg text-sm font-semibold">{schedules.filter(s => s.status === 'pending').length} pending</span>
+            </div>
+            
+            {schedules.filter(s => s.status === 'pending').length === 0 ? (
+              <div className="text-center py-16 bg-gray-50 rounded-xl border border-gray-200">
+                <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+                  </svg>
+                </div>
+                <p className="text-slate-800 font-semibold text-lg">No Pending Requests</p>
+                <p className="text-gray-500 text-sm mt-1">All reservation requests have been processed</p>
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-xl border border-gray-200">
+                <table className="w-full">
+                  <thead className="bg-slate-800 text-white">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Client</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Date Requested</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Room</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Date & Time</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Guests</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Purpose</th>
+                      <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {schedules.filter(s => s.status === 'pending').map((request) => (
+                      <tr key={request.id} className="bg-gray-50 hover:bg-gray-100 transition-colors">
+                        <td className="px-4 py-4">
+                          <p className="text-slate-800 font-semibold">{request.clientName}</p>
+                        </td>
+                        <td className="px-4 py-4">
+                          <p className="text-gray-500 text-sm">{new Date(request.createdAt).toLocaleDateString()}</p>
+                        </td>
+                        <td className="px-4 py-4">
+                          <p className="text-slate-800 font-medium">{request.room}</p>
+                        </td>
+                        <td className="px-4 py-4">
+                          <p className="text-slate-800 font-medium">{request.date}</p>
+                          <p className="text-gray-500 text-sm">{request.time}</p>
+                        </td>
+                        <td className="px-4 py-4">
+                          <p className="text-slate-800 font-medium">{request.guests}</p>
+                        </td>
+                        <td className="px-4 py-4">
+                          <p className="text-slate-800">{request.purpose}</p>
+                          {request.specialRequest && <p className="text-gray-400 text-xs mt-0.5 truncate max-w-[150px]" title={request.specialRequest}>{request.specialRequest}</p>}
+                        </td>
+                        <td className="px-4 py-4">
+                          <div className="flex items-center justify-center gap-2">
+                            <button onClick={() => handleApprove(request.id)} className="px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-semibold hover:bg-green-700 transition-colors">Approve</button>
+                            <button onClick={() => handleReject(request.id)} className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-xs font-semibold hover:bg-red-700 transition-colors">Reject</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         )}
 
         {activeTab === 'schedule' && (
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-6 animate-fadeIn">
             <div className="grid grid-cols-6 gap-4">
               {statCards.map(card => (
-                <div key={card.key} onClick={() => setSelectedFilter(card.key)} className={`bg-white rounded-xl p-4 flex items-center gap-3 border border-gray-200 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-800/10 border-l-[3px] ${card.color} ${selectedFilter === card.key ? 'ring-2 ring-teal-600 shadow-lg shadow-teal-600/20 -translate-y-0.5' : ''}`}>
+                <div key={card.key} onClick={() => setSelectedFilter(card.key)} className={`bg-white rounded-xl p-4 flex items-center gap-3 border border-gray-200 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-800/10 border-l-[3px] ${card.color} ${selectedFilter === card.key ? `ring-2 ${card.ring} -translate-y-0.5` : ''}`}>
                   <div className={`text-2xl w-11 h-11 rounded-xl flex items-center justify-center bg-gradient-to-br ${card.iconBg} shrink-0`}>{card.icon}</div>
                   <div className="flex flex-col gap-0.5">
                     <span className="text-2xl font-bold text-slate-800">{card.key === 'total' ? schedules.length : schedules.filter(s => s.status === card.key).length}</span>
@@ -238,12 +384,30 @@ export default function MeetingRoom() {
             </div>
             <form onSubmit={handleSubmit}>
               <div className="mb-5">
+                <label className="block text-slate-800 mb-2 font-semibold text-sm">Room Image</label>
+                <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:border-teal-600 transition-all cursor-pointer" onClick={() => document.getElementById('imageInput').click()}>
+                  {imagePreview ? (
+                    <div className="relative w-full h-40 rounded-lg overflow-hidden">
+                      <Image src={imagePreview} alt="Preview" fill className="object-cover" />
+                      <button type="button" onClick={(e) => { e.stopPropagation(); setImageFile(null); setImagePreview(null); }} className="absolute top-2 right-2 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center text-sm hover:bg-red-600">×</button>
+                    </div>
+                  ) : (
+                    <div className="py-6">
+                      <div className="text-4xl mb-2">📷</div>
+                      <p className="text-gray-500 text-sm">Click to upload image</p>
+                      <p className="text-gray-400 text-xs mt-1">PNG, JPG up to 5MB</p>
+                    </div>
+                  )}
+                  <input type="file" id="imageInput" accept="image/*" onChange={handleImageChange} className="hidden" />
+                </div>
+              </div>
+              <div className="mb-5">
                 <label className="block text-slate-800 mb-2 font-semibold text-sm">Name of Room</label>
                 <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Enter room name" required className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all" />
               </div>
               <div className="mb-5">
                 <label className="block text-slate-800 mb-2 font-semibold text-sm">Maximum Capacity</label>
-                <input type="number" name="capacity" value={formData.capacity} onChange={handleChange} placeholder="Enter max capacity" min="1" required className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all" />
+                <input type="number" name="capacity" value={formData.capacity} onChange={handleChange} onWheel={(e) => e.target.blur()} placeholder="Enter max capacity" min="1" required className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all" />
               </div>
               <div className="mb-5">
                 <label className="block text-slate-800 mb-2 font-semibold text-sm">Inclusions</label>
@@ -251,7 +415,7 @@ export default function MeetingRoom() {
               </div>
               <div className="flex gap-3 mt-6">
                 <button type="button" onClick={closeFormModal} className="px-7 py-3.5 bg-gray-100 text-gray-600 rounded-xl font-semibold hover:bg-gray-200 transition-all">Cancel</button>
-                <button type="submit" disabled={loading} className="flex-1 py-3.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl font-semibold shadow-lg shadow-teal-600/30 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-600/40 transition-all disabled:opacity-60 disabled:cursor-not-allowed">{loading ? 'Saving...' : editingRoom ? 'Update' : 'Add Room'}</button>
+                <button type="submit" disabled={loading || uploading} className="flex-1 py-3.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl font-semibold shadow-lg shadow-teal-600/30 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-600/40 transition-all disabled:opacity-60 disabled:cursor-not-allowed">{loading || uploading ? 'Saving...' : editingRoom ? 'Update' : 'Add Room'}</button>
               </div>
             </form>
           </div>
@@ -269,8 +433,12 @@ export default function MeetingRoom() {
                 <button onClick={closeViewModal} className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 text-xl hover:bg-gray-200 hover:text-slate-800 transition-all ml-2">×</button>
               </div>
             </div>
-            <div className="relative w-full h-56 rounded-xl overflow-hidden mb-6 shadow-lg">
-              <Image src={selectedRoom.image} alt={selectedRoom.name} fill className="object-cover" />
+            <div className="relative w-full h-56 rounded-xl overflow-hidden mb-6 shadow-lg bg-gray-100">
+              {selectedRoom.image ? (
+                <Image src={selectedRoom.image} alt={selectedRoom.name} fill className="object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400 text-6xl">🏢</div>
+              )}
             </div>
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1 p-4 bg-gray-50 rounded-xl">

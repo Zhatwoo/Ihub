@@ -37,7 +37,7 @@ export default function Hero() {
             <p className="text-[20.7px] lg:text-[23px] text-slate-700 leading-relaxed max-w-lg">
               The community, workspaces, and technology to make a good impression and get down to business.
             </p>
-            <button className="bg-[#0F766E] hover:bg-[#0d6b64] text-white font-semibold px-8 py-4 rounded-[20px] scale-[1.98375] scale-x-[0.95] scale-y-[0.85] mt-[15%] ml-[10%] border-[3px] border-white transition-colors duration-200">
+            <button className="bg-[#0F766E] hover:bg-[#0d6b64] text-white font-semibold px-8 py-4 rounded-[20px] transform scale-x-[0.95] scale-y-[0.85] mt-[15%] ml-[10%] border-[3px] border-white transition-colors duration-200">
               Inquire
             </button>
           </div>
@@ -45,15 +45,17 @@ export default function Hero() {
           {/* Right Side - Overlapping Images */}
           <div className="relative h-[500px] lg:h-[600px]">
             {/* Mid Image */}
-            <div className="absolute bottom-[-25%] left-[20%] w-[362.25px] lg:w-[410.55px] h-[301.875px] lg:h-[338.1px] rounded-2xl overflow-hidden z-60 border-[8px] border-white relative">
-              <Image
-                src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&h=600&fit=crop"
-                alt="Modern office workspace"
-                fill
-                className="object-cover"
-                unoptimized
-              />
-              <div className="w-full h-full bg-gradient-to-br from-white/20 via-slate-50/20 to-blue-50/20 relative">
+            <div className="absolute bottom-[-25%] left-[20%] w-[362.25px] lg:w-[410.55px] h-[301.875px] lg:h-[338.1px] rounded-2xl overflow-hidden z-[60] border-8 border-white">
+              <div className="relative w-full h-full">
+                <Image
+                  src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=800&h=600&fit=crop"
+                  alt="Modern office workspace"
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+              </div>
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-white/20 via-slate-50/20 to-blue-50/20">
                 {/* Windows in background */}
                 <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-blue-200/40 via-blue-100/20 to-transparent"></div>
                 {/* Purple accent strip */}
@@ -76,15 +78,17 @@ export default function Hero() {
             </div>
 
             {/* Top Image */}
-            <div className="absolute top-[-50%] right-[-50%] w-[362.25px] lg:w-[410.55px] h-[301.875px] lg:h-[338.1px] rounded-2xl overflow-hidden z-30 border-[8px] border-[#0F766E] relative">
-              <Image
-                src="https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=800&h=600&fit=crop"
-                alt="Private office space"
-                fill
-                className="object-cover"
-                unoptimized
-              />
-              <div className="w-full h-full bg-gradient-to-br from-white/20 via-slate-50/20 to-slate-100/20 relative">
+            <div className="absolute top-[-50%] right-[-50%] w-[362.25px] lg:w-[410.55px] h-[301.875px] lg:h-[338.1px] rounded-2xl overflow-hidden z-30 border-8 border-[#0F766E]">
+              <div className="relative w-full h-full">
+                <Image
+                  src="https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=800&h=600&fit=crop"
+                  alt="Private office space"
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+              </div>
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-white/20 via-slate-50/20 to-slate-100/20">
                 {/* Window/Light source */}
                 <div className="absolute top-0 left-0 right-0 h-1/3 bg-gradient-to-b from-blue-100/30 to-transparent"></div>
                 {/* Gray textured panel */}
@@ -100,15 +104,17 @@ export default function Hero() {
             </div>
 
             {/* Bottom Image */}
-            <div className="absolute bottom-[65%] right-[-60%] w-[362.25px] lg:w-[410.55px] h-[301.875px] lg:h-[338.1px] rounded-2xl overflow-hidden z-50 border-[8px] border-white relative">
-              <Image
-                src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=800&h=600&fit=crop"
-                alt="Co-working space"
-                fill
-                className="object-cover"
-                unoptimized
-              />
-              <div className="w-full h-full bg-gradient-to-br from-white/20 via-slate-50/20 to-blue-50/20 relative">
+            <div className="absolute bottom-[65%] right-[-60%] w-[362.25px] lg:w-[410.55px] h-[301.875px] lg:h-[338.1px] rounded-2xl overflow-hidden z-50 border-8 border-white">
+              <div className="relative w-full h-full">
+                <Image
+                  src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=800&h=600&fit=crop"
+                  alt="Co-working space"
+                  fill
+                  className="object-cover"
+                  unoptimized
+                />
+              </div>
+              <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-white/20 via-slate-50/20 to-blue-50/20">
                 {/* Windows in background */}
                 <div className="absolute top-0 left-0 right-0 h-1/2 bg-gradient-to-b from-blue-200/40 via-blue-100/20 to-transparent"></div>
                 {/* Desk rows */}
@@ -130,7 +136,7 @@ export default function Hero() {
 
         {/* Search Bar - Bottom Center */}
         <div className="mt-16 lg:mt-24 flex justify-center">
-          <div className="relative w-full max-w-2xl scale-[1.15]">
+          <div className="relative w-full max-w-2xl">
             <div className="flex items-center bg-[#0F766E] rounded-[30px] border-[5px] border-white overflow-hidden">
               {/* Search Icon */}
               <div className="pl-4 pr-2">
@@ -152,7 +158,7 @@ export default function Hero() {
               {/* Input Field */}
               <input
                 type="text"
-                placeholder="Search by room, c...."
+                placeholder="Search by room, capacity, or location..."
                 className="flex-1 px-4 py-4 bg-[#0F766E] text-teal-300 placeholder-teal-300 focus:outline-none rounded-l-[30px]"
               />
               
@@ -167,4 +173,3 @@ export default function Hero() {
     </div>
   );
 }
-
