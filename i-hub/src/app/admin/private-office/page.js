@@ -5,7 +5,7 @@ import Image from 'next/image';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from 'firebase/firestore';
 
-export default function MeetingRoom() {
+export default function PrivateOffice() {
   const [activeTab, setActiveTab] = useState('rooms');
   const [rooms, setRooms] = useState([]);
   const [schedules, setSchedules] = useState([]);
@@ -116,14 +116,14 @@ export default function MeetingRoom() {
 
   const handleDelete = async () => {
     if (!selectedRoom) return;
-    if (confirm('Delete this room?')) {
+    if (confirm('Delete this office?')) {
       try {
         await deleteDoc(doc(db, 'rooms', selectedRoom.id));
         setShowViewModal(false);
         setSelectedRoom(null);
       } catch (error) {
-        console.error('Error deleting room:', error);
-        alert('Failed to delete room');
+        console.error('Error deleting office:', error);
+        alert('Failed to delete office');
       }
     }
   };
@@ -201,12 +201,12 @@ export default function MeetingRoom() {
 
   return (
     <div className="max-w-6xl">
-      <h1 className="text-slate-800 text-3xl font-bold mb-6">Meeting Room</h1>
+      <h1 className="text-slate-800 text-3xl font-bold mb-6">Private Office</h1>
       
       <div className="flex gap-1 mb-6 border-b-2 border-gray-200">
         {['rooms', 'requests', 'schedule'].map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab)} className={`px-6 py-3.5 text-sm font-medium transition-all border-b-[3px] -mb-0.5 ${activeTab === tab ? 'text-slate-800 border-teal-600' : 'text-gray-500 border-transparent hover:text-slate-800 hover:bg-slate-800/5'}`}>
-            {tab === 'rooms' ? 'Meeting Rooms' : tab === 'requests' ? 'Request List' : 'Schedule'}
+            {tab === 'rooms' ? 'Private Offices' : tab === 'requests' ? 'Request List' : 'Schedule'}
           </button>
         ))}
       </div>
@@ -215,12 +215,12 @@ export default function MeetingRoom() {
         {activeTab === 'rooms' && (
           <div className="flex flex-col gap-6 animate-fadeIn">
             <div className="flex justify-between items-center gap-4">
-              <input type="text" placeholder="Search rooms..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="flex-1 max-w-xs px-4 py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all" />
-              <button onClick={openAddModal} className="px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl text-sm font-semibold shadow-lg shadow-teal-600/30 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-600/40 transition-all">+ Add Room</button>
+              <input type="text" placeholder="Search offices..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="flex-1 max-w-xs px-4 py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all" />
+              <button onClick={openAddModal} className="px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl text-sm font-semibold shadow-lg shadow-teal-600/30 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-600/40 transition-all">+ Add Office</button>
             </div>
             <div className="grid grid-cols-[repeat(auto-fill,minmax(260px,1fr))] gap-6">
               {filteredRooms.length === 0 ? (
-                <p className="text-gray-500 text-center py-10 col-span-full">{searchTerm ? 'No rooms found.' : 'No rooms created yet.'}</p>
+                <p className="text-gray-500 text-center py-10 col-span-full">{searchTerm ? 'No offices found.' : 'No offices created yet.'}</p>
               ) : (
                 filteredRooms.map((room) => (
                   <div key={room.id} onClick={() => openViewModal(room)} className="bg-white rounded-2xl overflow-hidden cursor-pointer border border-gray-200 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-slate-800/10 hover:border-transparent relative before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-gradient-to-r before:from-slate-800 before:to-teal-600 before:opacity-0 hover:before:opacity-100 before:transition-opacity">
@@ -270,7 +270,7 @@ export default function MeetingRoom() {
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Client</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Date Requested</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Room</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Office</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Date & Time</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Guests</th>
                       <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Purpose</th>
@@ -336,13 +336,13 @@ export default function MeetingRoom() {
                   <div className="flex gap-2.5 items-center ml-auto">
                     <input type="text" placeholder="Search..." value={scheduleSearch} onChange={(e) => setScheduleSearch(e.target.value)} className="flex-1 min-w-[150px] max-w-[220px] px-3 py-2 border border-gray-200 rounded-lg text-sm text-slate-900 bg-white focus:outline-none focus:border-teal-600" />
                     <select value={roomFilter} onChange={(e) => setRoomFilter(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-slate-900 bg-white cursor-pointer focus:outline-none focus:border-teal-600">
-                      <option value="all">All Rooms</option>
+                      <option value="all">All Offices</option>
                       {uniqueRooms.map(room => <option key={room} value={room}>{room}</option>)}
                     </select>
                     <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="px-3 py-2 border border-gray-200 rounded-lg text-sm text-slate-900 bg-white cursor-pointer focus:outline-none focus:border-teal-600">
                       <option value="date">Sort by Date</option>
                       <option value="client">Sort by Client</option>
-                      <option value="room">Sort by Room</option>
+                      <option value="room">Sort by Office</option>
                       <option value="guests">Sort by Guests</option>
                     </select>
                     <button onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')} className="w-9 h-9 border border-teal-600 rounded-lg bg-teal-50 text-teal-600 font-bold flex items-center justify-center hover:bg-teal-600 hover:text-white transition-all">{sortOrder === 'asc' ? '▲' : '▼'}</button>
@@ -354,7 +354,7 @@ export default function MeetingRoom() {
                 ) : (
                   <div className="flex flex-col gap-2">
                     <div className="grid grid-cols-[1.2fr_1fr_0.9fr_1.1fr_0.6fr_1fr_0.8fr] gap-3 px-4 py-3 bg-slate-800 text-white rounded-lg text-xs font-semibold uppercase tracking-wide">
-                      <span>Client</span><span>Room</span><span>Date</span><span>Time</span><span>Guests</span><span>Purpose</span><span>Status</span>
+                      <span>Client</span><span>Office</span><span>Date</span><span>Time</span><span>Guests</span><span>Purpose</span><span>Status</span>
                     </div>
                     {filteredSchedules.map((schedule) => (
                       <div key={schedule.id} className="grid grid-cols-[1.2fr_1fr_0.9fr_1.1fr_0.6fr_1fr_0.8fr] gap-3 px-4 py-3.5 bg-white rounded-lg text-sm text-gray-600 items-center border border-gray-200 hover:shadow-lg hover:shadow-slate-800/10 hover:border-teal-600 transition-all">
@@ -379,12 +379,12 @@ export default function MeetingRoom() {
         <div className="fixed inset-0 bg-slate-800/60 backdrop-blur-sm flex items-center justify-center z-50 animate-[fadeIn_0.2s_ease]" onClick={closeFormModal}>
           <div className="bg-white rounded-2xl p-7 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl animate-[slideUp_0.3s_ease]" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6 pb-4 border-b-2 border-gray-100">
-              <h2 className="text-slate-800 text-xl font-bold">{editingRoom ? 'Edit Room' : 'Add New Room'}</h2>
+              <h2 className="text-slate-800 text-xl font-bold">{editingRoom ? 'Edit Office' : 'Add New Office'}</h2>
               <button onClick={closeFormModal} className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 text-xl hover:bg-gray-200 hover:text-slate-800 transition-all">×</button>
             </div>
             <form onSubmit={handleSubmit}>
               <div className="mb-5">
-                <label className="block text-slate-800 mb-2 font-semibold text-sm">Room Image</label>
+                <label className="block text-slate-800 mb-2 font-semibold text-sm">Office Image</label>
                 <div className="border-2 border-dashed border-gray-200 rounded-xl p-4 text-center hover:border-teal-600 transition-all cursor-pointer" onClick={() => document.getElementById('imageInput').click()}>
                   {imagePreview ? (
                     <div className="relative w-full h-40 rounded-lg overflow-hidden">
@@ -402,8 +402,8 @@ export default function MeetingRoom() {
                 </div>
               </div>
               <div className="mb-5">
-                <label className="block text-slate-800 mb-2 font-semibold text-sm">Name of Room</label>
-                <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Enter room name" required className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all" />
+                <label className="block text-slate-800 mb-2 font-semibold text-sm">Name of Office</label>
+                <input type="text" name="name" value={formData.name} onChange={handleChange} placeholder="Enter office name" required className="w-full px-4 py-3.5 border-2 border-gray-200 rounded-xl text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all" />
               </div>
               <div className="mb-5">
                 <label className="block text-slate-800 mb-2 font-semibold text-sm">Maximum Capacity</label>
@@ -415,7 +415,7 @@ export default function MeetingRoom() {
               </div>
               <div className="flex gap-3 mt-6">
                 <button type="button" onClick={closeFormModal} className="px-7 py-3.5 bg-gray-100 text-gray-600 rounded-xl font-semibold hover:bg-gray-200 transition-all">Cancel</button>
-                <button type="submit" disabled={loading || uploading} className="flex-1 py-3.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl font-semibold shadow-lg shadow-teal-600/30 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-600/40 transition-all disabled:opacity-60 disabled:cursor-not-allowed">{loading || uploading ? 'Saving...' : editingRoom ? 'Update' : 'Add Room'}</button>
+                <button type="submit" disabled={loading || uploading} className="flex-1 py-3.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl font-semibold shadow-lg shadow-teal-600/30 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-600/40 transition-all disabled:opacity-60 disabled:cursor-not-allowed">{loading || uploading ? 'Saving...' : editingRoom ? 'Update' : 'Add Office'}</button>
               </div>
             </form>
           </div>
@@ -426,7 +426,7 @@ export default function MeetingRoom() {
         <div className="fixed inset-0 bg-slate-800/60 backdrop-blur-sm flex items-center justify-center z-50 animate-[fadeIn_0.2s_ease]" onClick={closeViewModal}>
           <div className="bg-white rounded-2xl p-7 w-full max-w-md max-h-[90vh] overflow-y-auto shadow-2xl animate-[slideUp_0.3s_ease]" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-6 pb-4 border-b-2 border-gray-100">
-              <h2 className="text-slate-800 text-xl font-bold">Room Details</h2>
+              <h2 className="text-slate-800 text-xl font-bold">Office Details</h2>
               <div className="flex items-center gap-1">
                 <button onClick={handleEdit} title="Edit" className="p-2 bg-gray-100 rounded-lg text-lg hover:bg-gray-200 hover:scale-110 transition-all">✏️</button>
                 <button onClick={handleDelete} title="Delete" className="p-2 bg-red-50 rounded-lg text-lg hover:bg-red-100 hover:scale-110 transition-all">🗑️</button>
@@ -442,7 +442,7 @@ export default function MeetingRoom() {
             </div>
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1 p-4 bg-gray-50 rounded-xl">
-                <span className="text-gray-500 text-xs uppercase tracking-wide font-semibold">Room Name</span>
+                <span className="text-gray-500 text-xs uppercase tracking-wide font-semibold">Office Name</span>
                 <span className="text-slate-800 text-lg font-semibold">{selectedRoom.name}</span>
               </div>
               <div className="flex flex-col gap-1 p-4 bg-gray-50 rounded-xl">
@@ -460,3 +460,4 @@ export default function MeetingRoom() {
     </div>
   );
 }
+

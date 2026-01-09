@@ -7,7 +7,7 @@ const navItems = [
   { name: 'Dashboard', href: '/admin', icon: '📊' },
   { name: 'Reports', href: '/admin/reports', icon: '📈' },
   { name: 'Billing', href: '/admin/billing', icon: '💳' },
-  { name: 'Meeting Room', href: '/admin/meeting-room', icon: '🏢' },
+  { name: 'Private Office', href: '/admin/private-office', icon: '🏢' },
   { name: 'Tenants', href: '/admin/tenants', icon: '👥' },
   { name: 'Map', href: '/admin/map', icon: '🗺️' },
 ];
