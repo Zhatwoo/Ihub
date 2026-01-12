@@ -39,6 +39,10 @@ export default function PrivateOffices() {
   });
 
   useEffect(() => {
+    if (!db) {
+      console.warn('Firebase is not initialized. Please configure your .env.local file.');
+      return;
+    }
     const unsubscribe = onSnapshot(collection(db, 'rooms'), (snapshot) => {
       const roomsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setRooms(roomsData);
@@ -82,6 +86,10 @@ export default function PrivateOffices() {
         status: 'pending',
         createdAt: new Date().toISOString()
       };
+      if (!db) {
+        showAlert('error', 'Firebase is not initialized. Please configure your .env.local file.');
+        return;
+      }
       await addDoc(collection(db, 'schedules'), reservationData);
       closeReservationModal();
       showAlert('success', 'Reservation request submitted successfully!');

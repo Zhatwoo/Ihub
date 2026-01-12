@@ -1,16 +1,35 @@
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function ClientHomePage() {
   return (
     <div>
       {/* Hero Section */}
-      <section className="bg-gradient-to-br from-slate-800 to-slate-900 text-white py-24">
-        <div className="max-w-7xl mx-auto px-6 text-center">
-          <h1 className="text-5xl font-bold mb-6">Find Your Perfect Meeting Space</h1>
-          <p className="text-xl text-gray-300 mb-10 max-w-2xl mx-auto">Book premium private offices and event spaces at Inspire Hub. Professional environments for your business needs.</p>
-          <Link href="/client/private-offices" className="inline-block px-8 py-4 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-xl font-semibold text-lg shadow-lg shadow-teal-600/30 hover:-translate-y-1 hover:shadow-xl transition-all">
-            Browse Private Offices
-          </Link>
+      <section className="relative min-h-screen overflow-hidden -mt-[80px] pt-[80px]">
+        {/* Full-Width Background Image */}
+        <div className="absolute inset-0 w-full h-full">
+          <Image
+            src="/images/desk2.png"
+            alt="Modern conference room at Inspire Hub"
+            fill
+            className="object-cover"
+            priority
+            unoptimized
+          />
+        </div>
+        
+        {/* Dark Overlay for Text Readability */}
+        <div className="absolute inset-0 bg-gradient-to-br from-slate-900/70 to-slate-800/60"></div>
+        
+        {/* Text Content Overlay */}
+        <div className="relative z-10 max-w-7xl mx-auto px-6 h-full min-h-screen flex items-center justify-center">
+          <div className="text-center text-white py-24">
+            <h1 className="text-5xl lg:text-6xl font-bold mb-6 drop-shadow-lg">Find Your Perfect Meeting Space</h1>
+            <p className="text-xl lg:text-2xl text-gray-100 mb-10 max-w-3xl mx-auto drop-shadow-md">Book premium private offices and event spaces at Inspire Hub. Professional environments for your business needs.</p>
+            <Link href="/client/private-offices" className="inline-block px-8 py-4 bg-gradient-to-r from-teal-500 to-teal-600 text-white rounded-xl font-semibold text-lg shadow-lg shadow-teal-600/30 hover:-translate-y-1 hover:shadow-xl transition-all">
+              Browse Private Offices
+            </Link>
+          </div>
         </div>
       </section>
 

@@ -21,6 +21,10 @@ export default function Bookings() {
 
   // Fetch bookings
   useEffect(() => {
+    if (!db) {
+      console.warn('Firebase is not initialized. Please configure your .env.local file.');
+      return;
+    }
     const unsubscribe = onSnapshot(collection(db, 'schedules'), (snapshot) => {
       const bookingsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       // Sort by date descending (newest first)
@@ -32,6 +36,7 @@ export default function Bookings() {
 
   // Fetch rooms to get rental fee information
   useEffect(() => {
+    if (!db) return;
     const unsubscribe = onSnapshot(collection(db, 'rooms'), (snapshot) => {
       const roomsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setRooms(roomsData);
