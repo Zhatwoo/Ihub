@@ -3,9 +3,13 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import LoginModal from '@/app/auth/login';
+import SignUpModal from '@/app/auth/signIn';
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isSignUpOpen, setIsSignUpOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -36,21 +40,35 @@ export default function Header() {
 
           {/* Navigation Links - Bold Dark Navy */}
           <nav className={`flex items-center transition-all duration-300 ${isScrolled ? 'gap-3' : 'gap-3.5'}`}>
-            <Link
-              href="/signup"
+            <button
+              onClick={() => setIsSignUpOpen(true)}
               className={`text-slate-800 font-bold hover:text-slate-600 transition-colors ${isScrolled ? 'text-xs' : 'text-sm'}`}
             >
               Sign up
-            </Link>
-            <Link
-              href="/login"
+            </button>
+            <button
+              onClick={() => setIsLoginOpen(true)}
               className={`text-slate-800 font-bold hover:text-slate-600 transition-colors ${isScrolled ? 'text-xs' : 'text-sm'}`}
             >
               Login
-            </Link>
+            </button>
           </nav>
         </div>
       </div>
+      
+      {/* Login Modal */}
+      <LoginModal 
+        isOpen={isLoginOpen} 
+        onClose={() => setIsLoginOpen(false)}
+        onSwitchToSignUp={() => setIsSignUpOpen(true)}
+      />
+      
+      {/* Sign Up Modal */}
+      <SignUpModal 
+        isOpen={isSignUpOpen} 
+        onClose={() => setIsSignUpOpen(false)}
+        onSwitchToLogin={() => setIsLoginOpen(true)}
+      />
     </header>
   );
 }
