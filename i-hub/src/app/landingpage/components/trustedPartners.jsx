@@ -1,21 +1,38 @@
+'use client';
+
+import { useRef } from 'react';
 import Image from 'next/image';
+import { motion, useInView } from 'framer-motion';
 
 export default function TrustedPartners() {
+  const sectionRef = useRef(null);
+  const isSectionInView = useInView(sectionRef, { once: true, amount: 0.2 });
+
   return (
-    <section className="py-16 lg:py-24 bg-white">
+    <section ref={sectionRef} className="py-16 lg:py-24 bg-white">
       <div className="max-w-7xl mx-auto px-6 lg:px-8">
         {/* Title */}
-        <div className="text-center mb-12 lg:mb-16">
+        <motion.div 
+          className="text-center mb-12 lg:mb-16"
+          initial={{ y: 50, opacity: 0 }}
+          animate={isSectionInView ? { y: 0, opacity: 1 } : { y: 50, opacity: 0 }}
+          transition={{ duration: 0.6, ease: 'easeOut' }}
+        >
           <h2 className="text-3xl lg:text-4xl font-bold text-[#1F2937] mb-4">
             Our Trusted Partners
           </h2>
           <div className="w-32 h-1 bg-[#0F766E] mx-auto"></div>
-        </div>
+        </motion.div>
 
         {/* Logos Grid */}
         <div className="space-y-12 lg:space-y-16">
           {/* Top Row - 4 Logos */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12 items-center justify-items-center">
+          <motion.div 
+            className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12 items-center justify-items-center"
+            initial={{ y: 50, opacity: 0 }}
+            animate={isSectionInView ? { y: 0, opacity: 1 } : { y: 50, opacity: 0 }}
+            transition={{ duration: 0.6, ease: 'easeOut', delay: 0.2 }}
+          >
             {/* SMDC */}
             <div className="flex items-center justify-center w-full h-20 relative">
               <Image
@@ -59,10 +76,15 @@ export default function TrustedPartners() {
                 unoptimized
               />
             </div>
-          </div>
+          </motion.div>
 
           {/* Bottom Row - 3 Logos Centered */}
-          <div className="flex flex-wrap items-center justify-center gap-8 lg:gap-12">
+          <motion.div 
+            className="flex flex-wrap items-center justify-center gap-8 lg:gap-12"
+            initial={{ y: 50, opacity: 0 }}
+            animate={isSectionInView ? { y: 0, opacity: 1 } : { y: 50, opacity: 0 }}
+            transition={{ duration: 0.6, ease: 'easeOut', delay: 0.4 }}
+          >
             {/* Megaworld International */}
             <div className="flex items-center justify-center w-full sm:w-[200px] lg:w-[250px] h-20 relative">
               <Image
@@ -95,7 +117,7 @@ export default function TrustedPartners() {
                 unoptimized
               />
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
     </section>

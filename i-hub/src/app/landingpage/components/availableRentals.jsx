@@ -47,20 +47,33 @@ export default function AvailableRentals() {
 
   return (
     <section ref={sectionRef} className="relative bg-white py-16 lg:py-24 overflow-hidden">
+      {/* Background Gradient - Dark Slate to White */}
+      <div 
+        className="absolute bottom-0 left-0 right-0 h-1/2 pointer-events-none z-0"
+        style={{
+          background: 'linear-gradient(to top, #1F2937 0%, rgba(31, 41, 55, 0.8) 25%, rgba(31, 41, 55, 0.4) 50%, rgba(255, 255, 255, 0) 100%)'
+        }}
+      ></div>
+      
       {/* Section Title */}
-      <div className="max-w-7xl mx-auto px-6 lg:px-8 mb-12 lg:mb-16">
+      <motion.div 
+        className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 mb-12 lg:mb-16"
+        initial={{ y: 50, opacity: 0 }}
+        animate={isSectionInView ? { y: 0, opacity: 1 } : { y: 50, opacity: 0 }}
+        transition={{ duration: 0.6, ease: 'easeOut' }}
+      >
         <h2 className={`${leagueSpartan.className} text-3xl lg:text-4xl font-bold text-slate-800 mb-2`}>
           Available Rental Spaces
         </h2>
         <div className="w-24 h-1 bg-[#0F766E]"></div>
-      </div>
+      </motion.div>
 
       {/* Color Palette Container - Full Width with scroll animation */}
       <motion.div
-        initial={{ x: 100, opacity: 0 }}
-        animate={isSectionInView ? { x: 0, opacity: 1 } : { x: 100, opacity: 0 }}
-        transition={{ duration: 0.8, ease: 'easeOut' }}
-        className="max-w-7xl mx-auto px-6 lg:px-8"
+        initial={{ y: 50, opacity: 0 }}
+        animate={isSectionInView ? { y: 0, opacity: 1 } : { y: 50, opacity: 0 }}
+        transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
+        className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8"
       >
         {/* Container */}
         <div className="h-[500px] lg:h-[600px] rounded-2xl overflow-hidden shadow-[0_10px_20px_#dbdbdb]">
