@@ -95,7 +95,8 @@ export default function AvailableRentals() {
                     alt={option.title}
                     fill
                     className="object-cover"
-                    unoptimized
+                    sizes="(max-width: 1024px) 33vw, 33vw"
+                    loading="lazy"
                   />
                 </div>
                 

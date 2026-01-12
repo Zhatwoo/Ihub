@@ -38,7 +38,7 @@ export default function LocationCta() {
   };
 
   return (
-    <section ref={sectionRef} className="relative bg-white overflow-hidden">
+    <section id="inquiry-form" ref={sectionRef} className="relative bg-white overflow-hidden">
       {/* Top Section - Text Content */}
       <div className="bg-white py-12 lg:py-16">
         <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">

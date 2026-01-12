@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { League_Spartan } from 'next/font/google';
 import { motion } from 'framer-motion';
 
@@ -50,9 +51,12 @@ export default function Hero() {
             <p className="text-[20.7px] lg:text-[23px] text-slate-700 leading-relaxed max-w-lg">
               The community, workspaces, and technology to make a good impression and get down to business.
             </p>
-            <button className="bg-[#0F766E] hover:bg-[#0d6b64] text-white font-semibold px-8 py-4 rounded-[20px] transform scale-x-[1.9] scale-y-[1.7] mt-[15%] ml-[10%] border-[3px] border-white transition-colors duration-200">
+            <Link 
+              href="#inquiry-form" 
+              className="inline-block bg-[#0F766E] hover:bg-[#0d6b64] text-white font-semibold px-8 py-4 rounded-[20px] transform scale-x-[1.9] scale-y-[1.7] mt-[15%] ml-[10%] border-[3px] border-white transition-colors duration-200"
+            >
               Inquire
-            </button>
+            </Link>
           </motion.div>
 
           {/* Right Side - Overlapping Images */}
@@ -75,7 +79,8 @@ export default function Hero() {
                   fill
                   className="object-cover object-center"
                   style={{ objectPosition: 'center 60%' }}
-                  unoptimized
+                  priority
+                  sizes="(max-width: 1024px) 362px, 411px"
                 />
               </div>
             </motion.div>
@@ -92,7 +97,7 @@ export default function Hero() {
                   alt="Virtual office space"
                   fill
                   className="object-cover"
-                  unoptimized
+                  sizes="(max-width: 1024px) 362px, 411px"
                 />
               </div>
             </motion.div>
@@ -109,7 +114,7 @@ export default function Hero() {
                   alt="Dedicated workspace"
                   fill
                   className="object-cover"
-                  unoptimized
+                  sizes="(max-width: 1024px) 362px, 411px"
                 />
               </div>
             </motion.div>
