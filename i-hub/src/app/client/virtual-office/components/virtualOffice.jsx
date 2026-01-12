@@ -1,5 +1,10 @@
+'use client';
+
 import { League_Spartan } from 'next/font/google';
 import Image from 'next/image';
+import Link from 'next/link';
+import { motion, useInView } from 'framer-motion';
+import { useRef } from 'react';
 
 const leagueSpartan = League_Spartan({
   subsets: ['latin'],
@@ -7,10 +12,16 @@ const leagueSpartan = League_Spartan({
 });
 
 export default function VirtualOfficeHero() {
+  const heroRef = useRef(null);
+  const textRef = useRef(null);
+  const isHeroInView = useInView(heroRef, { once: true, amount: 0.3 });
+  const isTextInView = useInView(textRef, { once: true, amount: 0.2 });
+
   return (
     <div className="w-full bg-[#FFFFFF] min-h-[1080px]">
       {/* Diagonal Divider Design at Top */}
       <div 
+        ref={heroRef}
         className="w-full bg-[#0F766E] relative"
         style={{
           height: '500px',
@@ -18,14 +29,37 @@ export default function VirtualOfficeHero() {
         }}
       >
         {/* Green Rectangle with Text */}
-        <div className="absolute left-[8%] top-[15%] sm:left-[8%] sm:top-[15%]">
+        <div className="absolute left-[8%] top-[7%] sm:left-[8%] sm:top-[7%]">
           <div className=" bg-transparent p-8 sm:p-10 lg:p-12">
-            <h1 className={`text-white text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-bold mb-4 ${leagueSpartan.className}`}>
+            <motion.h1 
+              initial={{ opacity: 0, y: -50, scale: 0.9 }}
+              animate={isHeroInView ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: -50, scale: 0.9 }}
+              transition={{ duration: 0.8, ease: 'easeOut' }}
+              className={`text-white text-5xl sm:text-6xl lg:text-7xl xl:text-8xl font-bold mb-4 ${leagueSpartan.className}`}
+            >
               Virtual Office
-            </h1>
-            <p className={`text-white text-2xl sm:text-3xl lg:text-4xl leading-relaxed text-center ${leagueSpartan.className}`}>
+            </motion.h1>
+            <motion.p 
+              initial={{ opacity: 0, y: 30 }}
+              animate={isHeroInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 30 }}
+              transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
+              className={`text-white text-2xl sm:text-3xl lg:text-4xl leading-relaxed text-center ${leagueSpartan.className}`}
+            >
               Professional business address and <br/> support services for your growing <br/> enterprise
-            </p>
+            </motion.p>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={isHeroInView ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
+              transition={{ duration: 0.6, ease: 'easeOut', delay: 0.4 }}
+              className="flex justify-center mt-6 sm:mt-8"
+            >
+              <Link
+                href="#inquiry-form"
+                className={`bg-white text-[#0F766E] px-8 py-3 sm:px-10 sm:py-4 lg:px-12 lg:py-5 rounded-lg font-semibold text-lg sm:text-xl lg:text-2xl hover:bg-teal-50 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-110 active:scale-95 ${leagueSpartan.className}`}
+              >
+                Inquire
+              </Link>
+            </motion.div>
           </div>
         </div>
       </div>
@@ -69,14 +103,24 @@ export default function VirtualOfficeHero() {
         </div>
         
         {/* Text in White Background */}
-        <div className="absolute left-[10%] top-8 sm:left-[10%] sm:top-12 lg:left-[10%] lg:top-16">
-          <div className="max-w-[63rem]">
-            <p className={`text-gray-800 text-[1.294rem] sm:text-[1.438rem] lg:text-[1.725rem] leading-relaxed text-left font-bold ${leagueSpartan.className}`}>
+        <div ref={textRef} className="absolute left-[10%] top-8 sm:left-[10%] sm:top-12 lg:left-[10%] lg:top-16">
+          <motion.div 
+            initial={{ opacity: 0, x: -50 }}
+            animate={isTextInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -50 }}
+            transition={{ duration: 0.8, ease: 'easeOut' }}
+            className="max-w-[63rem]"
+          >
+            <motion.p 
+              initial={{ opacity: 0 }}
+              animate={isTextInView ? { opacity: 1 } : { opacity: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+              className={`text-gray-800 text-[1.294rem] sm:text-[1.438rem] lg:text-[1.725rem] leading-relaxed text-left font-bold ${leagueSpartan.className}`}
+            >
               I-Hub's Virtual Office solutions equip your business with the essential tools to thrive. Establish a strong presence with a prestigious 5-star business address, a local phone number, dedicated receptionist services, and comprehensive corporate registration support.
               <br/><br/>
               With an I-Hub Virtual Office, you can project the image and enjoy the operational support of a well-established global company—quickly, seamlessly, and at a fraction of the traditional cost.
-            </p>
-          </div>
+            </motion.p>
+          </motion.div>
         </div>
       </div>
     </div>

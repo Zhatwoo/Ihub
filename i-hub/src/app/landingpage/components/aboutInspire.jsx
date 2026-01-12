@@ -105,7 +105,8 @@ export default function AboutInspire() {
                   alt={`Office workspace ${index + 1}`}
                   fill
                   className="object-cover"
-                  unoptimized
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  loading="lazy"
                 />
               </motion.div>
             ))}
@@ -134,7 +135,8 @@ export default function AboutInspire() {
                   alt={`Complimentary amenities ${index + 1}`}
                   fill
                   className="object-cover"
-                  unoptimized
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  loading="lazy"
                 />
               </motion.div>
             ))}

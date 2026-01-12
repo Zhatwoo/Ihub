@@ -25,6 +25,12 @@ export default function VirtualOfficeHeader() {
         {/* Right side - Navigation Links */}
         <nav className="flex items-center gap-[1.575rem]">
           <Link
+            href="/client/home"
+            className="text-white text-[0.9646875rem] font-medium hover:text-teal-100 transition-colors"
+          >
+            Home
+          </Link>
+          <Link
             href="/client/virtual-office"
             className="text-white text-[0.9646875rem] font-medium hover:text-teal-100 transition-colors"
           >

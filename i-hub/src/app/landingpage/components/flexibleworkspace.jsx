@@ -36,7 +36,8 @@ export default function FlexibleWorkspace() {
                       alt="Office workspace"
                       fill
                       className="object-cover"
-                      unoptimized
+                      loading="lazy"
+                      sizes="(max-width: 1024px) 50vw, 25vw"
                     />
                   </div>
 
@@ -47,7 +48,8 @@ export default function FlexibleWorkspace() {
                       alt="Office workspace"
                       fill
                       className="object-cover"
-                      unoptimized
+                      loading="lazy"
+                      sizes="(max-width: 1024px) 50vw, 25vw"
                     />
                   </div>
 
@@ -58,7 +60,8 @@ export default function FlexibleWorkspace() {
                       alt="Office workspace"
                       fill
                       className="object-cover"
-                      unoptimized
+                      loading="lazy"
+                      sizes="(max-width: 1024px) 50vw, 25vw"
                     />
                   </div>
 
@@ -69,7 +72,8 @@ export default function FlexibleWorkspace() {
                       alt="Office workspace"
                       fill
                       className="object-cover"
-                      unoptimized
+                      loading="lazy"
+                      sizes="(max-width: 1024px) 50vw, 25vw"
                     />
                   </div>
 
@@ -80,7 +84,8 @@ export default function FlexibleWorkspace() {
                       alt="Office workspace"
                       fill
                       className="object-cover"
-                      unoptimized
+                      loading="lazy"
+                      sizes="(max-width: 1024px) 50vw, 25vw"
                     />
                   </div>
 
@@ -91,7 +96,8 @@ export default function FlexibleWorkspace() {
                       alt="Office workspace"
                       fill
                       className="object-cover"
-                      unoptimized
+                      loading="lazy"
+                      sizes="(max-width: 1024px) 50vw, 25vw"
                     />
                   </div>
                 </ThreeDScrollTriggerColumn>
@@ -107,7 +113,8 @@ export default function FlexibleWorkspace() {
                       alt="Office workspace"
                       fill
                       className="object-cover"
-                      unoptimized
+                      loading="lazy"
+                      sizes="(max-width: 1024px) 50vw, 25vw"
                     />
                   </div>
 
@@ -118,7 +125,8 @@ export default function FlexibleWorkspace() {
                       alt="Office workspace"
                       fill
                       className="object-cover"
-                      unoptimized
+                      loading="lazy"
+                      sizes="(max-width: 1024px) 50vw, 25vw"
                     />
                   </div>
 
@@ -129,7 +137,8 @@ export default function FlexibleWorkspace() {
                       alt="Office workspace"
                       fill
                       className="object-cover"
-                      unoptimized
+                      loading="lazy"
+                      sizes="(max-width: 1024px) 50vw, 25vw"
                     />
                   </div>
 
@@ -140,7 +149,8 @@ export default function FlexibleWorkspace() {
                       alt="Office workspace"
                       fill
                       className="object-cover"
-                      unoptimized
+                      loading="lazy"
+                      sizes="(max-width: 1024px) 50vw, 25vw"
                     />
                   </div>
 
@@ -151,7 +161,8 @@ export default function FlexibleWorkspace() {
                       alt="Office workspace"
                       fill
                       className="object-cover"
-                      unoptimized
+                      loading="lazy"
+                      sizes="(max-width: 1024px) 50vw, 25vw"
                     />
                   </div>
 
@@ -162,7 +173,8 @@ export default function FlexibleWorkspace() {
                       alt="Office workspace"
                       fill
                       className="object-cover"
-                      unoptimized
+                      loading="lazy"
+                      sizes="(max-width: 1024px) 50vw, 25vw"
                     />
                   </div>
                 </ThreeDScrollTriggerColumn>

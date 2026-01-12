@@ -40,7 +40,8 @@ export default function TrustedPartners() {
                 alt="SMDC Logo"
                 fill
                 className="object-contain"
-                unoptimized
+                sizes="(max-width: 1024px) 50vw, 25vw"
+                loading="lazy"
               />
             </div>
 
@@ -51,7 +52,8 @@ export default function TrustedPartners() {
                 alt="Vista Land Logo"
                 fill
                 className="object-contain"
-                unoptimized
+                sizes="(max-width: 1024px) 50vw, 25vw"
+                loading="lazy"
               />
             </div>
 
@@ -62,7 +64,8 @@ export default function TrustedPartners() {
                 alt="Alliance Global Logo"
                 fill
                 className="object-contain"
-                unoptimized
+                sizes="(max-width: 1024px) 50vw, 25vw"
+                loading="lazy"
               />
             </div>
 
@@ -73,7 +76,8 @@ export default function TrustedPartners() {
                 alt="AyalaLand Logo"
                 fill
                 className="object-contain"
-                unoptimized
+                sizes="(max-width: 1024px) 50vw, 25vw"
+                loading="lazy"
               />
             </div>
           </motion.div>
@@ -92,7 +96,8 @@ export default function TrustedPartners() {
                 alt="Megaworld International Logo"
                 fill
                 className="object-contain"
-                unoptimized
+                sizes="(max-width: 1024px) 50vw, 25vw"
+                loading="lazy"
               />
             </div>
 
@@ -103,7 +108,8 @@ export default function TrustedPartners() {
                 alt="UnionBank Logo"
                 fill
                 className="object-contain"
-                unoptimized
+                sizes="(max-width: 1024px) 50vw, 25vw"
+                loading="lazy"
               />
             </div>
 
@@ -114,7 +120,8 @@ export default function TrustedPartners() {
                 alt="GM Fastcash Lending Corporation Logo"
                 fill
                 className="object-contain"
-                unoptimized
+                sizes="(max-width: 1024px) 50vw, 25vw"
+                loading="lazy"
               />
             </div>
           </motion.div>
