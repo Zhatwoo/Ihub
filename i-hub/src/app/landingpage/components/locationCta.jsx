@@ -84,23 +84,18 @@ export default function LocationCta() {
         </motion.div>
 
         {/* Curved Wave Transition - deeper overlap into the map */}
-        <div className="absolute inset-x-0 bottom-[10px] w-full z-20 pointer-events-none">
-        <svg viewBox="0 0 1440 500" xmlns="http://www.w3.org/2000/svg">
-  <path
-    d="
-      M0,50
-      C360,500 1080,500 1440,50
-      L1440,500
-      L0,500
-      Z
-    "
-    fill="#0F766E"
-  />
-</svg>
-          </div>
-      </div>
-
-      {/* Bottom Section - Schedule a Meeting Form */}
+        <div
+  className="absolute inset-x-0 bottom-[10px] w-full z-20 pointer-events-none bg-[#0F766E]"
+  style={{
+    height: '500px',
+    /* Dinagdagan natin ang points sa gitna para maging "Round" ang bagsak.
+       Ang 'y' values (30%, 55%, 70%, etc.) ay dahan-dahang binago para maging smooth.
+    */
+    clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%, 5% 12%, 10% 23%, 15% 33%, 20% 42%, 25% 50%, 30% 57%, 35% 63%, 40% 67%, 45% 69%, 50% 70%, 55% 69%, 60% 67%, 65% 63%, 70% 57%, 75% 50%, 80% 42%, 85% 33%, 90% 23%, 95% 12%, 100% 0%)'
+  }}
+/>
+   </div>
+       {/* Bottom Section - Schedule a Meeting Form */}
       <div className=" py-12 lg:py-16 relative -mt-96 lg:-mt-128 z-30">
         <div className="max-w-4xl mx-auto px-6 lg:px-8">
           <motion.div
