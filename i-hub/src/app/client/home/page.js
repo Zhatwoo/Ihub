@@ -1,25 +1,98 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
+const heroImages = [
+  '/images/desk2.png',
+  '/images/desk1.1.png',
+  '/images/desk1.png',
+  '/images/Corporate 1.jpg',
+];
+
 export default function ClientHomePage() {
+  const [currentImageIndex, setCurrentImageIndex] = useState(0);
+
+  // Auto-rotate images every 5 seconds
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImageIndex((prev) => (prev + 1) % heroImages.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const goToNext = () => {
+    setCurrentImageIndex((prev) => (prev + 1) % heroImages.length);
+  };
+
+  const goToPrevious = () => {
+    setCurrentImageIndex((prev) => (prev - 1 + heroImages.length) % heroImages.length);
+  };
+
   return (
     <div>
       {/* Hero Section */}
       <section className="relative min-h-screen overflow-hidden -mt-[80px] pt-[80px]">
-        {/* Full-Width Background Image */}
+        {/* Full-Width Background Image Carousel */}
         <div className="absolute inset-0 w-full h-full">
-          <Image
-            src="/images/desk2.png"
-            alt="Modern conference room at Inspire Hub"
-            fill
-            className="object-cover"
-            priority
-            unoptimized
-          />
+          {heroImages.map((src, index) => (
+            <div
+              key={src}
+              className={`absolute inset-0 w-full h-full transition-opacity duration-1000 ${
+                index === currentImageIndex ? 'opacity-100' : 'opacity-0'
+              }`}
+            >
+              <Image
+                src={src}
+                alt={`Modern conference room ${index + 1} at Inspire Hub`}
+                fill
+                className="object-cover"
+                priority={index === 0}
+                unoptimized
+              />
+            </div>
+          ))}
         </div>
         
         {/* Dark Overlay for Text Readability */}
         <div className="absolute inset-0 bg-gradient-to-br from-slate-900/70 to-slate-800/60"></div>
+        
+        {/* Navigation Arrows */}
+        <button
+          onClick={goToPrevious}
+          className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all duration-300 hover:scale-110 border border-white/30"
+          aria-label="Previous image"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+        </button>
+        <button
+          onClick={goToNext}
+          className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-12 h-12 bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full flex items-center justify-center text-white transition-all duration-300 hover:scale-110 border border-white/30"
+          aria-label="Next image"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
+        
+        {/* Image Indicators */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+          {heroImages.map((_, index) => (
+            <button
+              key={index}
+              onClick={() => setCurrentImageIndex(index)}
+              className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                index === currentImageIndex
+                  ? 'bg-white w-8'
+                  : 'bg-white/50 hover:bg-white/75'
+              }`}
+              aria-label={`Go to image ${index + 1}`}
+            />
+          ))}
+        </div>
         
         {/* Text Content Overlay */}
         <div className="relative z-10 max-w-7xl mx-auto px-6 h-full min-h-screen flex items-center justify-center">
