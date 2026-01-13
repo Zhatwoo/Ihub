@@ -318,16 +318,29 @@ export default function ClientHomePage() {
       <section className="pt-20 pb-8 bg-white">
         <div className="max-w-[90%] mx-auto px-4">
           <div className="relative">
-            <h2 className={`${leagueSpartan.className} text-3xl font-bold text-slate-800 mb-8`}>Private Offices</h2>
-            <button
-              onClick={() => scrollCarousel('left')}
-              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:border-gray-400 hover:bg-gray-50 transition-colors shadow-md"
-              aria-label="Scroll left"
-            >
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
+            <div className="flex items-center justify-between mb-8">
+              <h2 className={`${leagueSpartan.className} text-3xl font-bold text-slate-800`}>Private Offices</h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => scrollCarousel('left')}
+                  className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+                  aria-label="Scroll left"
+                >
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => scrollCarousel('right')}
+                  className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+                  aria-label="Scroll right"
+                >
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
             <div
               ref={carouselRef}
               className="flex gap-6 overflow-x-auto scrollbar-hide pb-4 scroll-smooth"
@@ -346,17 +359,6 @@ export default function ClientHomePage() {
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
                     unoptimized
                   />
-                  {feature.id === 7 && (
-                    <button
-                      onClick={() => scrollCarousel('right')}
-                      className="absolute right-4 bottom-4 z-10 w-10 h-10 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:border-gray-400 hover:bg-gray-50 transition-colors shadow-md"
-                      aria-label="Scroll right"
-                    >
-                      <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  )}
                 </div>
                 <div className="p-4 bg-white">
                   <h3 className="text-lg font-semibold text-slate-800 mb-2">{feature.title}</h3>
@@ -378,16 +380,29 @@ export default function ClientHomePage() {
       <section className="pt-8 pb-20 bg-white">
         <div className="max-w-[90%] mx-auto px-4">
           <div className="relative">
-            <h2 className={`${leagueSpartan.className} text-3xl font-bold text-slate-800 mb-8`}>Available Spaces</h2>
-            <button
-              onClick={() => scrollCarousel('left', carouselRef2.current)}
-              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:border-gray-400 hover:bg-gray-50 transition-colors shadow-md"
-              aria-label="Scroll left"
-            >
-              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
+            <div className="flex items-center justify-between mb-8">
+              <h2 className={`${leagueSpartan.className} text-3xl font-bold text-slate-800`}>Available Spaces</h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => scrollCarousel('left', carouselRef2.current)}
+                  className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+                  aria-label="Scroll left"
+                >
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => scrollCarousel('right', carouselRef2.current)}
+                  className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+                  aria-label="Scroll right"
+                >
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
             <div
               ref={carouselRef2}
               className="flex gap-6 overflow-x-auto scrollbar-hide pb-4 scroll-smooth"
@@ -406,17 +421,6 @@ export default function ClientHomePage() {
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
                     unoptimized
                   />
-                  {space.id === 7 && (
-                    <button
-                      onClick={() => scrollCarousel('right', carouselRef2.current)}
-                      className="absolute right-4 bottom-4 z-10 w-10 h-10 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:border-gray-400 hover:bg-gray-50 transition-colors shadow-md"
-                      aria-label="Scroll right"
-                    >
-                      <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                      </svg>
-                    </button>
-                  )}
                 </div>
                 <div className="p-4 bg-white">
                   <h3 className="text-lg font-semibold text-slate-800 mb-2">{space.title}</h3>
@@ -436,81 +440,118 @@ export default function ClientHomePage() {
 
       {/* Content Section */}
       <section className="py-20 bg-white">
-        <div className="max-w-[95%] mx-auto px-4">
-          <div className="max-w-xl mb-10 md:mx-auto sm:text-center lg:max-w-2xl md:mb-12">
-          <div>
-            <p className="inline-block px-3 py-px mb-4 text-xs font-semibold tracking-wider text-teal-900 uppercase rounded-full bg-teal-100">
-              Brand new
-            </p>
+        <div className="px-4 py-16 mx-auto max-w-[95%] sm:max-w-xl md:max-w-full lg:max-w-screen-xl md:px-24 lg:px-8 lg:py-20">
+          <div className="grid gap-10 lg:grid-cols-2">
+            <div className="flex flex-col justify-center md:pr-8 xl:pr-0 lg:max-w-lg">
+              <div className="flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-teal-100">
+                <svg className="text-teal-900 w-7 h-7" viewBox="0 0 24 24">
+                  <polyline
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeMiterlimit="10"
+                    points=" 8,5 8,1 16,1 16,5"
+                    strokeLinejoin="round"
+                  />
+                  <polyline
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeMiterlimit="10"
+                    points="9,15 1,15 1,5 23,5 23,15 15,15"
+                    strokeLinejoin="round"
+                  />
+                  <polyline
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeMiterlimit="10"
+                    points="22,18 22,23 2,23 2,18"
+                    strokeLinejoin="round"
+                  />
+                  <rect
+                    x="9"
+                    y="13"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeMiterlimit="10"
+                    width="6"
+                    height="4"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+              <div className="max-w-xl mb-6">
+                <h2 className={`${leagueSpartan.className} max-w-lg mb-6 font-sans text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl sm:leading-none`}>
+                  Let us handle
+                  <br className="hidden md:block" />
+                  your next{' '}
+                  <span className="inline-block text-teal-600">
+                    destination
+                  </span>
+                </h2>
+                <p className="text-base text-gray-700 md:text-lg">
+                  Sed ut perspiciatis unde omnis iste natus error sit voluptatem
+                  accusantium doloremque laudantium, totam rem aperiam, eaque ipsa
+                  quae. explicabo.
+                </p>
+              </div>
+              <div>
+                <Link
+                  href="/client/private-offices"
+                  aria-label="Learn more"
+                  className="inline-flex items-center font-semibold transition-colors duration-200 text-teal-600 hover:text-teal-800"
+                >
+                  Learn more
+                  <svg
+                    className="inline-block w-3 ml-2"
+                    fill="currentColor"
+                    viewBox="0 0 12 12"
+                  >
+                    <path d="M9.707,5.293l-5-5A1,1,0,0,0,3.293,1.707L7.586,6,3.293,10.293a1,1,0,1,0,1.414,1.414l5-5A1,1,0,0,0,9.707,5.293Z" />
+                  </svg>
+                </Link>
+              </div>
+            </div>
+            <div className="flex items-center justify-center -mx-4 lg:pl-8">
+              <div className="flex flex-col items-end px-3">
+                <div className="relative mb-6 rounded shadow-lg h-28 sm:h-48 xl:h-56 w-28 sm:w-48 xl:w-56 overflow-hidden">
+                  <Image
+                    src="/images/IMG_5326.jpg"
+                    alt="Modern workspace"
+                    fill
+                    className="object-cover"
+                    unoptimized
+                  />
+                </div>
+                <div className="relative w-20 h-20 rounded shadow-lg sm:h-32 xl:h-40 sm:w-32 xl:w-40 overflow-hidden">
+                  <Image
+                    src="/images/IMG_5325.jpg"
+                    alt="Professional office space"
+                    fill
+                    className="object-cover"
+                    unoptimized
+                  />
+                </div>
+              </div>
+              <div className="px-3">
+                <div className="relative w-40 h-40 rounded shadow-lg sm:h-64 xl:h-80 sm:w-64 xl:w-80 overflow-hidden">
+                  <Image
+                    src="/images/IMG_5322.jpg"
+                    alt="Collaborative workspace"
+                    fill
+                    className="object-cover"
+                    unoptimized
+                  />
+                </div>
+              </div>
+            </div>
           </div>
-          <h2 className={`${leagueSpartan.className} max-w-lg mb-6 text-3xl font-bold leading-none tracking-tight text-gray-900 sm:text-4xl md:mx-auto`}>
-            Dedicated Desk
-          </h2>
-          <p className="text-base text-gray-700 md:text-lg">
-            Experience modern, flexible workspaces designed to inspire productivity and collaboration. 
-            Join a community of professionals at Inspire Hub.
-          </p>
-        </div>
-        <div className="grid max-w-full gap-8 lg:grid-cols-2 sm:mx-auto">
-          <div className="grid grid-cols-2 gap-5">
-            <div className="relative w-full h-56 col-span-2 rounded-lg shadow-lg overflow-hidden">
-              <Image
-                src="/images/IMG_5271.jpg"
-                alt="Modern workspace at Inspire Hub"
-                fill
-                className="object-cover"
-                unoptimized
-              />
-            </div>
-            <div className="relative w-full h-48 rounded-lg shadow-lg overflow-hidden">
-              <Image
-                src="/images/IMG_5302.jpg"
-                alt="Professional office space"
-                fill
-                className="object-cover"
-                unoptimized
-              />
-            </div>
-            <div className="relative w-full h-48 rounded-lg shadow-lg overflow-hidden">
-              <Image
-                src="/images/IMG_5271.jpg"
-                alt="Collaborative workspace"
-                fill
-                className="object-cover"
-                unoptimized
-              />
-            </div>
-          </div>
-          <div className="flex flex-col justify-center">
-            <div className="pb-4 mb-4 border-b">
-              <h6 className={`${leagueSpartan.className} mb-2 font-semibold leading-5 text-slate-800`}>
-                Premium workspace amenities
-              </h6>
-              <p className="text-sm text-gray-900">
-                High-speed internet, modern meeting rooms, and state-of-the-art facilities 
-                designed to enhance your productivity and professional image.
-              </p>
-            </div>
-            <div className="pb-4 mb-4 border-b">
-              <h6 className={`${leagueSpartan.className} mb-2 font-semibold leading-5 text-slate-800`}>
-                Flexible rental options
-              </h6>
-              <p className="text-sm text-gray-900">
-                Choose from hourly, daily, or monthly plans that adapt to your business needs. 
-                No long-term commitments required.
-              </p>
-            </div>
-            <div>
-              <h6 className={`${leagueSpartan.className} mb-2 font-semibold leading-5 text-slate-800`}>
-                Prime location in the heart of the city
-              </h6>
-              <p className="text-sm text-gray-900">
-                Strategically located with easy access to transportation, dining, and business districts. 
-                Make a great impression with our prestigious address.
-              </p>
-            </div>
-          </div>
-        </div>
         </div>
       </section>
 
