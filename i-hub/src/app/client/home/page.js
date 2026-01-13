@@ -23,6 +23,7 @@ const heroImages = [
 export default function ClientHomePage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const carouselRef = useRef(null);
+  const carouselRef2 = useRef(null);
 
   // Make navbar transparent and handle scroll
   useEffect(() => {
@@ -165,18 +166,76 @@ export default function ClientHomePage() {
     }
   ];
 
-  const scrollCarousel = (direction) => {
-    if (!carouselRef.current) return;
+  const scrollCarousel = (direction, ref = null) => {
+    const carousel = ref || carouselRef.current;
+    if (!carousel) return;
     
     const cardWidth = 320; // Card width including gap
     const scrollAmount = cardWidth * 2; // Scroll 2 cards at a time
     
     if (direction === 'left') {
-      carouselRef.current.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+      carousel.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
     } else {
-      carouselRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      carousel.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
+
+  const availableSpaces = [
+    {
+      id: 1,
+      title: 'Executive Suite',
+      location: 'Silang Junction South',
+      image: '/images/IMG_5326.jpg',
+      rating: 4.98,
+      badge: 'Guest favorite'
+    },
+    {
+      id: 2,
+      title: 'Modern Workspace',
+      location: 'Tagaytay',
+      image: '/images/IMG_5302.jpg',
+      rating: 5.0,
+      badge: 'Guest favorite'
+    },
+    {
+      id: 3,
+      title: 'Business Center',
+      location: 'Maitim 2nd East',
+      image: '/images/IMG_5271.jpg',
+      rating: 4.96,
+      badge: 'Guest favorite'
+    },
+    {
+      id: 4,
+      title: 'Private Office',
+      location: 'Tagaytay',
+      image: '/images/IMG_5302.jpg',
+      rating: 4.88,
+      badge: 'Guest favorite'
+    },
+    {
+      id: 5,
+      title: 'Co-working Space',
+      location: 'Silang Junction South',
+      image: '/images/IMG_5271.jpg',
+      rating: 4.99,
+      badge: 'Guest favorite'
+    },
+    {
+      id: 6,
+      title: 'Professional Office',
+      location: 'Tagaytay',
+      image: '/images/IMG_5326.jpg',
+      rating: 4.81
+    },
+    {
+      id: 7,
+      title: 'Premium Workspace',
+      location: 'Silang Junction North',
+      image: '/images/IMG_5302.jpg',
+      rating: 5.0
+    }
+  ];
 
 
   return (
@@ -256,41 +315,28 @@ export default function ClientHomePage() {
       </section>
 
       {/* Why Choose Inspire Hub - Carousel Section */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className={`${leagueSpartan.className} text-3xl font-bold text-slate-800`}>Private Offices</h2>
-            <div className="flex gap-2">
-              <button
-                onClick={() => scrollCarousel('left')}
-                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:border-gray-400 transition-colors"
-                aria-label="Scroll left"
-              >
-                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <button
-                onClick={() => scrollCarousel('right')}
-                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:border-gray-400 transition-colors"
-                aria-label="Scroll right"
-              >
-                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
-          </div>
-          
-          <div
-            ref={carouselRef}
-            className="flex gap-6 overflow-x-auto scrollbar-hide pb-4 scroll-smooth"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-          >
+      <section className="pt-20 pb-8 bg-white">
+        <div className="max-w-[90%] mx-auto px-4">
+          <div className="relative">
+            <h2 className={`${leagueSpartan.className} text-3xl font-bold text-slate-800 mb-8`}>Private Offices</h2>
+            <button
+              onClick={() => scrollCarousel('left')}
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:border-gray-400 hover:bg-gray-50 transition-colors shadow-md"
+              aria-label="Scroll left"
+            >
+              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <div
+              ref={carouselRef}
+              className="flex gap-6 overflow-x-auto scrollbar-hide pb-4 scroll-smooth"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
             {whyChooseFeatures.map((feature) => (
               <div
                 key={feature.id}
-                className="flex-shrink-0 w-[300px] rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-shadow cursor-pointer group"
+                className="flex-shrink-0 w-[300px] rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-shadow cursor-pointer group relative"
               >
                 <div className="relative h-[200px]">
                   <Image
@@ -300,16 +346,17 @@ export default function ClientHomePage() {
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
                     unoptimized
                   />
-                  <div className="absolute top-3 left-3">
-                    <span className="bg-white/90 backdrop-blur-sm text-xs font-semibold text-slate-800 px-3 py-1 rounded-full">
-                      {feature.badge}
-                    </span>
-                  </div>
-                  <button className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors">
-                    <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                    </svg>
-                  </button>
+                  {feature.id === 7 && (
+                    <button
+                      onClick={() => scrollCarousel('right')}
+                      className="absolute right-4 bottom-4 z-10 w-10 h-10 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:border-gray-400 hover:bg-gray-50 transition-colors shadow-md"
+                      aria-label="Scroll right"
+                    >
+                      <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
                 <div className="p-4 bg-white">
                   <h3 className="text-lg font-semibold text-slate-800 mb-2">{feature.title}</h3>
@@ -317,6 +364,7 @@ export default function ClientHomePage() {
                 </div>
               </div>
             ))}
+            </div>
           </div>
         </div>
         <style jsx>{`
@@ -326,9 +374,69 @@ export default function ClientHomePage() {
         `}</style>
       </section>
 
+      {/* Available Spaces Carousel Section */}
+      <section className="pt-8 pb-20 bg-white">
+        <div className="max-w-[90%] mx-auto px-4">
+          <div className="relative">
+            <h2 className={`${leagueSpartan.className} text-3xl font-bold text-slate-800 mb-8`}>Available Spaces</h2>
+            <button
+              onClick={() => scrollCarousel('left', carouselRef2.current)}
+              className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:border-gray-400 hover:bg-gray-50 transition-colors shadow-md"
+              aria-label="Scroll left"
+            >
+              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <div
+              ref={carouselRef2}
+              className="flex gap-6 overflow-x-auto scrollbar-hide pb-4 scroll-smooth"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+            {availableSpaces.map((space) => (
+              <div
+                key={space.id}
+                className="flex-shrink-0 w-[300px] rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-shadow cursor-pointer group relative"
+              >
+                <div className="relative h-[200px]">
+                  <Image
+                    src={space.image}
+                    alt={space.title}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    unoptimized
+                  />
+                  {space.id === 7 && (
+                    <button
+                      onClick={() => scrollCarousel('right', carouselRef2.current)}
+                      className="absolute right-4 bottom-4 z-10 w-10 h-10 rounded-full bg-white border border-gray-300 flex items-center justify-center hover:border-gray-400 hover:bg-gray-50 transition-colors shadow-md"
+                      aria-label="Scroll right"
+                    >
+                      <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    </button>
+                  )}
+                </div>
+                <div className="p-4 bg-white">
+                  <h3 className="text-lg font-semibold text-slate-800 mb-2">{space.title}</h3>
+                  <p className="text-sm text-gray-600 mb-1">{space.location}</p>
+                  {space.badge && (
+                    <span className="inline-block px-2 py-1 text-xs font-semibold text-teal-700 bg-teal-100 rounded-md">
+                      {space.badge}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Content Section */}
       <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-6">
+        <div className="max-w-[95%] mx-auto px-4">
           <div className="max-w-xl mb-10 md:mx-auto sm:text-center lg:max-w-2xl md:mb-12">
           <div>
             <p className="inline-block px-3 py-px mb-4 text-xs font-semibold tracking-wider text-teal-900 uppercase rounded-full bg-teal-100">
@@ -343,7 +451,7 @@ export default function ClientHomePage() {
             Join a community of professionals at Inspire Hub.
           </p>
         </div>
-        <div className="grid max-w-screen-lg gap-8 lg:grid-cols-2 sm:mx-auto">
+        <div className="grid max-w-full gap-8 lg:grid-cols-2 sm:mx-auto">
           <div className="grid grid-cols-2 gap-5">
             <div className="relative w-full h-56 col-span-2 rounded-lg shadow-lg overflow-hidden">
               <Image
