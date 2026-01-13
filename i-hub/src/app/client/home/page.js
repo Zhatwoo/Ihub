@@ -14,6 +14,10 @@ const leagueSpartan = League_Spartan({
 const heroImages = [
   '/images/IMG_5271.jpg',
   '/images/IMG_5302.jpg',
+  '/images/IMG_5290.jpg',
+  '/images/IMG_5318.jpg',
+  '/images/IMG_5330.jpg',
+  '/images/IMG_5338.jpg',
 ];
 
 export default function ClientHomePage() {
@@ -107,7 +111,7 @@ export default function ClientHomePage() {
       id: 1,
       title: 'Premium Spaces',
       description: 'Modern, well-equipped private offices designed for productivity and comfort.',
-      image: '/images/IMG_5271.jpg',
+      image: '/images/IMG_5326.jpg',
       rating: 4.95,
       badge: 'Guest favorite'
     },
@@ -255,7 +259,7 @@ export default function ClientHomePage() {
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-between mb-8">
-            <h2 className={`${leagueSpartan.className} text-3xl font-bold text-slate-800`}>Popular homes in BGC</h2>
+            <h2 className={`${leagueSpartan.className} text-3xl font-bold text-slate-800`}>Private Offices</h2>
             <div className="flex gap-2">
               <button
                 onClick={() => scrollCarousel('left')}
@@ -310,12 +314,6 @@ export default function ClientHomePage() {
                 <div className="p-4 bg-white">
                   <h3 className="text-lg font-semibold text-slate-800 mb-2">{feature.title}</h3>
                   <p className="text-sm text-gray-600 mb-3 line-clamp-2">{feature.description}</p>
-                  <div className="flex items-center gap-1">
-                    <svg className="w-4 h-4 text-teal-600 fill-current" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                    <span className="text-sm font-medium text-slate-800">{feature.rating}</span>
-                  </div>
                 </div>
               </div>
             ))}
@@ -338,7 +336,7 @@ export default function ClientHomePage() {
             </p>
           </div>
           <h2 className={`${leagueSpartan.className} max-w-lg mb-6 text-3xl font-bold leading-none tracking-tight text-gray-900 sm:text-4xl md:mx-auto`}>
-            Why Choose Inspire Hub
+            Dedicated Desk
           </h2>
           <p className="text-base text-gray-700 md:text-lg">
             Experience modern, flexible workspaces designed to inspire productivity and collaboration. 
