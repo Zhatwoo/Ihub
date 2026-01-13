@@ -255,7 +255,7 @@ export default function ClientHomePage() {
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-between mb-8">
-            <h2 className={`${leagueSpartan.className} text-3xl font-bold text-slate-800`}>Why Choose Inspire Hub?</h2>
+            <h2 className={`${leagueSpartan.className} text-3xl font-bold text-slate-800`}>Popular homes in BGC</h2>
             <div className="flex gap-2">
               <button
                 onClick={() => scrollCarousel('left')}
@@ -329,40 +329,16 @@ export default function ClientHomePage() {
       </section>
 
       {/* Content Section */}
-      <section className="px-4 py-16 mx-auto sm:max-w-xl md:max-w-full lg:max-w-screen-xl md:px-24 lg:px-8 lg:py-20 bg-white">
-        <div className="max-w-xl mb-10 md:mx-auto sm:text-center lg:max-w-2xl md:mb-12">
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="max-w-xl mb-10 md:mx-auto sm:text-center lg:max-w-2xl md:mb-12">
           <div>
             <p className="inline-block px-3 py-px mb-4 text-xs font-semibold tracking-wider text-teal-900 uppercase rounded-full bg-teal-100">
               Brand new
             </p>
           </div>
           <h2 className={`${leagueSpartan.className} max-w-lg mb-6 text-3xl font-bold leading-none tracking-tight text-gray-900 sm:text-4xl md:mx-auto`}>
-            <span className="relative inline-block">
-              <svg
-                viewBox="0 0 52 24"
-                fill="currentColor"
-                className="absolute top-0 left-0 z-0 hidden w-32 -mt-8 -ml-20 text-teal-100 lg:w-32 lg:-ml-28 lg:-mt-10 sm:block"
-              >
-                <defs>
-                  <pattern
-                    id="2feffae2-9edf-414e-ab8c-f0e6396a0fc1"
-                    x="0"
-                    y="0"
-                    width=".135"
-                    height=".30"
-                  >
-                    <circle cx="1" cy="1" r=".7" />
-                  </pattern>
-                </defs>
-                <rect
-                  fill="url(#2feffae2-9edf-414e-ab8c-f0e6396a0fc1)"
-                  width="52"
-                  height="24"
-                />
-              </svg>
-              <span className="relative">The</span>
-            </span>{' '}
-            perfect workspace solution for your business
+            Why Choose Inspire Hub
           </h2>
           <p className="text-base text-gray-700 md:text-lg">
             Experience modern, flexible workspaces designed to inspire productivity and collaboration. 
@@ -428,6 +404,7 @@ export default function ClientHomePage() {
               </p>
             </div>
           </div>
+        </div>
         </div>
       </section>
 
