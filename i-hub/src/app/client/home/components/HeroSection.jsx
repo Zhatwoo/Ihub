@@ -63,7 +63,7 @@ export default function HeroSection() {
       </div>
       
       {/* Dark Overlay for Text Readability */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900/40 to-slate-800/30"></div>
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-900/70 to-slate-800/50"></div>
       
       {/* Navigation Arrows */}
       <button

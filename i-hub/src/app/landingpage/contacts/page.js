@@ -4,7 +4,9 @@ import { useState, useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { League_Spartan, Roboto } from 'next/font/google';
 import Link from 'next/link';
-import Header from '../components/header';
+import { useSearchParams } from 'next/navigation';
+import LandingPageHeader from '../components/header';
+import ClientHeader from '@/app/client/home/components/header';
 import Footer from '../components/footer';
 
 const leagueSpartan = League_Spartan({
@@ -18,6 +20,10 @@ const roboto = Roboto({
 });
 
 export default function ContactsPage() {
+  const searchParams = useSearchParams();
+  const returnTo = searchParams.get('returnTo');
+  const isFromClient = returnTo && returnTo.includes('/client');
+  
   const sectionRef = useRef(null);
   const formRef = useRef(null);
   const isSectionInView = useInView(sectionRef, { once: true, amount: 0.2 });
@@ -87,7 +93,7 @@ export default function ContactsPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <Header />
+      {isFromClient ? <ClientHeader /> : <LandingPageHeader />}
       <motion.div 
         ref={sectionRef}
         className="w-full bg-[#0F766E] py-16 lg:py-24"
