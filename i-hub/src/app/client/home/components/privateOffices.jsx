@@ -4,7 +4,7 @@ export const whyChooseFeatures = [
     id: 1,
     title: 'Premium Spaces',
     description: 'Modern, well-equipped private offices designed for productivity and comfort.',
-    image: '/images/IMG_5326.jpg',
+    image: '/images/coron2.jpg',
     rating: 4.95,
     badge: 'Guest favorite'
   },
@@ -12,7 +12,7 @@ export const whyChooseFeatures = [
     id: 2,
     title: 'Easy Booking',
     description: 'Simple online reservation system. Book your space in just a few clicks.',
-    image: '/images/IMG_5302.jpg',
+    image: '/images/IMG_5285.jpg',
     rating: 4.91,
     badge: 'Guest favorite'
   },
@@ -20,7 +20,7 @@ export const whyChooseFeatures = [
     id: 3,
     title: 'Full Amenities',
     description: 'High-speed WiFi, projectors, whiteboards, and catering options available.',
-    image: '/images/IMG_5271.jpg',
+    image: '/images/IMG_5299.jpg',
     rating: 4.95,
     badge: 'Guest favorite'
   },

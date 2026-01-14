@@ -77,11 +77,6 @@ export default function DedicatedDeskSection() {
                 <div className="p-4 bg-white">
                   <h3 className="text-lg font-semibold text-slate-800 mb-2">{space.title}</h3>
                   <p className="text-sm text-gray-600 mb-1">{space.location}</p>
-                  {space.badge && (
-                    <span className="inline-block px-2 py-1 text-xs font-semibold text-teal-700 bg-teal-100 rounded-md">
-                      {space.badge}
-                    </span>
-                  )}
                 </div>
               </div>
             ))}
