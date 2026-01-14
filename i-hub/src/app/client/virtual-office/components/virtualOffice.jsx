@@ -42,62 +42,18 @@ export default function VirtualOfficeHero() {
   }, []);
 
   return (
-    <div className="w-full bg-[#FFFFFF] min-h-[1080px]">
+    <div className="w-full bg-white min-h-[1080px] overflow-visible">
       {/* Diagonal Divider Design at Top */}
       <motion.div 
         ref={heroRef}
         className="w-full bg-[#0F766E] relative overflow-hidden"
         style={{
           height: '500px',
-          clipPath: 'polygon(0% 0%, 100% 0%, 100% 5%, 60% 5%, 40% 150%, 0% 100%)'
-        }}
-        animate={{
-          background: [
-            'linear-gradient(135deg, #0F766E 0%, #0d6b64 50%, #0F766E 100%)',
-            'linear-gradient(135deg, #0d6b64 0%, #0F766E 50%, #0d6b64 100%)',
-            'linear-gradient(135deg, #0F766E 0%, #0d6b64 50%, #0F766E 100%)',
-          ],
-        }}
-        transition={{
-          duration: 8,
-          repeat: Infinity,
-          ease: 'easeInOut',
+          clipPath: 'polygon(0% 0%, 100% 0%, 100% 5%, 60% 5%, 40% 150%, 0% 100%)',
+          background: '#0F766E'
         }}
       >
-        {/* Animated Background Pattern */}
-        <motion.div
-          className="absolute inset-0 opacity-10"
-          animate={{
-            x: mousePosition.x,
-            y: mousePosition.y + scrollY * 0.3,
-          }}
-          transition={{ type: 'spring', stiffness: 50, damping: 20 }}
-        >
-          <div className="absolute inset-0" style={{
-            backgroundImage: `
-              radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-              radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
-              radial-gradient(circle at 40% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%)
-            `,
-            backgroundSize: '200% 200%',
-          }} />
-        </motion.div>
 
-        {/* Interactive Gradient Overlay */}
-        <motion.div
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: `radial-gradient(circle at ${50 + mousePosition.x * 0.5}% ${50 + mousePosition.y * 0.5}%, rgba(255, 255, 255, 0.1) 0%, transparent 70%)`,
-          }}
-          animate={{
-            opacity: [0.3, 0.5, 0.3],
-          }}
-          transition={{
-            duration: 4,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-        />
         {/* Green Rectangle with Text */}
         <div className="absolute left-[8%] top-[7%] sm:left-[8%] sm:top-[7%]">
           <div className=" bg-transparent p-8 sm:p-10 lg:p-12">
@@ -137,52 +93,27 @@ export default function VirtualOfficeHero() {
       {/* White Section with Green Rectangle Box and Text */}
       <motion.div 
         ref={backgroundRef}
-        className="w-full bg-[#FFFFFF] relative min-h-[600px] overflow-hidden"
+        className="w-full bg-white relative min-h-[600px] overflow-visible"
         style={{
-          background: `linear-gradient(${135 + mousePosition.x * 0.1}deg, #FFFFFF 0%, #F8FAFC 100%)`,
+          background: '#FFFFFF',
         }}
       >
-        {/* Subtle Animated Background Pattern */}
-        <motion.div
-          className="absolute inset-0 opacity-5 pointer-events-none"
-          animate={{
-            backgroundPosition: [
-              '0% 0%',
-              '100% 100%',
-              '0% 0%',
-            ],
-          }}
-          transition={{
-            duration: 20,
-            repeat: Infinity,
-            ease: 'linear',
-          }}
-          style={{
-            backgroundImage: `repeating-linear-gradient(
-              45deg,
-              #0F766E 0px,
-              #0F766E 1px,
-              transparent 1px,
-              transparent 20px
-            )`,
-            backgroundSize: '40px 40px',
-          }}
-        />
         {/* Green Rectangle Box with Image */}
-        <div className="absolute right-[25%] -top-64 sm:right-[25%] sm:-top-80 lg:right-[25%] lg:-top-96">
-          <div className="bg-transparent p-8 sm:p-10 lg:p-12 w-96 h-72 sm:w-[480px] sm:h-[336px] lg:w-[576px] lg:h-96 relative">
+        <div className="absolute right-[30%] top-0 sm:right-[30%] sm:top-0 lg:right-[30%] lg:top-0 z-[100]" style={{ transform: 'translateY(-100%)' }}>
+          <div className="bg-transparent p-8 sm:p-10 lg:p-12 w-96 h-72 sm:w-[480px] sm:h-[336px] lg:w-[576px] lg:h-96 relative z-[100]">
             <Image
               src="/bg/image.png"
               alt="Virtual Office"
               fill
               className="object-contain"
+              priority
             />
           </div>
         </div>
 
         {/* Second Image to the Right */}
-        <div className="absolute right-[calc(5%-8%)] -top-64 sm:right-[calc(5%-8%)] sm:-top-80 lg:right-[calc(5%-8%)] lg:-top-96" style={{ transform: 'translateY(40%)' }}>
-          <div className="bg-transparent p-8 sm:p-10 lg:p-12 w-96 h-72 sm:w-[480px] sm:h-[336px] lg:w-[576px] lg:h-96 relative">
+        <div className="absolute right-[calc(5%-8%+5%)] top-0 sm:right-[calc(5%-8%+5%)] sm:top-0 lg:right-[calc(5%-8%+5%)] lg:top-0 z-[101]" style={{ transform: 'translateY(-70%)' }}>
+          <div className="bg-transparent p-8 sm:p-10 lg:p-12 w-96 h-72 sm:w-[480px] sm:h-[336px] lg:w-[576px] lg:h-96 relative z-[101]">
             <Image
               src="/bg/image1.png"
               alt="Virtual Office"
@@ -193,8 +124,8 @@ export default function VirtualOfficeHero() {
         </div>
 
         {/* Third Image Below Second Image */}
-        <div className="absolute right-[calc(5%-8%+10%)] -top-64 sm:right-[calc(5%-8%+10%)] sm:-top-80 lg:right-[calc(5%-8%+10%)] lg:-top-96" style={{ transform: 'translateY(calc(40% + 100%))' }}>
-          <div className="bg-transparent p-8 sm:p-10 lg:p-12 w-96 h-72 sm:w-[480px] sm:h-[336px] lg:w-[576px] lg:h-96 relative">
+        <div className="absolute right-[calc(5%-8%+15%)] top-0 sm:right-[calc(5%-8%+15%)] sm:top-0 lg:right-[calc(5%-8%+15%)] lg:top-0 z-[102]" style={{ transform: 'translateY(calc(40% + 100% - 450px))' }}>
+          <div className="bg-transparent p-8 sm:p-10 lg:p-12 w-96 h-72 sm:w-[480px] sm:h-[336px] lg:w-[576px] lg:h-96 relative z-[102]">
             <Image
               src="/bg/Image2.png"
               alt="Virtual Office"
@@ -205,12 +136,12 @@ export default function VirtualOfficeHero() {
         </div>
         
         {/* Text in White Background */}
-        <div ref={textRef} className="absolute left-[10%] top-8 sm:left-[10%] sm:top-12 lg:left-[10%] lg:top-16">
+        <div ref={textRef} className="absolute left-[10%] top-8 sm:left-[10%] sm:top-12 lg:left-[10%] lg:top-16 z-20">
           <motion.div 
             initial={{ opacity: 0, x: -50 }}
             animate={isTextInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -50 }}
             transition={{ duration: 0.8, ease: 'easeOut' }}
-            className="max-w-[63rem]"
+            className="max-w-[63rem] bg-white backdrop-blur-sm p-6 rounded-lg"
           >
             <motion.p 
               initial={{ opacity: 0 }}
