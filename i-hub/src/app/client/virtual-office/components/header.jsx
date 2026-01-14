@@ -24,7 +24,7 @@ export default function VirtualOfficeHeader() {
   };
 
   return (
-    <header className="w-full bg-[#0F766E] px-[1.575rem] py-[1.05rem] sticky top-0 z-50">
+    <header className="w-full bg-[#0F766E] px-[1.575rem] py-[1.05rem] sticky top-0 z-[200]">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Left side - Logo and Brand */}
         <div className="flex items-center gap-[0.7875rem]">
