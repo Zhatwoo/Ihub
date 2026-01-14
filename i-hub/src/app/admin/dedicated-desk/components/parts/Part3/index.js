@@ -3,7 +3,7 @@
 import DeskWithChair from "../../DeskWithChair";
 import Wall from "../../Wall";
 
-export default function Part3({ onDeskClick, startX, tagPrefix = "C" }) {
+export default function Part3({ onDeskClick, startX, tagPrefix = "C", deskAssignments = {}, zoom = 1 }) {
   const deskHeight = 80;
   const verticalPairWidth = 156;
   const verticalContainerWidth = 90;
@@ -18,9 +18,23 @@ export default function Part3({ onDeskClick, startX, tagPrefix = "C" }) {
     return (
       <div className="absolute" style={{ left: `${x}px`, top: `${y}px` }}>
         <div className="flex flex-row items-center">
-          <DeskWithChair orientation="vertical-left" onClick={() => onDeskClick(leftTag)} />
+          <DeskWithChair 
+            orientation="vertical-left" 
+            onClick={() => onDeskClick(leftTag)}
+            isOccupied={!!deskAssignments[leftTag]}
+            occupantType={deskAssignments[leftTag]?.type || "Employee"}
+            occupantName={deskAssignments[leftTag]?.name || ""}
+            zoom={zoom}
+          />
           <div style={{ marginLeft: "-24px" }}>
-            <DeskWithChair orientation="vertical-right" onClick={() => onDeskClick(rightTag)} />
+            <DeskWithChair 
+              orientation="vertical-right" 
+              onClick={() => onDeskClick(rightTag)}
+              isOccupied={!!deskAssignments[rightTag]}
+              occupantType={deskAssignments[rightTag]?.type || "Employee"}
+              occupantName={deskAssignments[rightTag]?.name || ""}
+              zoom={zoom}
+            />
           </div>
         </div>
       </div>
@@ -41,7 +55,14 @@ export default function Part3({ onDeskClick, startX, tagPrefix = "C" }) {
             left: `${startX}px`, 
             top: `${wallSize - 5 + rowIdx * deskHeight}px` 
           }}>
-            <DeskWithChair orientation="vertical-right" onClick={() => onDeskClick(tag)} />
+            <DeskWithChair 
+              orientation="vertical-right" 
+              onClick={() => onDeskClick(tag)}
+              isOccupied={!!deskAssignments[tag]}
+              occupantType={deskAssignments[tag]?.type || "Employee"}
+              occupantName={deskAssignments[tag]?.name || ""}
+              zoom={zoom}
+            />
           </div>
         );
       })}
@@ -67,7 +88,14 @@ export default function Part3({ onDeskClick, startX, tagPrefix = "C" }) {
       
       <div className="absolute" style={{ left: `${col4X}px`, top: `${firstDeskY}px` }}>
         <div className="flex flex-row items-start">
-          <DeskWithChair orientation="vertical-left" onClick={() => onDeskClick(getTag(31))} />
+          <DeskWithChair 
+            orientation="vertical-left" 
+            onClick={() => onDeskClick(getTag(31))}
+            isOccupied={!!deskAssignments[getTag(31)]}
+            occupantType={deskAssignments[getTag(31)]?.type || "Employee"}
+            occupantName={deskAssignments[getTag(31)]?.name || ""}
+            zoom={zoom}
+          />
           <div 
             className="relative cursor-pointer transition-transform hover:scale-105" 
             style={{ marginLeft: "-24px" }}
@@ -82,6 +110,13 @@ export default function Part3({ onDeskClick, startX, tagPrefix = "C" }) {
               <div className="bg-gray-400 rounded-sm" style={{ width: "70px", height: "30px" }} />
             </div>
             <div className="absolute rounded-full bg-black" style={{ width: "20px", height: "20px", left: "65px", top: "25px" }} />
+            {/* Color overlay for occupied desk */}
+            {deskAssignments[getTag(32)] && (
+              <div 
+                className={`absolute inset-0 ${deskAssignments[getTag(32)]?.type === "Tenant" ? "bg-blue-500" : "bg-red-500"} rounded-sm z-10 pointer-events-none`}
+                style={{ opacity: 0.35 }}
+              />
+            )}
           </div>
         </div>
       </div>

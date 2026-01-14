@@ -7,6 +7,7 @@ import { collection, onSnapshot } from 'firebase/firestore';
 export default function Tenants() {
   const [privateOfficeTenants, setPrivateOfficeTenants] = useState([]);
   const [virtualOfficeTenants, setVirtualOfficeTenants] = useState([]);
+  const [dedicatedDeskTenants, setDedicatedDeskTenants] = useState([]);
   const [selectedFilter, setSelectedFilter] = useState(null);
 
   // Fetch Private Office tenants from schedules collection (active reservations)
@@ -56,14 +57,37 @@ export default function Tenants() {
     return () => unsubscribe();
   }, []);
 
+  // Fetch Dedicated Desk tenants from desk-assignments collection
+  useEffect(() => {
+    if (!db) return;
+    const unsubscribe = onSnapshot(collection(db, 'desk-assignments'), (snapshot) => {
+      const assignmentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const deskTenants = assignmentsData.map(assignment => ({
+        id: assignment.id,
+        type: 'dedicated-desk',
+        desk: assignment.desk,
+        name: assignment.name,
+        email: assignment.email,
+        phone: assignment.contactNumber,
+        occupantType: assignment.type,
+        company: assignment.company || null,
+        startDate: assignment.assignedAt,
+        status: 'active',
+        createdAt: assignment.assignedAt || assignment.createdAt
+      }));
+      setDedicatedDeskTenants(deskTenants);
+    });
+    return () => unsubscribe();
+  }, []);
+
   // Combine all tenants
-  const allTenants = [...privateOfficeTenants, ...virtualOfficeTenants];
+  const allTenants = [...privateOfficeTenants, ...virtualOfficeTenants, ...dedicatedDeskTenants];
 
   // Get tenants by type
   const getTenantsByType = (type) => {
     if (type === 'private-office') return privateOfficeTenants;
     if (type === 'virtual-office') return virtualOfficeTenants;
-    if (type === 'dedicated-desk') return []; // Empty for now
+    if (type === 'dedicated-desk') return dedicatedDeskTenants;
     return allTenants;
   };
 
@@ -71,7 +95,7 @@ export default function Tenants() {
   const getCountByType = (type) => {
     if (type === 'private-office') return privateOfficeTenants.length;
     if (type === 'virtual-office') return virtualOfficeTenants.length;
-    if (type === 'dedicated-desk') return 0; // Empty for now
+    if (type === 'dedicated-desk') return dedicatedDeskTenants.length;
     return allTenants.length;
   };
 
@@ -180,6 +204,13 @@ export default function Tenants() {
                         <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Position</th>
                       </>
                     )}
+                    {selectedFilter === 'dedicated-desk' && (
+                      <>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Desk</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Type</th>
+                        <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Company</th>
+                      </>
+                    )}
                     <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Start Date</th>
                     <th className="px-4 py-3 text-center text-xs font-semibold uppercase tracking-wide">Status</th>
                   </tr>
@@ -213,6 +244,21 @@ export default function Tenants() {
                           <td className="px-4 py-4">
                             <p className="text-gray-600 text-sm truncate max-w-[120px]" title={tenant.position || 'N/A'}>
                               {tenant.position || 'N/A'}
+                            </p>
+                          </td>
+                        </>
+                      )}
+                      {selectedFilter === 'dedicated-desk' && (
+                        <>
+                          <td className="px-4 py-4">
+                            <p className="text-gray-600 text-sm font-semibold">{tenant.desk || 'N/A'}</p>
+                          </td>
+                          <td className="px-4 py-4">
+                            <p className="text-gray-600 text-sm">{tenant.occupantType || 'N/A'}</p>
+                          </td>
+                          <td className="px-4 py-4">
+                            <p className="text-gray-600 text-sm truncate max-w-[150px]" title={tenant.company || 'N/A'}>
+                              {tenant.company || 'N/A'}
                             </p>
                           </td>
                         </>

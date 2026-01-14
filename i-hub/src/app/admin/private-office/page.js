@@ -228,7 +228,7 @@ export default function PrivateOffice() {
     <div className="w-full">
       <h1 className="text-slate-800 text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">Private Office</h1>
       
-      <div className="flex flex-wrap gap-1 mb-4 sm:mb-6 border-b-2 border-gray-200 overflow-x-auto">
+      <div className="flex flex-wrap gap-1 mb-4 sm:mb-6 border-b-2 border-gray-200">
         {['rooms', 'requests', 'schedule'].map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 sm:px-6 py-2.5 sm:py-3.5 text-xs sm:text-sm font-medium transition-all border-b-[3px] -mb-0.5 whitespace-nowrap ${activeTab === tab ? 'text-slate-800 border-teal-600' : 'text-gray-500 border-transparent hover:text-slate-800 hover:bg-slate-800/5'}`}>
             {tab === 'rooms' ? 'Private Offices' : tab === 'requests' ? 'Request List' : 'Schedule'}
