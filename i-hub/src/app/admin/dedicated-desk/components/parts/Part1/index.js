@@ -3,7 +3,7 @@
 import DeskWithChair from "../../DeskWithChair";
 import Wall from "../../Wall";
 
-export default function Part1({ onDeskClick, tagPrefix = "A" }) {
+export default function Part1({ onDeskClick, tagPrefix = "A", deskAssignments = {}, zoom = 1 }) {
   const deskWidth = 80;
   const horizontalContainerHeight = 70;
   const pairHeight = 136;
@@ -24,9 +24,23 @@ export default function Part1({ onDeskClick, tagPrefix = "A" }) {
     return (
       <div className="absolute" style={{ left: `${x}px`, top: `${y}px` }}>
         <div className="flex flex-col items-center">
-          <DeskWithChair orientation="horizontal-top" onClick={() => onDeskClick(topTag)} />
+          <DeskWithChair 
+            orientation="horizontal-top" 
+            onClick={() => onDeskClick(topTag)}
+            isOccupied={!!deskAssignments[topTag]}
+            occupantType={deskAssignments[topTag]?.type || "Employee"}
+            occupantName={deskAssignments[topTag]?.name || ""}
+            zoom={zoom}
+          />
           <div style={{ marginTop: "-4px" }}>
-            <DeskWithChair orientation="horizontal-bottom" onClick={() => onDeskClick(bottomTag)} />
+            <DeskWithChair 
+              orientation="horizontal-bottom" 
+              onClick={() => onDeskClick(bottomTag)}
+              isOccupied={!!deskAssignments[bottomTag]}
+              occupantType={deskAssignments[bottomTag]?.type || "Employee"}
+              occupantName={deskAssignments[bottomTag]?.name || ""}
+              zoom={zoom}
+            />
           </div>
         </div>
       </div>
@@ -43,7 +57,14 @@ export default function Part1({ onDeskClick, tagPrefix = "A" }) {
             left: `${pairIdx * deskWidth}px`, 
             top: `${topRowY}px` 
           }}>
-            <DeskWithChair orientation="horizontal-bottom" onClick={() => onDeskClick(tag)} />
+            <DeskWithChair 
+              orientation="horizontal-bottom" 
+              onClick={() => onDeskClick(tag)}
+              isOccupied={!!deskAssignments[tag]}
+              occupantType={deskAssignments[tag]?.type || "Employee"}
+              occupantName={deskAssignments[tag]?.name || ""}
+              zoom={zoom}
+            />
           </div>
         );
       })}

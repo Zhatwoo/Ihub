@@ -4,7 +4,7 @@ import DeskWithChair from "../../DeskWithChair";
 import Wall from "../../Wall";
 import Cabinet from "../../Cabinet";
 
-export default function Part4({ onDeskClick, startX, startY, wallAlignX, wallAlignY, tagPrefix = "D" }) {
+export default function Part4({ onDeskClick, startX, startY, wallAlignX, wallAlignY, tagPrefix = "D", deskAssignments = {}, zoom = 1 }) {
   const deskWidth = 80;
   const horizontalContainerHeight = 70;
   const verticalPairWidth = 156;
@@ -22,9 +22,23 @@ export default function Part4({ onDeskClick, startX, startY, wallAlignX, wallAli
     return (
       <div className="absolute" style={{ left: `${x}px`, top: `${y}px` }}>
         <div className="flex flex-col items-center">
-          <DeskWithChair orientation="horizontal-top" onClick={() => onDeskClick(topTag)} />
+          <DeskWithChair 
+            orientation="horizontal-top" 
+            onClick={() => onDeskClick(topTag)}
+            isOccupied={!!deskAssignments[topTag]}
+            occupantType={deskAssignments[topTag]?.type || "Employee"}
+            occupantName={deskAssignments[topTag]?.name || ""}
+            zoom={zoom}
+          />
           <div style={{ marginTop: "-4px" }}>
-            <DeskWithChair orientation="horizontal-bottom" onClick={() => onDeskClick(bottomTag)} />
+            <DeskWithChair 
+              orientation="horizontal-bottom" 
+              onClick={() => onDeskClick(bottomTag)}
+              isOccupied={!!deskAssignments[bottomTag]}
+              occupantType={deskAssignments[bottomTag]?.type || "Employee"}
+              occupantName={deskAssignments[bottomTag]?.name || ""}
+              zoom={zoom}
+            />
           </div>
         </div>
       </div>
@@ -38,9 +52,25 @@ export default function Part4({ onDeskClick, startX, startY, wallAlignX, wallAli
     return (
       <div className="absolute" style={{ left: `${x}px`, top: `${y}px` }}>
         <div className="flex flex-row items-center">
-          <DeskWithChair orientation="vertical-left" onClick={() => onDeskClick(leftTag)} thinOutline={thinOutline} />
+          <DeskWithChair 
+            orientation="vertical-left" 
+            onClick={() => onDeskClick(leftTag)} 
+            thinOutline={thinOutline}
+            isOccupied={!!deskAssignments[leftTag]}
+            occupantType={deskAssignments[leftTag]?.type || "Employee"}
+            occupantName={deskAssignments[leftTag]?.name || ""}
+            zoom={zoom}
+          />
           <div style={{ marginLeft: "-24px" }}>
-            <DeskWithChair orientation="vertical-right" onClick={() => onDeskClick(rightTag)} thinOutline={thinOutline} />
+            <DeskWithChair 
+              orientation="vertical-right" 
+              onClick={() => onDeskClick(rightTag)} 
+              thinOutline={thinOutline}
+              isOccupied={!!deskAssignments[rightTag]}
+              occupantType={deskAssignments[rightTag]?.type || "Employee"}
+              occupantName={deskAssignments[rightTag]?.name || ""}
+              zoom={zoom}
+            />
           </div>
         </div>
       </div>
@@ -85,7 +115,15 @@ export default function Part4({ onDeskClick, startX, startY, wallAlignX, wallAli
         left: `${middleDeskX}px`, 
         top: `${middleDeskY}px` 
       }}>
-        <DeskWithChair orientation="horizontal-bottom" onClick={() => onDeskClick(getTag(3))} thinOutline={true} />
+        <DeskWithChair 
+          orientation="horizontal-bottom" 
+          onClick={() => onDeskClick(getTag(3))} 
+          thinOutline={true}
+          isOccupied={!!deskAssignments[getTag(3)]}
+          occupantType={deskAssignments[getTag(3)]?.type || "Employee"}
+          occupantName={deskAssignments[getTag(3)]?.name || ""}
+          zoom={zoom}
+        />
       </div>
       
       <VerticalPair 
@@ -103,7 +141,14 @@ export default function Part4({ onDeskClick, startX, startY, wallAlignX, wallAli
             left: `${startX + idx * deskWidth}px`, 
             top: `${row1Y}px` 
           }}>
-            <DeskWithChair orientation="horizontal-bottom" onClick={() => onDeskClick(tag)} />
+            <DeskWithChair 
+              orientation="horizontal-bottom" 
+              onClick={() => onDeskClick(tag)}
+              isOccupied={!!deskAssignments[tag]}
+              occupantType={deskAssignments[tag]?.type || "Employee"}
+              occupantName={deskAssignments[tag]?.name || ""}
+              zoom={zoom}
+            />
           </div>
         );
       })}
@@ -144,17 +189,40 @@ export default function Part4({ onDeskClick, startX, startY, wallAlignX, wallAli
       </div>
       
       <div 
-        className="absolute cursor-pointer transition-transform hover:scale-105"
+        className="absolute cursor-pointer transition-transform hover:scale-105 relative"
         style={{ 
           left: `${wallX + 25 + 30 - 5}px`, 
           top: `${wallY + 120 + 2 * 60 - 26}px` 
         }}
         onClick={() => onDeskClick(getTag(21))}
       >
-        <DeskWithChair orientation="horizontal-top" thinOutline={true} onClick={() => {}} />
+        <DeskWithChair 
+          orientation="horizontal-top" 
+          thinOutline={true} 
+          onClick={() => {}}
+          isOccupied={!!deskAssignments[getTag(21)]}
+          occupantType={deskAssignments[getTag(21)]?.type || "Employee"}
+          occupantName={deskAssignments[getTag(21)]?.name || ""}
+          zoom={zoom}
+        />
         <div style={{ position: 'absolute', left: '5px', top: '61px' }}>
-          <DeskWithChair orientation="vertical-right" thinOutline={true} onClick={() => {}} />
+          <DeskWithChair 
+            orientation="vertical-right" 
+            thinOutline={true} 
+            onClick={() => {}}
+            isOccupied={!!deskAssignments[getTag(21)]}
+            occupantType={deskAssignments[getTag(21)]?.type || "Employee"}
+            occupantName={deskAssignments[getTag(21)]?.name || ""}
+            zoom={zoom}
+          />
         </div>
+        {/* Color overlay for occupied L-desk */}
+        {deskAssignments[getTag(21)] && (
+          <div 
+            className={`absolute inset-0 ${deskAssignments[getTag(21)]?.type === "Tenant" ? "bg-blue-500" : "bg-red-500"} rounded-sm z-10 pointer-events-none`}
+            style={{ opacity: 0.35, width: '90px', height: '90px' }}
+          />
+        )}
       </div>
     </>
   );

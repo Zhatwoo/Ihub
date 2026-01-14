@@ -3,7 +3,7 @@
 import DeskWithChair from "../../DeskWithChair";
 import Wall from "../../Wall";
 
-export default function Part2({ onDeskClick, startY, tagPrefix = "B" }) {
+export default function Part2({ onDeskClick, startY, tagPrefix = "B", deskAssignments = {}, zoom = 1 }) {
   const deskWidth = 80;
   const deskHeight = 80;
   const verticalPairWidth = 156;
@@ -18,9 +18,23 @@ export default function Part2({ onDeskClick, startY, tagPrefix = "B" }) {
     return (
       <div className="absolute" style={{ left: `${x}px`, top: `${y}px` }}>
         <div className="flex flex-row items-center">
-          <DeskWithChair orientation="vertical-left" onClick={() => onDeskClick(leftTag)} />
+          <DeskWithChair 
+            orientation="vertical-left" 
+            onClick={() => onDeskClick(leftTag)}
+            isOccupied={!!deskAssignments[leftTag]}
+            occupantType={deskAssignments[leftTag]?.type || "Employee"}
+            occupantName={deskAssignments[leftTag]?.name || ""}
+            zoom={zoom}
+          />
           <div style={{ marginLeft: "-24px" }}>
-            <DeskWithChair orientation="vertical-right" onClick={() => onDeskClick(rightTag)} />
+            <DeskWithChair 
+              orientation="vertical-right" 
+              onClick={() => onDeskClick(rightTag)}
+              isOccupied={!!deskAssignments[rightTag]}
+              occupantType={deskAssignments[rightTag]?.type || "Employee"}
+              occupantName={deskAssignments[rightTag]?.name || ""}
+              zoom={zoom}
+            />
           </div>
         </div>
       </div>
