@@ -14,11 +14,16 @@ const leagueSpartan = League_Spartan({
 const heroImages = [
   '/images/IMG_5271.jpg',
   '/images/IMG_5302.jpg',
+  '/images/IMG_5290.jpg',
+  '/images/IMG_5318.jpg',
+  '/images/IMG_5330.jpg',
+  '/images/IMG_5338.jpg',
 ];
 
 export default function ClientHomePage() {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const carouselRef = useRef(null);
+  const carouselRef2 = useRef(null);
 
   // Make navbar transparent and handle scroll
   useEffect(() => {
@@ -107,7 +112,7 @@ export default function ClientHomePage() {
       id: 1,
       title: 'Premium Spaces',
       description: 'Modern, well-equipped private offices designed for productivity and comfort.',
-      image: '/images/IMG_5271.jpg',
+      image: '/images/IMG_5326.jpg',
       rating: 4.95,
       badge: 'Guest favorite'
     },
@@ -161,18 +166,76 @@ export default function ClientHomePage() {
     }
   ];
 
-  const scrollCarousel = (direction) => {
-    if (!carouselRef.current) return;
+  const scrollCarousel = (direction, ref = null) => {
+    const carousel = ref || carouselRef.current;
+    if (!carousel) return;
     
     const cardWidth = 320; // Card width including gap
     const scrollAmount = cardWidth * 2; // Scroll 2 cards at a time
     
     if (direction === 'left') {
-      carouselRef.current.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+      carousel.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
     } else {
-      carouselRef.current.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+      carousel.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
   };
+
+  const availableSpaces = [
+    {
+      id: 1,
+      title: 'Executive Suite',
+      location: 'Silang Junction South',
+      image: '/images/IMG_5326.jpg',
+      rating: 4.98,
+      badge: 'Guest favorite'
+    },
+    {
+      id: 2,
+      title: 'Modern Workspace',
+      location: 'Tagaytay',
+      image: '/images/IMG_5302.jpg',
+      rating: 5.0,
+      badge: 'Guest favorite'
+    },
+    {
+      id: 3,
+      title: 'Business Center',
+      location: 'Maitim 2nd East',
+      image: '/images/IMG_5271.jpg',
+      rating: 4.96,
+      badge: 'Guest favorite'
+    },
+    {
+      id: 4,
+      title: 'Private Office',
+      location: 'Tagaytay',
+      image: '/images/IMG_5302.jpg',
+      rating: 4.88,
+      badge: 'Guest favorite'
+    },
+    {
+      id: 5,
+      title: 'Co-working Space',
+      location: 'Silang Junction South',
+      image: '/images/IMG_5271.jpg',
+      rating: 4.99,
+      badge: 'Guest favorite'
+    },
+    {
+      id: 6,
+      title: 'Professional Office',
+      location: 'Tagaytay',
+      image: '/images/IMG_5326.jpg',
+      rating: 4.81
+    },
+    {
+      id: 7,
+      title: 'Premium Workspace',
+      location: 'Silang Junction North',
+      image: '/images/IMG_5302.jpg',
+      rating: 5.0
+    }
+  ];
 
 
   return (
@@ -252,41 +315,41 @@ export default function ClientHomePage() {
       </section>
 
       {/* Why Choose Inspire Hub - Carousel Section */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="flex items-center justify-between mb-8">
-            <h2 className={`${leagueSpartan.className} text-3xl font-bold text-slate-800`}>Popular homes in BGC</h2>
-            <div className="flex gap-2">
-              <button
-                onClick={() => scrollCarousel('left')}
-                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:border-gray-400 transition-colors"
-                aria-label="Scroll left"
-              >
-                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
-              <button
-                onClick={() => scrollCarousel('right')}
-                className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:border-gray-400 transition-colors"
-                aria-label="Scroll right"
-              >
-                <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
+      <section className="pt-20 pb-8 bg-white">
+        <div className="max-w-[90%] mx-auto px-4">
+          <div className="relative">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className={`${leagueSpartan.className} text-3xl font-bold text-slate-800`}>Private Offices</h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => scrollCarousel('left')}
+                  className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+                  aria-label="Scroll left"
+                >
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => scrollCarousel('right')}
+                  className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+                  aria-label="Scroll right"
+                >
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
             </div>
-          </div>
-          
-          <div
-            ref={carouselRef}
-            className="flex gap-6 overflow-x-auto scrollbar-hide pb-4 scroll-smooth"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-          >
+            <div
+              ref={carouselRef}
+              className="flex gap-6 overflow-x-auto scrollbar-hide pb-4 scroll-smooth"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
             {whyChooseFeatures.map((feature) => (
               <div
                 key={feature.id}
-                className="flex-shrink-0 w-[300px] rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-shadow cursor-pointer group"
+                className="flex-shrink-0 w-[300px] rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-shadow cursor-pointer group relative"
               >
                 <div className="relative h-[200px]">
                   <Image
@@ -296,29 +359,14 @@ export default function ClientHomePage() {
                     className="object-cover group-hover:scale-105 transition-transform duration-300"
                     unoptimized
                   />
-                  <div className="absolute top-3 left-3">
-                    <span className="bg-white/90 backdrop-blur-sm text-xs font-semibold text-slate-800 px-3 py-1 rounded-full">
-                      {feature.badge}
-                    </span>
-                  </div>
-                  <button className="absolute top-3 right-3 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm flex items-center justify-center hover:bg-white transition-colors">
-                    <svg className="w-5 h-5 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-                    </svg>
-                  </button>
                 </div>
                 <div className="p-4 bg-white">
                   <h3 className="text-lg font-semibold text-slate-800 mb-2">{feature.title}</h3>
                   <p className="text-sm text-gray-600 mb-3 line-clamp-2">{feature.description}</p>
-                  <div className="flex items-center gap-1">
-                    <svg className="w-4 h-4 text-teal-600 fill-current" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-                    </svg>
-                    <span className="text-sm font-medium text-slate-800">{feature.rating}</span>
-                  </div>
                 </div>
               </div>
             ))}
+            </div>
           </div>
         </div>
         <style jsx>{`
@@ -328,83 +376,182 @@ export default function ClientHomePage() {
         `}</style>
       </section>
 
+      {/* Available Spaces Carousel Section */}
+      <section className="pt-8 pb-20 bg-white">
+        <div className="max-w-[90%] mx-auto px-4">
+          <div className="relative">
+            <div className="flex items-center justify-between mb-8">
+              <h2 className={`${leagueSpartan.className} text-3xl font-bold text-slate-800`}>Available Spaces</h2>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => scrollCarousel('left', carouselRef2.current)}
+                  className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+                  aria-label="Scroll left"
+                >
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <button
+                  onClick={() => scrollCarousel('right', carouselRef2.current)}
+                  className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+                  aria-label="Scroll right"
+                >
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+            <div
+              ref={carouselRef2}
+              className="flex gap-6 overflow-x-auto scrollbar-hide pb-4 scroll-smooth"
+              style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            >
+            {availableSpaces.map((space) => (
+              <div
+                key={space.id}
+                className="flex-shrink-0 w-[300px] rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-shadow cursor-pointer group relative"
+              >
+                <div className="relative h-[200px]">
+                  <Image
+                    src={space.image}
+                    alt={space.title}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    unoptimized
+                  />
+                </div>
+                <div className="p-4 bg-white">
+                  <h3 className="text-lg font-semibold text-slate-800 mb-2">{space.title}</h3>
+                  <p className="text-sm text-gray-600 mb-1">{space.location}</p>
+                  {space.badge && (
+                    <span className="inline-block px-2 py-1 text-xs font-semibold text-teal-700 bg-teal-100 rounded-md">
+                      {space.badge}
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* Content Section */}
       <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-6">
-          <div className="max-w-xl mb-10 md:mx-auto sm:text-center lg:max-w-2xl md:mb-12">
-          <div>
-            <p className="inline-block px-3 py-px mb-4 text-xs font-semibold tracking-wider text-teal-900 uppercase rounded-full bg-teal-100">
-              Brand new
-            </p>
+        <div className="px-4 py-16 mx-auto max-w-[95%] sm:max-w-xl md:max-w-full lg:max-w-screen-xl md:px-24 lg:px-8 lg:py-20">
+          <div className="grid gap-10 lg:grid-cols-2">
+            <div className="flex flex-col justify-center md:pr-8 xl:pr-0 lg:max-w-lg">
+              <div className="flex items-center justify-center w-16 h-16 mb-4 rounded-full bg-teal-100">
+                <svg className="text-teal-900 w-7 h-7" viewBox="0 0 24 24">
+                  <polyline
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeMiterlimit="10"
+                    points=" 8,5 8,1 16,1 16,5"
+                    strokeLinejoin="round"
+                  />
+                  <polyline
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeMiterlimit="10"
+                    points="9,15 1,15 1,5 23,5 23,15 15,15"
+                    strokeLinejoin="round"
+                  />
+                  <polyline
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeMiterlimit="10"
+                    points="22,18 22,23 2,23 2,18"
+                    strokeLinejoin="round"
+                  />
+                  <rect
+                    x="9"
+                    y="13"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeMiterlimit="10"
+                    width="6"
+                    height="4"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </div>
+              <div className="max-w-xl mb-6">
+                <h2 className={`${leagueSpartan.className} max-w-lg mb-6 font-sans text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl sm:leading-none`}>
+                  Let us handle
+                  <br className="hidden md:block" />
+                  your next{' '}
+                  <span className="inline-block text-teal-600">
+                    destination
+                  </span>
+                </h2>
+                <p className="text-base text-gray-700 md:text-lg">
+                  Sed ut perspiciatis unde omnis iste natus error sit voluptatem
+                  accusantium doloremque laudantium, totam rem aperiam, eaque ipsa
+                  quae. explicabo.
+                </p>
+              </div>
+              <div>
+                <Link
+                  href="/client/private-offices"
+                  aria-label="Learn more"
+                  className="inline-flex items-center font-semibold transition-colors duration-200 text-teal-600 hover:text-teal-800"
+                >
+                  Learn more
+                  <svg
+                    className="inline-block w-3 ml-2"
+                    fill="currentColor"
+                    viewBox="0 0 12 12"
+                  >
+                    <path d="M9.707,5.293l-5-5A1,1,0,0,0,3.293,1.707L7.586,6,3.293,10.293a1,1,0,1,0,1.414,1.414l5-5A1,1,0,0,0,9.707,5.293Z" />
+                  </svg>
+                </Link>
+              </div>
+            </div>
+            <div className="flex items-center justify-center -mx-4 lg:pl-8">
+              <div className="flex flex-col items-end px-3">
+                <div className="relative mb-6 rounded shadow-lg h-28 sm:h-48 xl:h-56 w-28 sm:w-48 xl:w-56 overflow-hidden">
+                  <Image
+                    src="/images/IMG_5326.jpg"
+                    alt="Modern workspace"
+                    fill
+                    className="object-cover"
+                    unoptimized
+                  />
+                </div>
+                <div className="relative w-20 h-20 rounded shadow-lg sm:h-32 xl:h-40 sm:w-32 xl:w-40 overflow-hidden">
+                  <Image
+                    src="/images/IMG_5325.jpg"
+                    alt="Professional office space"
+                    fill
+                    className="object-cover"
+                    unoptimized
+                  />
+                </div>
+              </div>
+              <div className="px-3">
+                <div className="relative w-40 h-40 rounded shadow-lg sm:h-64 xl:h-80 sm:w-64 xl:w-80 overflow-hidden">
+                  <Image
+                    src="/images/IMG_5322.jpg"
+                    alt="Collaborative workspace"
+                    fill
+                    className="object-cover"
+                    unoptimized
+                  />
+                </div>
+              </div>
+            </div>
           </div>
-          <h2 className={`${leagueSpartan.className} max-w-lg mb-6 text-3xl font-bold leading-none tracking-tight text-gray-900 sm:text-4xl md:mx-auto`}>
-            Why Choose Inspire Hub
-          </h2>
-          <p className="text-base text-gray-700 md:text-lg">
-            Experience modern, flexible workspaces designed to inspire productivity and collaboration. 
-            Join a community of professionals at Inspire Hub.
-          </p>
-        </div>
-        <div className="grid max-w-screen-lg gap-8 lg:grid-cols-2 sm:mx-auto">
-          <div className="grid grid-cols-2 gap-5">
-            <div className="relative w-full h-56 col-span-2 rounded-lg shadow-lg overflow-hidden">
-              <Image
-                src="/images/IMG_5271.jpg"
-                alt="Modern workspace at Inspire Hub"
-                fill
-                className="object-cover"
-                unoptimized
-              />
-            </div>
-            <div className="relative w-full h-48 rounded-lg shadow-lg overflow-hidden">
-              <Image
-                src="/images/IMG_5302.jpg"
-                alt="Professional office space"
-                fill
-                className="object-cover"
-                unoptimized
-              />
-            </div>
-            <div className="relative w-full h-48 rounded-lg shadow-lg overflow-hidden">
-              <Image
-                src="/images/IMG_5271.jpg"
-                alt="Collaborative workspace"
-                fill
-                className="object-cover"
-                unoptimized
-              />
-            </div>
-          </div>
-          <div className="flex flex-col justify-center">
-            <div className="pb-4 mb-4 border-b">
-              <h6 className={`${leagueSpartan.className} mb-2 font-semibold leading-5 text-slate-800`}>
-                Premium workspace amenities
-              </h6>
-              <p className="text-sm text-gray-900">
-                High-speed internet, modern meeting rooms, and state-of-the-art facilities 
-                designed to enhance your productivity and professional image.
-              </p>
-            </div>
-            <div className="pb-4 mb-4 border-b">
-              <h6 className={`${leagueSpartan.className} mb-2 font-semibold leading-5 text-slate-800`}>
-                Flexible rental options
-              </h6>
-              <p className="text-sm text-gray-900">
-                Choose from hourly, daily, or monthly plans that adapt to your business needs. 
-                No long-term commitments required.
-              </p>
-            </div>
-            <div>
-              <h6 className={`${leagueSpartan.className} mb-2 font-semibold leading-5 text-slate-800`}>
-                Prime location in the heart of the city
-              </h6>
-              <p className="text-sm text-gray-900">
-                Strategically located with easy access to transportation, dining, and business districts. 
-                Make a great impression with our prestigious address.
-              </p>
-            </div>
-          </div>
-        </div>
         </div>
       </section>
 
