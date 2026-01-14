@@ -2,8 +2,13 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
+import { collection, doc, setDoc, getDoc } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
 
 export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -16,13 +21,84 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
 
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle sign up logic here
-    console.log('Sign up submitted:', formData);
-    // Close modal after successful sign up
-    // onClose();
+    setError('');
+
+    // Validation
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match.');
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      if (!auth) {
+        throw new Error('Firebase authentication is not initialized. Please check your environment variables.');
+      }
+
+      if (!db) {
+        throw new Error('Firebase Firestore is not initialized. Please check your environment variables.');
+      }
+
+      // Create user account
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        formData.email,
+        formData.password
+      );
+
+      // Save additional user data to Firestore
+      // All users registering through this form are clients
+      // Save to /accounts/client/{userId} (subcollection under client document)
+      const userDoc = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        companyName: formData.companyName,
+        contact: formData.contact,
+        createdAt: new Date().toISOString(),
+        role: 'client', // All registrations are clients
+      };
+
+      // Save to /accounts/client/users/{userId}
+      // Structure: accounts (collection) > client (document) > users (subcollection) > {userId} (document)
+      await setDoc(doc(collection(db, 'accounts', 'client', 'users'), userCredential.user.uid), userDoc);
+
+      // Success - close modal and redirect to client home
+      onClose();
+      router.push('/client/home');
+    } catch (error) {
+      console.error('Sign up error:', error);
+      
+      // Handle specific Firebase errors
+      let errorMessage = 'An error occurred during sign up. Please try again.';
+      
+      if (error.code === 'auth/email-already-in-use') {
+        errorMessage = 'This email is already registered. Please use a different email or log in.';
+      } else if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address.';
+      } else if (error.code === 'auth/operation-not-allowed') {
+        errorMessage = 'Email/password accounts are not enabled. Please contact support.';
+      } else if (error.code === 'auth/weak-password') {
+        errorMessage = 'Password is too weak. Please choose a stronger password.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e) => {
@@ -61,6 +137,13 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
 
               {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* Error Message */}
+                {error && (
+                  <div className="bg-red-50 border-2 border-red-500 text-red-700 px-4 py-3 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
+
                 {/* First Name and Last Name - Two Columns */}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -76,7 +159,8 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
                       name="firstName"
                       value={formData.firstName}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F766E] focus:border-transparent"
+                      disabled={loading}
+                      className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F766E] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                       placeholder="Enter first name"
                       required
                     />
@@ -94,7 +178,8 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
                       name="lastName"
                       value={formData.lastName}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F766E] focus:border-transparent"
+                      disabled={loading}
+                      className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F766E] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                       placeholder="Enter last name"
                       required
                     />
@@ -109,16 +194,17 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
                   >
                     Email
                   </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F766E] focus:border-transparent bg-blue-50"
-                    placeholder="Enter your email"
-                    required
-                  />
+                    <input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      disabled={loading}
+                      className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F766E] focus:border-transparent bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                      placeholder="Enter your email"
+                      required
+                    />
                 </div>
 
                 {/* Company Name Field */}
@@ -129,16 +215,17 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
                   >
                     Company Name
                   </label>
-                  <input
-                    type="text"
-                    id="companyName"
-                    name="companyName"
-                    value={formData.companyName}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F766E] focus:border-transparent"
-                    placeholder="Enter company name"
-                    required
-                  />
+                    <input
+                      type="text"
+                      id="companyName"
+                      name="companyName"
+                      value={formData.companyName}
+                      onChange={handleChange}
+                      disabled={loading}
+                      className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F766E] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                      placeholder="Enter company name"
+                      required
+                    />
                 </div>
 
                 {/* Contact Field */}
@@ -149,16 +236,17 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
                   >
                     Contact
                   </label>
-                  <input
-                    type="tel"
-                    id="contact"
-                    name="contact"
-                    value={formData.contact}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F766E] focus:border-transparent"
-                    placeholder="Enter contact number"
-                    required
-                  />
+                    <input
+                      type="tel"
+                      id="contact"
+                      name="contact"
+                      value={formData.contact}
+                      onChange={handleChange}
+                      disabled={loading}
+                      className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F766E] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                      placeholder="Enter contact number"
+                      required
+                    />
                 </div>
 
                 {/* Password Field */}
@@ -176,7 +264,8 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
                       name="password"
                       value={formData.password}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 pr-12 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F766E] focus:border-transparent bg-blue-50"
+                      disabled={loading}
+                      className="w-full px-4 py-3 pr-12 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F766E] focus:border-transparent bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
                       placeholder="Enter password"
                       required
                     />
@@ -214,7 +303,8 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
                       name="confirmPassword"
                       value={formData.confirmPassword}
                       onChange={handleChange}
-                      className="w-full px-4 py-3 pr-12 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F766E] focus:border-transparent"
+                      disabled={loading}
+                      className="w-full px-4 py-3 pr-12 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F766E] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                       placeholder="Confirm password"
                       required
                     />
@@ -241,14 +331,16 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
                 <div className="flex gap-4 pt-2">
                   <button
                     type="submit"
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+                    disabled={loading}
+                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Sign up
+                    {loading ? 'Signing up...' : 'Sign up'}
                   </button>
                   <button
                     type="button"
                     onClick={onClose}
-                    className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+                    disabled={loading}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Close
                   </button>

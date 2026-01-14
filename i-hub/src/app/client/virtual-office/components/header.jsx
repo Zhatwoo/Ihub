@@ -2,8 +2,27 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 export default function VirtualOfficeHeader() {
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    try {
+      if (auth) {
+        await signOut(auth);
+      }
+      // Redirect to landing page after logout
+      router.push('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Even if there's an error, redirect to landing page
+      router.push('/');
+    }
+  };
+
   return (
     <header className="w-full bg-[#0F766E] px-[1.575rem] py-[1.05rem] sticky top-0 z-50">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -36,12 +55,12 @@ export default function VirtualOfficeHeader() {
           >
             Inquire Virtual Office
           </Link>
-          <Link
-            href="/auth/logout"
+          <button
+            onClick={handleLogout}
             className="text-white text-[0.9646875rem] font-medium hover:text-teal-100 transition-colors"
           >
             Logout
-          </Link>
+          </button>
         </nav>
       </div>
     </header>
