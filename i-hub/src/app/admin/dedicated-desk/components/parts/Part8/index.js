@@ -3,10 +3,17 @@
 import DeskWithChair from "../../DeskWithChair";
 import Wall from "../../Wall";
 
-export default function Part8({ onDeskClick, startX, startY, wallAlignX, wallAlignY, tagPrefix = "H", deskAssignments = {}, zoom = 1 }) {
+export default function Part8({ onDeskClick, startX = 0, startY = 0, wallAlignX = 320, wallAlignY = 0, tagPrefix = "H", deskAssignments = {}, zoom = 1, isStandalone = false }) {
   const deskWidth = 80;
   const pairHeight = 136;
   const rowGap = 26;
+  const wallSize = 120;
+
+  // When standalone, use local positioning
+  const baseX = isStandalone ? 0 : startX;
+  const baseY = isStandalone ? wallSize + 20 : startY;
+  const wallX = isStandalone ? 4 * deskWidth - 30 : wallAlignX;
+  const wallY = isStandalone ? 0 : wallAlignY;
 
   const getTag = (deskNumber) => `${tagPrefix}${deskNumber}`;
 
@@ -39,9 +46,6 @@ export default function Part8({ onDeskClick, startX, startY, wallAlignX, wallAli
       </div>
     );
   };
-
-  const wallX = wallAlignX;
-  const wallY = wallAlignY;
   
   return (
     <>
@@ -51,12 +55,12 @@ export default function Part8({ onDeskClick, startX, startY, wallAlignX, wallAli
       
       {Array.from({ length: 3 }).map((_, rowIdx) =>
         Array.from({ length: 4 }).map((_, pairIdx) => {
-          const deskNumber = (rowIdx * 4 * 2) + (pairIdx * 2) + 1; // H1-H24
+          const deskNumber = (rowIdx * 4 * 2) + (pairIdx * 2) + 1;
           return (
             <HorizontalPair 
               key={`part8-row${rowIdx}-pair${pairIdx}`} 
-              x={startX + pairIdx * deskWidth} 
-              y={startY + rowIdx * (pairHeight + rowGap)}
+              x={baseX + pairIdx * deskWidth} 
+              y={baseY + rowIdx * (pairHeight + rowGap)}
               deskNumber={deskNumber}
             />
           );

@@ -3,7 +3,7 @@
 import DeskWithChair from "../../DeskWithChair";
 import Wall from "../../Wall";
 
-export default function Part1({ onDeskClick, tagPrefix = "A", deskAssignments = {}, zoom = 1 }) {
+export default function Part1({ onDeskClick, tagPrefix = "A", deskAssignments = {}, zoom = 1, isStandalone = false }) {
   const deskWidth = 80;
   const horizontalContainerHeight = 70;
   const pairHeight = 136;
@@ -50,7 +50,7 @@ export default function Part1({ onDeskClick, tagPrefix = "A", deskAssignments = 
   return (
     <>
       {Array.from({ length: 5 }).map((_, pairIdx) => {
-        const deskNumber = pairIdx + 1; // A1-A5
+        const deskNumber = pairIdx + 1;
         const tag = getTag(deskNumber);
         return (
           <div key={`top-${pairIdx}`} className="absolute" style={{ 
@@ -75,7 +75,6 @@ export default function Part1({ onDeskClick, tagPrefix = "A", deskAssignments = 
       
       {Array.from({ length: 3 }).map((_, rowIdx) =>
         Array.from({ length: 6 }).map((_, pairIdx) => {
-          // Start from A6 (after 5 single desks)
           const baseDeskNumber = 5 + (rowIdx * 6 * 2) + (pairIdx * 2) + 1;
           return (
             <HorizontalPair 
