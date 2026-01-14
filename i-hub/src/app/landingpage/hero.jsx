@@ -52,7 +52,7 @@ export default function Hero() {
               The community, workspaces, and technology to make a good impression and get down to business.
             </p>
             <Link 
-              href="#inquiry-form" 
+              href="/landingpage/contacts" 
               className="inline-block bg-[#0F766E] hover:bg-[#0d6b64] text-white font-semibold px-8 py-4 rounded-[20px] transform scale-x-[1.9] scale-y-[1.7] mt-[15%] ml-[10%] border-[3px] border-white transition-colors duration-200"
             >
               Inquire
