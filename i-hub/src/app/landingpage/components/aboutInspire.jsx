@@ -59,7 +59,7 @@ export default function AboutInspire() {
   }, [bottomLeftSlideshowImages.length]);
 
   return (
-    <section ref={sectionRef} className="relative bg-white py-16 lg:py-24 overflow-hidden">
+    <section id="about-i-hub" ref={sectionRef} className="relative bg-white py-16 lg:py-24 overflow-hidden">
       {/* Top Background - Solid Color */}
       <div 
         className="absolute top-0 left-0 right-0 h-1/2 bg-[#1F2937] pointer-events-none z-0"

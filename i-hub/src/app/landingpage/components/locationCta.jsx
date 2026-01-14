@@ -38,7 +38,7 @@ export default function LocationCta() {
   };
 
   return (
-    <section id="inquiry-form" ref={sectionRef} className="relative bg-white overflow-hidden">
+    <section id="location-map" ref={sectionRef} className="relative bg-white overflow-hidden">
       {/* Top Section - Text Content */}
       <div className="bg-white py-12 lg:py-16">
         <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
@@ -94,8 +94,8 @@ export default function LocationCta() {
     clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%, 0% 0%, 5% 12%, 10% 23%, 15% 33%, 20% 42%, 25% 50%, 30% 57%, 35% 63%, 40% 67%, 45% 69%, 50% 70%, 55% 69%, 60% 67%, 65% 63%, 70% 57%, 75% 50%, 80% 42%, 85% 33%, 90% 23%, 95% 12%, 100% 0%)'
   }}
 />
-   </div>
-       {/* Bottom Section - Schedule a Meeting Form */}
+      </div>
+      {/* Bottom Section - Schedule a Meeting Form */}
       <div className=" py-12 lg:py-16 relative -mt-96 lg:-mt-128 z-30">
         <div className="max-w-4xl mx-auto px-6 lg:px-8">
           <motion.div

@@ -4,7 +4,7 @@ import { League_Spartan } from 'next/font/google';
 import Image from 'next/image';
 import Link from 'next/link';
 import { motion, useInView } from 'framer-motion';
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 
 const leagueSpartan = League_Spartan({
   subsets: ['latin'],
@@ -14,20 +14,90 @@ const leagueSpartan = League_Spartan({
 export default function VirtualOfficeHero() {
   const heroRef = useRef(null);
   const textRef = useRef(null);
+  const backgroundRef = useRef(null);
+  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const [scrollY, setScrollY] = useState(0);
   const isHeroInView = useInView(heroRef, { once: true, amount: 0.3 });
   const isTextInView = useInView(textRef, { once: true, amount: 0.2 });
+
+  useEffect(() => {
+    const handleMouseMove = (e) => {
+      setMousePosition({
+        x: (e.clientX / window.innerWidth - 0.5) * 20,
+        y: (e.clientY / window.innerHeight - 0.5) * 20,
+      });
+    };
+
+    const handleScroll = () => {
+      setScrollY(window.scrollY);
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('scroll', handleScroll);
+    
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   return (
     <div className="w-full bg-[#FFFFFF] min-h-[1080px]">
       {/* Diagonal Divider Design at Top */}
-      <div 
+      <motion.div 
         ref={heroRef}
-        className="w-full bg-[#0F766E] relative"
+        className="w-full bg-[#0F766E] relative overflow-hidden"
         style={{
           height: '500px',
           clipPath: 'polygon(0% 0%, 100% 0%, 100% 5%, 60% 5%, 40% 150%, 0% 100%)'
         }}
+        animate={{
+          background: [
+            'linear-gradient(135deg, #0F766E 0%, #0d6b64 50%, #0F766E 100%)',
+            'linear-gradient(135deg, #0d6b64 0%, #0F766E 50%, #0d6b64 100%)',
+            'linear-gradient(135deg, #0F766E 0%, #0d6b64 50%, #0F766E 100%)',
+          ],
+        }}
+        transition={{
+          duration: 8,
+          repeat: Infinity,
+          ease: 'easeInOut',
+        }}
       >
+        {/* Animated Background Pattern */}
+        <motion.div
+          className="absolute inset-0 opacity-10"
+          animate={{
+            x: mousePosition.x,
+            y: mousePosition.y + scrollY * 0.3,
+          }}
+          transition={{ type: 'spring', stiffness: 50, damping: 20 }}
+        >
+          <div className="absolute inset-0" style={{
+            backgroundImage: `
+              radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+              radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.1) 0%, transparent 50%),
+              radial-gradient(circle at 40% 20%, rgba(255, 255, 255, 0.1) 0%, transparent 50%)
+            `,
+            backgroundSize: '200% 200%',
+          }} />
+        </motion.div>
+
+        {/* Interactive Gradient Overlay */}
+        <motion.div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: `radial-gradient(circle at ${50 + mousePosition.x * 0.5}% ${50 + mousePosition.y * 0.5}%, rgba(255, 255, 255, 0.1) 0%, transparent 70%)`,
+          }}
+          animate={{
+            opacity: [0.3, 0.5, 0.3],
+          }}
+          transition={{
+            duration: 4,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+        />
         {/* Green Rectangle with Text */}
         <div className="absolute left-[8%] top-[7%] sm:left-[8%] sm:top-[7%]">
           <div className=" bg-transparent p-8 sm:p-10 lg:p-12">
@@ -62,10 +132,42 @@ export default function VirtualOfficeHero() {
             </motion.div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* White Section with Green Rectangle Box and Text */}
-      <div className="w-full bg-[#FFFFFF] relative min-h-[600px]">
+      <motion.div 
+        ref={backgroundRef}
+        className="w-full bg-[#FFFFFF] relative min-h-[600px] overflow-hidden"
+        style={{
+          background: `linear-gradient(${135 + mousePosition.x * 0.1}deg, #FFFFFF 0%, #F8FAFC 100%)`,
+        }}
+      >
+        {/* Subtle Animated Background Pattern */}
+        <motion.div
+          className="absolute inset-0 opacity-5 pointer-events-none"
+          animate={{
+            backgroundPosition: [
+              '0% 0%',
+              '100% 100%',
+              '0% 0%',
+            ],
+          }}
+          transition={{
+            duration: 20,
+            repeat: Infinity,
+            ease: 'linear',
+          }}
+          style={{
+            backgroundImage: `repeating-linear-gradient(
+              45deg,
+              #0F766E 0px,
+              #0F766E 1px,
+              transparent 1px,
+              transparent 20px
+            )`,
+            backgroundSize: '40px 40px',
+          }}
+        />
         {/* Green Rectangle Box with Image */}
         <div className="absolute right-[25%] -top-64 sm:right-[25%] sm:-top-80 lg:right-[25%] lg:-top-96">
           <div className="bg-transparent p-8 sm:p-10 lg:p-12 w-96 h-72 sm:w-[480px] sm:h-[336px] lg:w-[576px] lg:h-96 relative">
@@ -122,7 +224,7 @@ export default function VirtualOfficeHero() {
             </motion.p>
           </motion.div>
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

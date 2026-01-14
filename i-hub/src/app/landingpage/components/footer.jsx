@@ -2,6 +2,7 @@
 
 import { League_Spartan, Roboto } from 'next/font/google';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 const leagueSpartan = League_Spartan({
   subsets: ['latin'],
@@ -22,6 +23,41 @@ const socials = [
 ];
 
 export default function Footer() {
+  const router = useRouter();
+
+  const handleSmoothScroll = (e, targetId) => {
+    e.preventDefault();
+    
+    // Check if we're on the landing page
+    if (window.location.pathname === '/') {
+      const element = document.getElementById(targetId);
+      if (element) {
+        const headerOffset = 80;
+        const elementPosition = element.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+      }
+    } else {
+      // If not on landing page, navigate first then scroll
+      router.push('/');
+      setTimeout(() => {
+        const element = document.getElementById(targetId);
+        if (element) {
+          const headerOffset = 80;
+          const elementPosition = element.getBoundingClientRect().top;
+          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          });
+        }
+      }, 100);
+    }
+  };
+
   return (
     <footer className="bg-[#0F766E] text-white py-12 lg:py-16">
       <div className="w-full max-w-[1440px] mx-auto px-6 lg:px-14 grid grid-cols-1 md:grid-cols-3 gap-12">
@@ -52,10 +88,34 @@ export default function Footer() {
           <div className="space-y-4 min-w-[180px]">
             <h3 className={`${leagueSpartan.className} text-lg font-semibold`}>Resources</h3>
             <ul className={`${roboto.className} text-sm lg:text-base space-y-2 text-white/90`}>
-              <li>FAQ</li>
-              <li>About I-Hub</li>
-              <li>Contact</li>
-              <li>Location Map</li>
+              <li>
+                <Link href="/landingpage/faq" className="hover:text-white transition-colors">
+                  FAQ
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href="/#about-i-hub" 
+                  className="hover:text-white transition-colors"
+                  onClick={(e) => handleSmoothScroll(e, 'about-i-hub')}
+                >
+                  About I-Hub
+                </Link>
+              </li>
+              <li>
+                <Link href="/landingpage/contacts" className="hover:text-white transition-colors">
+                  Contact
+                </Link>
+              </li>
+              <li>
+                <Link 
+                  href="/#location-map" 
+                  className="hover:text-white transition-colors"
+                  onClick={(e) => handleSmoothScroll(e, 'location-map')}
+                >
+                  Location Map
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -85,9 +145,15 @@ export default function Footer() {
         <div className="w-full max-w-[1440px] mx-auto px-6 lg:px-14 py-4 flex flex-col sm:flex-row justify-between items-center text-xs lg:text-sm text-white/80 gap-2">
           <span className={roboto.className}>© {new Date().getFullYear()} Inspire Hub. All rights reserved.</span>
           <div className={`flex items-center gap-4 ${roboto.className}`}>
-            <span>Privacy Policy</span>
-            <span>Terms</span>
-            <span>Cookie Policy</span>
+            <Link href="/landingpage/policyTermsCokie#privacy" className="hover:text-white transition-colors">
+              Privacy Policy
+            </Link>
+            <Link href="/landingpage/policyTermsCokie#terms" className="hover:text-white transition-colors">
+              Terms
+            </Link>
+            <Link href="/landingpage/policyTermsCokie#cookie" className="hover:text-white transition-colors">
+              Cookie Policy
+            </Link>
           </div>
         </div>
       </div>
