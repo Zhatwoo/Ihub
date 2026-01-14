@@ -4,13 +4,18 @@ import DeskWithChair from "../../DeskWithChair";
 import Wall from "../../Wall";
 import Cabinet from "../../Cabinet";
 
-export default function Part5({ onDeskClick, startX, startY, wallAlignX, tagPrefix = "E", deskAssignments = {}, zoom = 1 }) {
+export default function Part5({ onDeskClick, startX, startY, wallAlignX, tagPrefix = "E", deskAssignments = {}, zoom = 1, isStandalone = false }) {
   const deskWidth = 80;
   const pairHeight = 136;
   const verticalPairWidth = 156;
   const deskHeight = 80;
   const wallSize = 120;
   const rowGap = 26;
+
+  // When standalone, use local positioning; otherwise use passed props
+  const baseX = isStandalone ? 0 : startX;
+  const baseY = isStandalone ? 40 : startY;
+  const wallX = isStandalone ? 5 * deskWidth : wallAlignX;
 
   const getTag = (deskNumber) => `${tagPrefix}${deskNumber}`;
 
@@ -74,7 +79,6 @@ export default function Part5({ onDeskClick, startX, startY, wallAlignX, tagPref
     );
   };
 
-  const wallX = wallAlignX;
   const wallY = 0;
   const verticalStartY = wallSize - 5;
   const verticalStartX = wallX;
@@ -83,12 +87,12 @@ export default function Part5({ onDeskClick, startX, startY, wallAlignX, tagPref
     <>
       {Array.from({ length: 2 }).map((_, rowIdx) =>
         Array.from({ length: 5 }).map((_, pairIdx) => {
-          const deskNumber = (rowIdx * 5 * 2) + (pairIdx * 2) + 1; // E1-E20
+          const deskNumber = (rowIdx * 5 * 2) + (pairIdx * 2) + 1;
           return (
             <HorizontalPair 
               key={`part5-row${rowIdx}-pair${pairIdx}`} 
-              x={startX + pairIdx * deskWidth} 
-              y={startY + rowIdx * (pairHeight + rowGap)}
+              x={baseX + pairIdx * deskWidth} 
+              y={baseY + rowIdx * (pairHeight + rowGap)}
               deskNumber={deskNumber}
             />
           );
@@ -96,12 +100,12 @@ export default function Part5({ onDeskClick, startX, startY, wallAlignX, tagPref
       )}
       
       {Array.from({ length: 5 }).map((_, pairIdx) => {
-        const deskNumber = 21 + pairIdx; // E21-E25
+        const deskNumber = 21 + pairIdx;
         const tag = getTag(deskNumber);
         return (
           <div key={`part5-row2-${pairIdx}`} className="absolute" style={{ 
-            left: `${startX + pairIdx * deskWidth}px`, 
-            top: `${startY + 2 * (pairHeight + rowGap)}px` 
+            left: `${baseX + pairIdx * deskWidth}px`, 
+            top: `${baseY + 2 * (pairHeight + rowGap)}px` 
           }}>
             <DeskWithChair 
               orientation="horizontal-top" 
@@ -116,8 +120,8 @@ export default function Part5({ onDeskClick, startX, startY, wallAlignX, tagPref
       })}
       
       <div className="absolute" style={{ 
-        left: `${startX + 85 - 78 + 40}px`, 
-        top: `${startY + 2 * (pairHeight + rowGap) + 61}px` 
+        left: `${baseX + 85 - 78 + 40}px`, 
+        top: `${baseY + 2 * (pairHeight + rowGap) + 61}px` 
       }}>
         <div className="flex flex-row items-center">
           <DeskWithChair 
@@ -144,14 +148,14 @@ export default function Part5({ onDeskClick, startX, startY, wallAlignX, tagPref
       </div>
       
       <div className="absolute" style={{ 
-        left: `${startX + 85 - 78 + 156 + 40}px`, 
-        top: `${startY + 2 * (pairHeight + rowGap) + 61 + 5}px` 
+        left: `${baseX + 85 - 78 + 156 + 40}px`, 
+        top: `${baseY + 2 * (pairHeight + rowGap) + 61 + 5}px` 
       }}>
         <Cabinet width={60} height={30} />
       </div>
       <div className="absolute" style={{ 
-        left: `${startX + 85 - 78 + 156 + 60 + 40}px`, 
-        top: `${startY + 2 * (pairHeight + rowGap) + 61 + 5}px` 
+        left: `${baseX + 85 - 78 + 156 + 60 + 40}px`, 
+        top: `${baseY + 2 * (pairHeight + rowGap) + 61 + 5}px` 
       }}>
         <Cabinet width={60} height={30} />
       </div>
@@ -162,7 +166,7 @@ export default function Part5({ onDeskClick, startX, startY, wallAlignX, tagPref
       
       {Array.from({ length: 2 }).map((_, colIdx) =>
         Array.from({ length: 6 }).map((_, pairIdx) => {
-          const deskNumber = 28 + (colIdx * 6 * 2) + (pairIdx * 2); // E28-E51
+          const deskNumber = 28 + (colIdx * 6 * 2) + (pairIdx * 2);
           return (
             <VerticalPair 
               key={`part5-col${colIdx}-pair${pairIdx}`} 

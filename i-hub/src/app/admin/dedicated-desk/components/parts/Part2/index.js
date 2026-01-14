@@ -3,11 +3,14 @@
 import DeskWithChair from "../../DeskWithChair";
 import Wall from "../../Wall";
 
-export default function Part2({ onDeskClick, startY, tagPrefix = "B", deskAssignments = {}, zoom = 1 }) {
+export default function Part2({ onDeskClick, startY = 0, tagPrefix = "B", deskAssignments = {}, zoom = 1, isStandalone = false }) {
   const deskWidth = 80;
   const deskHeight = 80;
   const verticalPairWidth = 156;
   const part1TopWallX = 5 * deskWidth;
+  const wallSize = 120;
+
+  const baseY = isStandalone ? wallSize : startY;
 
   const getTag = (deskNumber) => `${tagPrefix}${deskNumber}`;
 
@@ -41,25 +44,25 @@ export default function Part2({ onDeskClick, startY, tagPrefix = "B", deskAssign
     );
   };
 
+  const totalWidth = 3 * verticalPairWidth;
+  const wallX = isStandalone ? totalWidth : part1TopWallX;
+
   return (
     <>
-      <div className="absolute" style={{ left: `${part1TopWallX}px`, top: `${startY}px` }}>
+      <div className="absolute" style={{ left: `${wallX}px`, top: `${isStandalone ? 0 : baseY}px` }}>
         <Wall />
       </div>
       
       {Array.from({ length: 3 }).map((_, colIdx) => {
-        const totalWidth = 3 * verticalPairWidth;
-        const startX = part1TopWallX - totalWidth;
-        const columnX = startX + colIdx * verticalPairWidth;
+        const columnX = isStandalone ? colIdx * verticalPairWidth : (part1TopWallX - totalWidth) + colIdx * verticalPairWidth;
         const verticalRowHeight = deskHeight;
         return Array.from({ length: 4 }).map((_, pairIdx) => {
-          // Calculate desk number: colIdx * 4 pairs * 2 desks + pairIdx * 2 desks + 1
           const deskNumber = (colIdx * 4 * 2) + (pairIdx * 2) + 1;
           return (
             <VerticalPair 
               key={`part2-col${colIdx}-pair${pairIdx}`} 
               x={columnX} 
-              y={startY + pairIdx * verticalRowHeight}
+              y={baseY + pairIdx * verticalRowHeight}
               deskNumber={deskNumber}
             />
           );

@@ -3,11 +3,13 @@
 import DeskWithChair from "../../DeskWithChair";
 import Wall from "../../Wall";
 
-export default function Part3({ onDeskClick, startX, tagPrefix = "C", deskAssignments = {}, zoom = 1 }) {
+export default function Part3({ onDeskClick, startX = 0, tagPrefix = "C", deskAssignments = {}, zoom = 1, isStandalone = false }) {
   const deskHeight = 80;
   const verticalPairWidth = 156;
   const verticalContainerWidth = 90;
   const wallSize = 120;
+
+  const baseX = isStandalone ? 0 : startX;
 
   const getTag = (deskNumber) => `${tagPrefix}${deskNumber}`;
 
@@ -41,18 +43,18 @@ export default function Part3({ onDeskClick, startX, tagPrefix = "C", deskAssign
     );
   };
 
-  const col4X = startX + verticalContainerWidth + 2 * verticalPairWidth;
+  const col4X = baseX + verticalContainerWidth + 2 * verticalPairWidth;
   const wallX = col4X + 26 + 40 - 60;
   const firstDeskY = wallSize - 5;
 
   return (
     <>
       {Array.from({ length: 6 }).map((_, rowIdx) => {
-        const deskNumber = rowIdx + 1; // C1-C6
+        const deskNumber = rowIdx + 1;
         const tag = getTag(deskNumber);
         return (
           <div key={`part3-col0-${rowIdx}`} className="absolute" style={{ 
-            left: `${startX}px`, 
+            left: `${baseX}px`, 
             top: `${wallSize - 5 + rowIdx * deskHeight}px` 
           }}>
             <DeskWithChair 
@@ -68,9 +70,9 @@ export default function Part3({ onDeskClick, startX, tagPrefix = "C", deskAssign
       })}
       
       {Array.from({ length: 2 }).map((_, colIdx) => {
-        const columnX = startX + verticalContainerWidth + colIdx * verticalPairWidth;
+        const columnX = baseX + verticalContainerWidth + colIdx * verticalPairWidth;
         return Array.from({ length: 6 }).map((_, rowIdx) => {
-          const deskNumber = 7 + (colIdx * 6 * 2) + (rowIdx * 2); // C7-C30
+          const deskNumber = 7 + (colIdx * 6 * 2) + (rowIdx * 2);
           return (
             <VerticalPair 
               key={`part3-col${colIdx + 1}-pair${rowIdx}`} 
@@ -110,7 +112,6 @@ export default function Part3({ onDeskClick, startX, tagPrefix = "C", deskAssign
               <div className="bg-gray-400 rounded-sm" style={{ width: "70px", height: "30px" }} />
             </div>
             <div className="absolute rounded-full bg-black" style={{ width: "20px", height: "20px", left: "65px", top: "25px" }} />
-            {/* Color overlay for occupied desk */}
             {deskAssignments[getTag(32)] && (
               <div 
                 className={`absolute inset-0 ${deskAssignments[getTag(32)]?.type === "Tenant" ? "bg-blue-500" : "bg-red-500"} rounded-sm z-10 pointer-events-none`}
@@ -122,7 +123,7 @@ export default function Part3({ onDeskClick, startX, tagPrefix = "C", deskAssign
       </div>
       
       {Array.from({ length: 5 }).map((_, rowIdx) => {
-        const deskNumber = 33 + (rowIdx * 2); // C33-C42
+        const deskNumber = 33 + (rowIdx * 2);
         return (
           <VerticalPair 
             key={`part3-col3-pair${rowIdx + 1}`} 
@@ -134,14 +135,14 @@ export default function Part3({ onDeskClick, startX, tagPrefix = "C", deskAssign
       })}
       
       <div className="absolute" style={{ 
-        left: `${startX + verticalContainerWidth + 26 + (80 - 60) / 2}px`, 
+        left: `${baseX + verticalContainerWidth + 26 + (80 - 60) / 2}px`, 
         top: `${wallSize - 5 + 6 * deskHeight + 5}px` 
       }}>
         <div className="bg-white border-2 border-black rounded-sm" style={{ width: "60px", height: "30px" }} />
       </div>
       
       <div className="absolute" style={{ 
-        left: `${startX + verticalContainerWidth + verticalPairWidth + 26 + (80 - 60) / 2}px`, 
+        left: `${baseX + verticalContainerWidth + verticalPairWidth + 26 + (80 - 60) / 2}px`, 
         top: `${wallSize - 5 + 6 * deskHeight + 5}px` 
       }}>
         <div className="bg-white border-2 border-black rounded-sm" style={{ width: "60px", height: "30px" }} />

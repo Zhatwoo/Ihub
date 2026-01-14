@@ -3,13 +3,14 @@
 import Wall from "../../Wall";
 import DeskWithChair from "../../DeskWithChair";
 
-export default function Part6({ onDeskClick, wallAlignX, wallAlignY, tagPrefix = "F", deskAssignments = {}, zoom = 1 }) {
+export default function Part6({ onDeskClick, wallAlignX, wallAlignY, tagPrefix = "F", deskAssignments = {}, zoom = 1, isStandalone = false }) {
   const wallSize = 120;
   const deskHeight = 80;
   const verticalPairWidth = 156;
   
-  const wallX = wallAlignX;
-  const wallY = wallAlignY;
+  // When standalone, use local positioning; otherwise use passed props
+  const wallX = isStandalone ? 350 : wallAlignX;
+  const wallY = isStandalone ? 0 : wallAlignY;
   const desksStartY = wallY + wallSize - 5;
   const desksStartX = wallX + 20 - 26;
   const col2StartX = desksStartX + verticalPairWidth;
@@ -56,7 +57,7 @@ export default function Part6({ onDeskClick, wallAlignX, wallAlignY, tagPrefix =
       </div>
       
       {Array.from({ length: 4 }).map((_, idx) => {
-        const deskNumber = 1 + idx; // F1-F4
+        const deskNumber = 1 + idx;
         const tag = getTag(deskNumber);
         return (
           <div 
@@ -97,7 +98,7 @@ export default function Part6({ onDeskClick, wallAlignX, wallAlignY, tagPrefix =
       </div>
       
       {Array.from({ length: 3 }).map((_, idx) => {
-        const deskNumber = 6 + (idx * 2); // F6-F11
+        const deskNumber = 6 + (idx * 2);
         return (
           <VerticalPair 
             key={`part6-col1-pair-${idx}`} 
@@ -109,7 +110,7 @@ export default function Part6({ onDeskClick, wallAlignX, wallAlignY, tagPrefix =
       })}
       
       {Array.from({ length: 4 }).map((_, idx) => {
-        const deskNumber = 12 + (idx * 2); // F12-F19
+        const deskNumber = 12 + (idx * 2);
         return (
           <VerticalPair 
             key={`part6-col2-pair-${idx}`} 
@@ -157,7 +158,7 @@ export default function Part6({ onDeskClick, wallAlignX, wallAlignY, tagPrefix =
       </div>
       
       {Array.from({ length: 2 }).map((_, idx) => {
-        const deskNumber = 22 + (idx * 2); // F22-F25
+        const deskNumber = 22 + (idx * 2);
         return (
           <VerticalPair 
             key={`part6-col4-pair-${idx}`} 
@@ -196,7 +197,6 @@ export default function Part6({ onDeskClick, wallAlignX, wallAlignY, tagPrefix =
         <div className="bg-black rounded-sm" style={{ width: "40px", height: "80px" }}>
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-sm bg-gray-400" style={{ width: "30px", height: "70px" }} />
         </div>
-        {/* Color overlay for occupied desk */}
         {deskAssignments[getTag(27)] && (
           <div 
             className={`absolute inset-0 ${deskAssignments[getTag(27)]?.type === "Tenant" ? "bg-blue-500" : "bg-red-500"} rounded-sm z-10 pointer-events-none`}
@@ -206,7 +206,7 @@ export default function Part6({ onDeskClick, wallAlignX, wallAlignY, tagPrefix =
       </div>
       
       {Array.from({ length: 3 }).map((_, idx) => {
-        const deskNumber = 28 + (idx * 2); // F28-F33
+        const deskNumber = 28 + (idx * 2);
         return (
           <VerticalPair 
             key={`part6-col5-pair-${idx}`} 

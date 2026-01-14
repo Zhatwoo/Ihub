@@ -21,6 +21,7 @@ export default function DedicatedDesk() {
   const [deskAssignments, setDeskAssignments] = useState({});
   const [isLoaded, setIsLoaded] = useState(false);
   const [selectedPart, setSelectedPart] = useState(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   
   // Animation on mount
   useEffect(() => {
@@ -211,69 +212,137 @@ export default function DedicatedDesk() {
   // Render By Part View
   const renderByPartView = () => {
     const parts = [
-      { number: 1, component: Part1, tagPrefix: "A", props: {} },
-      { number: 2, component: Part2, tagPrefix: "B", props: { startY: part2StartY } },
-      { number: 3, component: Part3, tagPrefix: "C", props: { startX: part3StartX } },
-      { number: 4, component: Part4, tagPrefix: "D", props: { startX: part4StartX, startY: part4StartY, wallAlignX: part3WallX, wallAlignY: part2StartY } },
-      { number: 5, component: Part5, tagPrefix: "E", props: { startX: part5StartX, startY: part5StartY, wallAlignX: part5WallX } },
-      { number: 6, component: Part6, tagPrefix: "F", props: { wallAlignX: part6WallX, wallAlignY: part6WallY } },
-      { number: 7, component: Part7, tagPrefix: "G", props: { startX: part7StartX, startY: part7StartY, wallAlignX: part7WallX } },
-      { number: 8, component: Part8, tagPrefix: "H", props: { startX: part8StartX, startY: part8StartY, wallAlignX: part8WallX, wallAlignY: part8WallY } },
+      { number: 1, component: Part1, tagPrefix: "A" },
+      { number: 2, component: Part2, tagPrefix: "B" },
+      { number: 3, component: Part3, tagPrefix: "C" },
+      { number: 4, component: Part4, tagPrefix: "D" },
+      { number: 5, component: Part5, tagPrefix: "E" },
+      { number: 6, component: Part6, tagPrefix: "F" },
+      { number: 7, component: Part7, tagPrefix: "G" },
+      { number: 8, component: Part8, tagPrefix: "H" },
     ];
 
     const selectedPartData = selectedPart ? parts.find(p => p.number === selectedPart) : null;
     const PartComponent = selectedPartData?.component;
 
     return (
-      <div className="space-y-4">
-        {/* Part Selector */}
-        <div className="bg-white rounded-xl border border-gray-200 p-4">
-          <label className="block text-slate-800 font-semibold text-sm mb-3">Select Part to View</label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-2">
-            {parts.map((part) => (
+      <div className="bg-gray-100 rounded-xl border border-gray-200 relative" style={{
+        backgroundImage: "radial-gradient(circle, #d1d1d1 1px, transparent 1px)",
+        backgroundSize: "20px 20px",
+        width: "100%",
+        height: "calc(100vh - 280px)",
+        minHeight: "500px",
+        overflow: "auto",
+      }}>
+        {/* Part Selector Dropdown - Inside Container */}
+        <div className="sticky top-0 left-0 z-30 p-4 bg-gradient-to-b from-gray-100 via-gray-100 to-transparent">
+          <div className="flex flex-col gap-2">
+            <label className="text-slate-800 font-semibold text-sm">Select Part to View</label>
+            <div className="relative w-48">
               <button
-                key={part.number}
-                onClick={() => setSelectedPart(part.number)}
-                className={`px-4 py-3 rounded-xl font-medium text-sm transition-all ${
-                  selectedPart === part.number
-                    ? 'bg-teal-600 text-white shadow-lg shadow-teal-600/30'
-                    : 'bg-gray-100 text-slate-800 hover:bg-gray-200'
-                }`}
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                className="w-full flex items-center justify-between px-3 py-2.5 bg-white border border-gray-300 rounded-xl text-sm font-medium text-slate-800 hover:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 focus:border-teal-500 transition-all shadow-sm"
               >
-                Part {part.number} ({part.tagPrefix})
+                <span className="flex items-center gap-2">
+                  {selectedPartData ? (
+                    <>
+                      <span className="w-6 h-6 flex items-center justify-center bg-teal-600 text-white text-xs font-bold rounded-md">
+                        {selectedPartData.tagPrefix}
+                      </span>
+                      <span>Part {selectedPartData.number}</span>
+                    </>
+                  ) : (
+                    <span className="text-gray-400">Choose a part...</span>
+                  )}
+                </span>
+                <svg 
+                  className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
               </button>
-            ))}
+              
+              {/* Dropdown Menu */}
+              {isDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setIsDropdownOpen(false)} />
+                  <div className="absolute z-20 mt-2 w-full bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
+                    {parts.map((part) => (
+                      <button
+                        key={part.number}
+                        onClick={() => {
+                          setSelectedPart(part.number);
+                          setIsDropdownOpen(false);
+                        }}
+                        className={`w-full flex items-center gap-2 px-3 py-2.5 text-sm font-medium transition-all ${
+                          selectedPart === part.number
+                            ? 'bg-teal-50 text-teal-700'
+                            : 'text-slate-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        <span className={`w-6 h-6 flex items-center justify-center text-xs font-bold rounded-md ${
+                          selectedPart === part.number
+                            ? 'bg-teal-600 text-white'
+                            : 'bg-gray-100 text-slate-600'
+                        }`}>
+                          {part.tagPrefix}
+                        </span>
+                        <span>Part {part.number}</span>
+                        {selectedPart === part.number && (
+                          <svg className="w-4 h-4 ml-auto text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Selected Part Display */}
+        {/* Selected Part Display - Centered */}
         {selectedPartData && PartComponent ? (
-          <div className="bg-gray-100 rounded-xl border border-gray-200 relative" style={{
-            backgroundImage: "radial-gradient(circle, #d1d1d1 1px, transparent 1px)",
-            backgroundSize: "20px 20px",
-            width: "100%",
-            minHeight: "500px",
-            overflow: "auto",
-            padding: "40px",
-          }}>
-            <div className="flex justify-center items-start">
+          <div className="flex items-center justify-center w-full p-8" style={{ minHeight: "400px" }}>
+            <div className="relative" style={{ width: "600px", height: "600px" }}>
               <PartComponent
                 onDeskClick={handleDeskClick}
                 tagPrefix={selectedPartData.tagPrefix}
                 deskAssignments={deskAssignments}
                 zoom={1}
-                {...selectedPartData.props}
+                startX={0}
+                startY={0}
+                wallAlignX={400}
+                wallAlignY={0}
+                isStandalone={true}
               />
             </div>
           </div>
         ) : (
-          <div className="bg-white rounded-xl border border-gray-200 p-12 text-center">
-            <p className="text-gray-500 text-lg">Please select a part to view</p>
+          <div className="flex flex-col items-center justify-center h-full p-16">
+            <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center mb-4">
+              <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+            </div>
+            <p className="text-gray-500 text-lg font-medium">Select a part to view</p>
+            <p className="text-gray-400 text-sm mt-1">Choose from the dropdown above</p>
           </div>
         )}
       </div>
     );
   };
+
+  // Render Requests View
+  const renderRequestsView = () => (
+    <div className="bg-white rounded-xl border border-gray-200 p-6">
+      <p className="text-gray-500 text-center">Requests view coming soon...</p>
+    </div>
+  );
 
   // Render List View
   const renderListView = () => (
@@ -362,7 +431,8 @@ export default function DedicatedDesk() {
         {[
           { key: 'floor-plan', label: 'Floor Plan' },
           { key: 'by-part', label: 'By Part' },
-          { key: 'list', label: 'List' }
+          { key: 'list', label: 'List' },
+          { key: 'requests', label: 'Requests' }
         ].map(tab => (
           <button 
             key={tab.key} 
@@ -388,6 +458,7 @@ export default function DedicatedDesk() {
         {activeTab === 'floor-plan' && renderFloorPlanView()}
         {activeTab === 'by-part' && renderByPartView()}
         {activeTab === 'list' && renderListView()}
+        {activeTab === 'requests' && renderRequestsView()}
       </div>
 
       {/* Desk Assignment Modal */}
