@@ -21,19 +21,23 @@ const bottomNavItems = [
 export default function AdminLayout({ children }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  // Hide sidebar on register page
+  const isRegisterPage = pathname === '/admin/register';
 
   return (
     <div className="flex min-h-screen bg-slate-50">
       {/* Mobile overlay */}
-      {sidebarOpen && (
+      {!isRegisterPage && sidebarOpen && (
         <div 
           className="fixed inset-0 bg-black/50 z-40 lg:hidden" 
           onClick={() => setSidebarOpen(false)}
         />
       )}
       
-      {/* Sidebar */}
-      <aside className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 w-64 bg-gradient-to-b from-slate-800 to-slate-900 text-white flex flex-col fixed h-screen shadow-xl justify-between z-50 transition-transform duration-300 ease-in-out`}>
+      {/* Sidebar - Hidden on register page */}
+      {!isRegisterPage && (
+        <aside className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 w-64 bg-gradient-to-b from-slate-800 to-slate-900 text-white flex flex-col fixed h-screen shadow-xl justify-between z-50 transition-transform duration-300 ease-in-out`}>
         <div>
           <div className="p-4 lg:p-6 border-b border-white/10 bg-black/10">
             <div className="flex items-center gap-3">
@@ -72,10 +76,12 @@ export default function AdminLayout({ children }) {
           ))}
         </nav>
       </aside>
+      )}
       
       {/* Main content */}
-      <div className="flex-1 lg:ml-64 w-full lg:w-auto">
-        {/* Mobile header */}
+      <div className={`flex-1 ${!isRegisterPage ? 'lg:ml-64' : ''} w-full lg:w-auto`}>
+        {/* Mobile header - Hidden on register page */}
+        {!isRegisterPage && (
         <div className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3 sticky top-0 z-30">
           <button 
             onClick={() => setSidebarOpen(!sidebarOpen)}
@@ -91,8 +97,9 @@ export default function AdminLayout({ children }) {
             <span className="text-sm font-bold text-slate-800">Inspire Hub</span>
           </div>
         </div>
+        )}
         
-        <main className="p-3 sm:p-4 lg:p-6 xl:p-8 bg-slate-50 min-h-screen w-full overflow-x-hidden">
+        <main className={`${!isRegisterPage ? 'p-3 sm:p-4 lg:p-6 xl:p-8' : ''} bg-slate-50 min-h-screen w-full overflow-x-hidden`}>
           {children}
         </main>
       </div>

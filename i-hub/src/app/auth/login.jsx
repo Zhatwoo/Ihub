@@ -2,19 +2,90 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { auth, db } from '@/lib/firebase';
+import { collection, doc, getDoc } from 'firebase/firestore';
+import { useRouter } from 'next/navigation';
 
 export default function LoginModal({ isOpen, onClose, onSwitchToSignUp }) {
+  const router = useRouter();
   const [formData, setFormData] = useState({
     email: '',
     password: '',
   });
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log('Login submitted:', formData);
-    // Close modal after successful login
-    // onClose();
+    setError('');
+    setLoading(true);
+
+    try {
+      if (!auth) {
+        throw new Error('Firebase authentication is not initialized. Please check your environment variables.');
+      }
+
+      const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
+      
+      // Check user role and redirect accordingly
+      let redirectPath = '/client/home'; // Default to client home
+      
+      if (db) {
+        try {
+          // Check in /accounts/client/users/{userId} first (for clients)
+          const clientDoc = await getDoc(doc(collection(db, 'accounts', 'client', 'users'), userCredential.user.uid));
+          if (clientDoc.exists()) {
+            const userData = clientDoc.data();
+            // Redirect based on role: admin -> /admin, client -> /client/home
+            if (userData.role === 'admin') {
+              redirectPath = '/admin';
+            } else {
+              redirectPath = '/client/home';
+            }
+          } else {
+            // Check in /accounts/admin/users/{userId} for admin users
+            const adminDoc = await getDoc(doc(collection(db, 'accounts', 'admin', 'users'), userCredential.user.uid));
+            if (adminDoc.exists()) {
+              redirectPath = '/admin';
+            }
+            // If neither exists, default to client home
+          }
+        } catch (error) {
+          console.error('Error fetching user role:', error);
+          // If error, default to client home
+        }
+      }
+      
+      // Success - close modal and redirect based on role
+      onClose();
+      router.push(redirectPath);
+    } catch (error) {
+      console.error('Login error:', error);
+      
+      // Handle specific Firebase errors
+      let errorMessage = 'An error occurred during login. Please try again.';
+      
+      if (error.code === 'auth/invalid-email') {
+        errorMessage = 'Invalid email address.';
+      } else if (error.code === 'auth/user-disabled') {
+        errorMessage = 'This account has been disabled.';
+      } else if (error.code === 'auth/user-not-found') {
+        errorMessage = 'No account found with this email.';
+      } else if (error.code === 'auth/wrong-password') {
+        errorMessage = 'Incorrect password.';
+      } else if (error.code === 'auth/invalid-credential') {
+        errorMessage = 'Invalid email or password.';
+      } else if (error.code === 'auth/too-many-requests') {
+        errorMessage = 'Too many failed attempts. Please try again later.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e) => {
@@ -53,6 +124,13 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignUp }) {
 
               {/* Form */}
               <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Error Message */}
+                {error && (
+                  <div className="bg-red-50 border-2 border-red-500 text-red-700 px-4 py-3 rounded-lg text-sm">
+                    {error}
+                  </div>
+                )}
+
                 {/* Email Field */}
                 <div>
                   <label
@@ -67,7 +145,8 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignUp }) {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F766E] focus:border-transparent"
+                    disabled={loading}
+                    className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F766E] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                     placeholder="Enter your email"
                     required
                   />
@@ -87,7 +166,8 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignUp }) {
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F766E] focus:border-transparent"
+                    disabled={loading}
+                    className="w-full px-4 py-3 border-2 border-black rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0F766E] focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
                     placeholder="Enter your password"
                     required
                   />
@@ -97,14 +177,16 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignUp }) {
                 <div className="flex gap-4 pt-2">
                   <button
                     type="submit"
-                    className="flex-1 bg-[#0F766E] hover:bg-[#0d6b64] text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+                    disabled={loading}
+                    className="flex-1 bg-[#0F766E] hover:bg-[#0d6b64] text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Log in
+                    {loading ? 'Logging in...' : 'Log in'}
                   </button>
                   <button
                     type="button"
                     onClick={onClose}
-                    className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+                    disabled={loading}
+                    className="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Close
                   </button>
