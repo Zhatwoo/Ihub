@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, Suspense } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { League_Spartan, Roboto } from 'next/font/google';
 import Link from 'next/link';
@@ -19,7 +19,7 @@ const roboto = Roboto({
   weight: ['400', '500'],
 });
 
-export default function ContactsPage() {
+function ContactsContent() {
   const searchParams = useSearchParams();
   const returnTo = searchParams.get('returnTo');
   const isFromClient = returnTo && returnTo.includes('/client');
@@ -324,6 +324,21 @@ export default function ContactsPage() {
       </div>
       <Footer />
     </div>
+  );
+}
+
+export default function ContactsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0F766E] mx-auto mb-4"></div>
+          <p className="text-slate-600">Loading...</p>
+        </div>
+      </div>
+    }>
+      <ContactsContent />
+    </Suspense>
   );
 }
 
