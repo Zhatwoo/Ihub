@@ -63,21 +63,29 @@ export default function DedicatedDeskSection() {
             {availableSpaces.map((space) => (
               <div
                 key={space.id}
-                className="flex-shrink-0 w-[300px] rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-shadow cursor-pointer group relative"
+                className={`flex-shrink-0 w-[300px] rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-shadow cursor-pointer group relative ${!space.image ? 'flex flex-col' : ''}`}
               >
-                <div className="relative h-[200px]">
-                  <Image
-                    src={space.image}
-                    alt={space.title}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
-                    unoptimized
-                  />
-                </div>
-                <div className="p-4 bg-white">
-                  <h3 className="text-lg font-semibold text-slate-800 mb-2">{space.title}</h3>
-                  <p className="text-sm text-gray-600 mb-1">{space.location}</p>
-                </div>
+                {space.image ? (
+                  <div className="relative h-[200px]">
+                    <Image
+                      src={space.image}
+                      alt={space.title}
+                      fill
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      unoptimized
+                    />
+                  </div>
+                ) : (
+                  <div className="flex-1 flex items-center justify-center bg-gray-50 min-h-[200px]">
+                    <h3 className="text-lg font-semibold text-slate-800 text-center px-4">{space.title}</h3>
+                  </div>
+                )}
+                {space.image && (
+                  <div className="p-4 bg-white">
+                    <h3 className="text-lg font-semibold text-slate-800 mb-2">{space.title}</h3>
+                    <p className="text-sm text-gray-600 mb-1">{space.location}</p>
+                  </div>
+                )}
               </div>
             ))}
           </div>
