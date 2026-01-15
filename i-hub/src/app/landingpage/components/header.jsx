@@ -10,6 +10,7 @@ export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isSignUpOpen, setIsSignUpOpen] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -38,8 +39,8 @@ export default function Header() {
             <span className={`font-semibold text-black transition-all duration-300 ${isScrolled ? 'text-xs' : 'text-sm'}`}>I-HUB</span>
           </Link>
 
-          {/* Navigation Links - Bold Dark Navy */}
-          <nav className={`flex items-center transition-all duration-300 ${isScrolled ? 'gap-3' : 'gap-3.5'}`}>
+          {/* Desktop Navigation Links - Bold Dark Navy */}
+          <nav className={`hidden md:flex items-center transition-all duration-300 ${isScrolled ? 'gap-3' : 'gap-3.5'}`}>
             <button
               onClick={() => setIsSignUpOpen(true)}
               className={`text-slate-800 font-bold hover:text-slate-600 transition-colors ${isScrolled ? 'text-xs' : 'text-sm'}`}
@@ -53,7 +54,48 @@ export default function Header() {
               Login
             </button>
           </nav>
+
+          {/* Mobile Menu Button */}
+          <button
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            className="md:hidden text-slate-800 p-2"
+            aria-label="Toggle menu"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {isMenuOpen ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              )}
+            </svg>
+          </button>
         </div>
+
+        {/* Mobile Navigation Menu */}
+        {isMenuOpen && (
+          <nav className="md:hidden mt-4 pb-4 border-t border-slate-200">
+            <div className="flex flex-col gap-3 pt-4">
+              <button
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  setIsSignUpOpen(true);
+                }}
+                className="text-slate-800 font-bold hover:text-slate-600 transition-colors text-sm text-left py-2"
+              >
+                Sign up
+              </button>
+              <button
+                onClick={() => {
+                  setIsMenuOpen(false);
+                  setIsLoginOpen(true);
+                }}
+                className="text-slate-800 font-bold hover:text-slate-600 transition-colors text-sm text-left py-2"
+              >
+                Login
+              </button>
+            </div>
+          </nav>
+        )}
       </div>
       
       {/* Login Modal */}

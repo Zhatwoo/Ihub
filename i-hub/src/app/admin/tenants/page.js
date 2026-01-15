@@ -141,16 +141,17 @@ export default function Tenants() {
   const filteredTenants = selectedFilter ? getTenantsByType(selectedFilter) : [];
 
   return (
-    <div className="w-full">
-      <h1 className="text-slate-800 text-2xl sm:text-3xl font-bold mb-4 sm:mb-6">Tenants</h1>
+    <div className="w-full animate-fadeIn">
+      <h1 className="text-slate-800 text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 animate-slideInLeft">Tenants</h1>
       
       {/* Stat Cards */}
       <div className="grid grid-cols-3 gap-3 sm:gap-4 lg:gap-5 mb-4 sm:mb-6">
-        {statCards.map(card => (
+        {statCards.map((card, index) => (
           <div 
             key={card.key} 
             onClick={() => setSelectedFilter(selectedFilter === card.key ? null : card.key)} 
-            className={`bg-white rounded-xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3 border border-gray-200 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-800/10 border-l-[3px] sm:border-l-[4px] ${card.color} ${selectedFilter === card.key ? `ring-2 ${card.ring} -translate-y-0.5 shadow-xl` : 'shadow-sm'}`}
+            className={`bg-white rounded-xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3 border border-gray-200 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-800/10 border-l-[3px] sm:border-l-[4px] ${card.color} ${selectedFilter === card.key ? `ring-2 ${card.ring} -translate-y-0.5 shadow-xl` : 'shadow-sm'} animate-stagger`}
+            style={{ animationDelay: `${index * 0.1}s`, animationFillMode: 'backwards' }}
           >
             <div className={`text-lg sm:text-xl lg:text-2xl w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center bg-gradient-to-br ${card.iconBg} shrink-0 shadow-sm sm:shadow-md`}>
               {card.icon === 'desk' ? <DeskIcon /> : card.icon}
@@ -165,7 +166,7 @@ export default function Tenants() {
 
       {/* Filtered Tenants List (if a card is selected) */}
       {selectedFilter && (
-        <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 lg:p-6 xl:p-7 shadow-lg shadow-slate-800/5 border border-gray-200">
+        <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 lg:p-6 xl:p-7 shadow-lg shadow-slate-800/5 border border-gray-200 animate-slideUp">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-5 lg:mb-6 gap-3 sm:gap-0">
             <h2 className="text-xl font-bold text-slate-800">
               {statCards.find(c => c.key === selectedFilter)?.label} Tenants

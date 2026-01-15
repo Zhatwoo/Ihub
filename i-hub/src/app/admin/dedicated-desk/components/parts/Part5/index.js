@@ -4,7 +4,7 @@ import DeskWithChair from "../../DeskWithChair";
 import Wall from "../../Wall";
 import Cabinet from "../../Cabinet";
 
-export default function Part5({ onDeskClick, startX, startY, wallAlignX, tagPrefix = "E", deskAssignments = {}, zoom = 1, isStandalone = false }) {
+export default function Part5({ onDeskClick, startX, startY, wallAlignX, tagPrefix = "E", deskAssignments = {}, zoom = 1, isStandalone = false, showPrivateInfo = true }) {
   const deskWidth = 80;
   const pairHeight = 136;
   const verticalPairWidth = 156;
@@ -33,6 +33,7 @@ export default function Part5({ onDeskClick, startX, startY, wallAlignX, tagPref
             occupantType={deskAssignments[topTag]?.type || "Employee"}
             occupantName={deskAssignments[topTag]?.name || ""}
             zoom={zoom}
+            showPrivateInfo={showPrivateInfo}
           />
           <div style={{ marginTop: "-4px" }}>
             <DeskWithChair 
@@ -42,6 +43,7 @@ export default function Part5({ onDeskClick, startX, startY, wallAlignX, tagPref
               occupantType={deskAssignments[bottomTag]?.type || "Employee"}
               occupantName={deskAssignments[bottomTag]?.name || ""}
               zoom={zoom}
+              showPrivateInfo={showPrivateInfo}
             />
           </div>
         </div>
@@ -63,6 +65,7 @@ export default function Part5({ onDeskClick, startX, startY, wallAlignX, tagPref
             occupantType={deskAssignments[leftTag]?.type || "Employee"}
             occupantName={deskAssignments[leftTag]?.name || ""}
             zoom={zoom}
+            showPrivateInfo={showPrivateInfo}
           />
           <div style={{ marginLeft: "-24px" }}>
             <DeskWithChair 
@@ -72,6 +75,7 @@ export default function Part5({ onDeskClick, startX, startY, wallAlignX, tagPref
               occupantType={deskAssignments[rightTag]?.type || "Employee"}
               occupantName={deskAssignments[rightTag]?.name || ""}
               zoom={zoom}
+              showPrivateInfo={showPrivateInfo}
             />
           </div>
         </div>
@@ -114,6 +118,7 @@ export default function Part5({ onDeskClick, startX, startY, wallAlignX, tagPref
               occupantType={deskAssignments[tag]?.type || "Employee"}
               occupantName={deskAssignments[tag]?.name || ""}
               zoom={zoom}
+              showPrivateInfo={showPrivateInfo}
             />
           </div>
         );
@@ -132,6 +137,7 @@ export default function Part5({ onDeskClick, startX, startY, wallAlignX, tagPref
             occupantType={deskAssignments[getTag(26)]?.type || "Employee"}
             occupantName={deskAssignments[getTag(26)]?.name || ""}
             zoom={zoom}
+            showPrivateInfo={showPrivateInfo}
           />
           <div style={{ marginLeft: "-24px" }}>
             <DeskWithChair 
@@ -142,6 +148,7 @@ export default function Part5({ onDeskClick, startX, startY, wallAlignX, tagPref
               occupantType={deskAssignments[getTag(27)]?.type || "Employee"}
               occupantName={deskAssignments[getTag(27)]?.name || ""}
               zoom={zoom}
+              showPrivateInfo={showPrivateInfo}
             />
           </div>
         </div>

@@ -59,25 +59,25 @@ export default function Footer() {
   };
 
   return (
-    <footer className="bg-[#0F766E] text-white py-12 lg:py-16">
-      <div className="w-full max-w-[1440px] mx-auto px-6 lg:px-14 grid grid-cols-1 md:grid-cols-3 gap-12">
+    <footer className="bg-[#0F766E] text-white py-8 sm:py-12 lg:py-16">
+      <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-14 grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-12">
         <div className="space-y-3">
-          <h2 className={`${leagueSpartan.className} text-2xl lg:text-3xl font-semibold`}>Inspire Hub</h2>
-          <p className={`${roboto.className} text-sm lg:text-base text-white/90 leading-relaxed`}>
+          <h2 className={`${leagueSpartan.className} text-xl sm:text-2xl lg:text-3xl font-semibold`}>Inspire Hub</h2>
+          <p className={`${roboto.className} text-xs sm:text-sm lg:text-base text-white/90 leading-relaxed`}>
             Premium workspaces in Alliance Global Tower with flexible offices, dedicated desks, virtual offices,
             and thoughtfully designed amenities to keep teams productive.
           </p>
-          <div className={`${roboto.className} text-sm lg:text-base space-y-1 text-white/90`}>
+          <div className={`${roboto.className} text-xs sm:text-sm lg:text-base space-y-1 text-white/90`}>
             <p>Alliance Global Tower, Taguig, Metro Manila</p>
             <p>Contact #: +63 917 000 0000</p>
             <p>Email: hello@inspirehub.com</p>
           </div>
         </div>
 
-        <div className="flex flex-col md:flex-row md:col-span-2 gap-12">
-          <div className="space-y-4 min-w-[180px]">
-            <h3 className={`${leagueSpartan.className} text-lg font-semibold`}>Product</h3>
-            <ul className={`${roboto.className} text-sm lg:text-base space-y-2 text-white/90`}>
+        <div className="flex flex-col md:flex-row md:col-span-2 gap-8 sm:gap-12">
+          <div className="space-y-3 sm:space-y-4 min-w-[150px] sm:min-w-[180px]">
+            <h3 className={`${leagueSpartan.className} text-base sm:text-lg font-semibold`}>Product</h3>
+            <ul className={`${roboto.className} text-xs sm:text-sm lg:text-base space-y-1.5 sm:space-y-2 text-white/90`}>
               <li>Dedicated Desks</li>
               <li>Private Offices</li>
               <li>Virtual Office</li>
@@ -85,9 +85,9 @@ export default function Footer() {
             </ul>
           </div>
 
-          <div className="space-y-4 min-w-[180px]">
-            <h3 className={`${leagueSpartan.className} text-lg font-semibold`}>Resources</h3>
-            <ul className={`${roboto.className} text-sm lg:text-base space-y-2 text-white/90`}>
+          <div className="space-y-3 sm:space-y-4 min-w-[150px] sm:min-w-[180px]">
+            <h3 className={`${leagueSpartan.className} text-base sm:text-lg font-semibold`}>Resources</h3>
+            <ul className={`${roboto.className} text-xs sm:text-sm lg:text-base space-y-1.5 sm:space-y-2 text-white/90`}>
               <li>
                 <Link href="/landingpage/faq" className="hover:text-white transition-colors">
                   FAQ
@@ -119,18 +119,18 @@ export default function Footer() {
             </ul>
           </div>
 
-          <div className="space-y-4 flex-1">
-            <h3 className={`${leagueSpartan.className} text-lg font-semibold`}>Connect With Us</h3>
-            <p className={`${roboto.className} text-sm lg:text-base text-white/90`}>
+          <div className="space-y-3 sm:space-y-4 flex-1">
+            <h3 className={`${leagueSpartan.className} text-base sm:text-lg font-semibold`}>Connect With Us</h3>
+            <p className={`${roboto.className} text-xs sm:text-sm lg:text-base text-white/90`}>
               Follow us for updates and workspace news.
             </p>
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
               {socials.map((item) => (
                 <Link
                   key={item.label}
                   href={item.href}
                   target="_blank"
-                  className="w-11 h-11 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center transition-colors"
+                  className="w-9 h-9 sm:w-11 sm:h-11 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center transition-colors"
                   aria-label={item.label}
                 >
                   <SocialIcon type={item.icon} />
@@ -141,10 +141,10 @@ export default function Footer() {
         </div>
       </div>
 
-      <div className="mt-10 border-t border-white/10">
-        <div className="w-full max-w-[1440px] mx-auto px-6 lg:px-14 py-4 flex flex-col sm:flex-row justify-between items-center text-xs lg:text-sm text-white/80 gap-2">
+      <div className="mt-8 sm:mt-10 border-t border-white/10">
+        <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-14 py-4 flex flex-col sm:flex-row justify-between items-center text-xs lg:text-sm text-white/80 gap-2">
           <span className={roboto.className}>© {new Date().getFullYear()} Inspire Hub. All rights reserved.</span>
-          <div className={`flex items-center gap-4 ${roboto.className}`}>
+          <div className={`flex items-center gap-3 sm:gap-4 flex-wrap justify-center sm:justify-start ${roboto.className}`}>
             <Link href="/landingpage/policyTermsCokie#privacy" className="hover:text-white transition-colors">
               Privacy Policy
             </Link>
@@ -162,7 +162,7 @@ export default function Footer() {
 }
 
 function SocialIcon({ type }) {
-  const common = 'w-5 h-5';
+  const common = 'w-4 h-4 sm:w-5 sm:h-5';
   if (type === 'facebook') {
     return (
       <svg className={common} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">

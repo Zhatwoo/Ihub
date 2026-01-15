@@ -89,9 +89,9 @@ export default function VirtualOffice() {
   };
 
   return (
-    <div className="w-full">
+    <div className="w-full animate-fadeIn">
       <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-4 mb-4 sm:mb-6">
-        <h1 className="text-slate-800 text-2xl sm:text-3xl font-bold">Virtual Office</h1>
+        <h1 className="text-slate-800 text-2xl sm:text-3xl font-bold animate-slideInLeft">Virtual Office</h1>
         <button 
           onClick={openAddModal} 
           className="w-full sm:w-auto px-4 sm:px-5 lg:px-6 py-2 sm:py-2.5 lg:py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-lg shadow-teal-600/30 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-600/40 transition-all whitespace-nowrap"
