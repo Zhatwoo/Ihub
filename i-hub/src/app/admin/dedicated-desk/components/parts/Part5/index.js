@@ -1,8 +1,8 @@
 "use client";
 
-import DeskWithChair from "../../DeskWithChair";
-import Wall from "../../Wall";
-import Cabinet from "../../Cabinet";
+import DeskWithChair from "../../furnitures/DeskWithChair";
+import Wall from "../../furnitures/Wall";
+import Cabinet from "../../furnitures/Cabinet";
 
 export default function Part5({ onDeskClick, startX, startY, wallAlignX, tagPrefix = "E", deskAssignments = {}, zoom = 1, isStandalone = false, showPrivateInfo = true }) {
   const deskWidth = 80;
@@ -13,9 +13,10 @@ export default function Part5({ onDeskClick, startX, startY, wallAlignX, tagPref
   const rowGap = 26;
 
   // When standalone, use local positioning; otherwise use passed props
-  const baseX = isStandalone ? 0 : startX;
-  const baseY = isStandalone ? 40 : startY;
-  const wallX = isStandalone ? 5 * deskWidth : wallAlignX;
+  // In floor plan mode, shift 20px to the left
+  const baseX = isStandalone ? 0 : startX - 20;
+  const baseY = isStandalone ? 0 : startY;
+  const wallX = isStandalone ? 5 * deskWidth + 40 : wallAlignX;
 
   const getTag = (deskNumber) => `${tagPrefix}${deskNumber}`;
 
@@ -87,29 +88,47 @@ export default function Part5({ onDeskClick, startX, startY, wallAlignX, tagPref
   const verticalStartY = wallSize - 5;
   const verticalStartX = wallX;
   
+  // Calculate row positions with proper spacing
+  const row0Y = baseY + 40;
+  const row1Y = row0Y + pairHeight + rowGap;
+  const row2Y = row1Y + pairHeight + rowGap;
+  
   return (
     <>
-      {Array.from({ length: 2 }).map((_, rowIdx) =>
-        Array.from({ length: 5 }).map((_, pairIdx) => {
-          const deskNumber = (rowIdx * 5 * 2) + (pairIdx * 2) + 1;
-          return (
-            <HorizontalPair 
-              key={`part5-row${rowIdx}-pair${pairIdx}`} 
-              x={baseX + pairIdx * deskWidth} 
-              y={baseY + rowIdx * (pairHeight + rowGap)}
-              deskNumber={deskNumber}
-            />
-          );
-        })
-      )}
+      {/* Row 0: 5 horizontal pairs */}
+      {Array.from({ length: 5 }).map((_, pairIdx) => {
+        const deskNumber = (pairIdx * 2) + 1;
+        return (
+          <HorizontalPair 
+            key={`part5-row0-pair${pairIdx}`} 
+            x={baseX + pairIdx * deskWidth} 
+            y={row0Y}
+            deskNumber={deskNumber}
+          />
+        );
+      })}
       
+      {/* Row 1: 5 horizontal pairs */}
+      {Array.from({ length: 5 }).map((_, pairIdx) => {
+        const deskNumber = 11 + (pairIdx * 2);
+        return (
+          <HorizontalPair 
+            key={`part5-row1-pair${pairIdx}`} 
+            x={baseX + pairIdx * deskWidth} 
+            y={row1Y}
+            deskNumber={deskNumber}
+          />
+        );
+      })}
+      
+      {/* Row 2: 5 single desks (chairs on top) */}
       {Array.from({ length: 5 }).map((_, pairIdx) => {
         const deskNumber = 21 + pairIdx;
         const tag = getTag(deskNumber);
         return (
           <div key={`part5-row2-${pairIdx}`} className="absolute" style={{ 
             left: `${baseX + pairIdx * deskWidth}px`, 
-            top: `${baseY + 2 * (pairHeight + rowGap)}px` 
+            top: `${row2Y}px` 
           }}>
             <DeskWithChair 
               orientation="horizontal-top" 
@@ -124,9 +143,10 @@ export default function Part5({ onDeskClick, startX, startY, wallAlignX, tagPref
         );
       })}
       
+      {/* Vertical pair below row 2 */}
       <div className="absolute" style={{ 
-        left: `${baseX + 85 - 78 + 40}px`, 
-        top: `${baseY + 2 * (pairHeight + rowGap) + 61}px` 
+        left: `${baseX + 47}px`, 
+        top: `${row2Y + 65}px` 
       }}>
         <div className="flex flex-row items-center">
           <DeskWithChair 
@@ -154,23 +174,26 @@ export default function Part5({ onDeskClick, startX, startY, wallAlignX, tagPref
         </div>
       </div>
       
+      {/* Cabinets */}
       <div className="absolute" style={{ 
-        left: `${baseX + 85 - 78 + 156 + 40}px`, 
-        top: `${baseY + 2 * (pairHeight + rowGap) + 61 + 5}px` 
+        left: `${baseX + 183}px`, 
+        top: `${row2Y + 71}px` 
       }}>
         <Cabinet width={60} height={30} />
       </div>
       <div className="absolute" style={{ 
-        left: `${baseX + 85 - 78 + 156 + 60 + 40}px`, 
-        top: `${baseY + 2 * (pairHeight + rowGap) + 61 + 5}px` 
+        left: `${baseX + 243}px`, 
+        top: `${row2Y + 71}px` 
       }}>
         <Cabinet width={60} height={30} />
       </div>
       
+      {/* Wall */}
       <div className="absolute" style={{ left: `${wallX}px`, top: `${wallY}px` }}>
         <Wall />
       </div>
       
+      {/* Vertical pairs next to wall */}
       {Array.from({ length: 2 }).map((_, colIdx) =>
         Array.from({ length: 6 }).map((_, pairIdx) => {
           const deskNumber = 28 + (colIdx * 6 * 2) + (pairIdx * 2);
@@ -178,7 +201,7 @@ export default function Part5({ onDeskClick, startX, startY, wallAlignX, tagPref
             <VerticalPair 
               key={`part5-col${colIdx}-pair${pairIdx}`} 
               x={verticalStartX + colIdx * verticalPairWidth} 
-              y={verticalStartY + pairIdx * deskHeight}
+              y={verticalStartY + pairIdx * 80}
               deskNumber={deskNumber}
             />
           );

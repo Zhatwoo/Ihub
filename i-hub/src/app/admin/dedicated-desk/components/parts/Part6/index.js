@@ -1,7 +1,7 @@
 "use client";
 
-import Wall from "../../Wall";
-import DeskWithChair from "../../DeskWithChair";
+import Wall from "../../furnitures/Wall";
+import DeskWithChair from "../../furnitures/DeskWithChair";
 
 export default function Part6({ onDeskClick, wallAlignX, wallAlignY, tagPrefix = "F", deskAssignments = {}, zoom = 1, isStandalone = false, showPrivateInfo = true }) {
   const wallSize = 120;
@@ -222,6 +222,17 @@ export default function Part6({ onDeskClick, wallAlignX, wallAlignY, tagPrefix =
           />
         );
       })}
+      
+      {/* Thick wall line at the bottom of col4 and col5 (both 3-desk columns) */}
+      <div 
+        className="absolute bg-black pointer-events-none" 
+        style={{ 
+          left: `${col3StartX + 66 - 85 - 80 - 90 - verticalPairWidth + 26}px`, 
+          top: `${col2StartY + 3 * deskHeight}px`,
+          width: `${verticalPairWidth + 104 - 26}px`,
+          height: '8px'
+        }}
+      />
     </>
   );
 }

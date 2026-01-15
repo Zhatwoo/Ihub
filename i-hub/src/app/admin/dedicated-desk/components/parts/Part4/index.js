@@ -1,22 +1,24 @@
 "use client";
 
-import DeskWithChair from "../../DeskWithChair";
-import Wall from "../../Wall";
-import Cabinet from "../../Cabinet";
-
-// Part4 component - renders desk layout with proper showPrivateInfo prop handling
+import DeskWithChair from "../../furnitures/DeskWithChair";
+import Wall from "../../furnitures/Wall";
+import Cabinet from "../../furnitures/Cabinet";
 
 export default function Part4({ onDeskClick, startX, startY, wallAlignX, wallAlignY, tagPrefix = "D", deskAssignments = {}, zoom = 1, isStandalone = false, showPrivateInfo = true }) {
   const deskWidth = 80;
   const horizontalContainerHeight = 70;
   const rowGap = 20;
-  const pairHeight = 136;
+  const wallSize = 120;
   
-  // When standalone, use local positioning; otherwise use passed props
-  const baseX = isStandalone ? 0 : startX;
-  const baseY = isStandalone ? 115 : startY;
+  // Wall position
   const wallX = isStandalone ? 480 : wallAlignX;
   const wallY = isStandalone ? 0 : wallAlignY;
+  
+  // Desk positions - always relative to wall for consistency
+  // In floor plan mode, desks should be positioned below the wall
+  // Shift desks left by 20px to avoid overlapping with cabinets
+  const baseX = isStandalone ? 0 : startX - 20;
+  const baseY = wallY + wallSize - 80; // Moved 80px upward total
 
   const getTag = (deskNumber) => `${tagPrefix}${deskNumber}`;
 
@@ -86,7 +88,7 @@ export default function Part4({ onDeskClick, startX, startY, wallAlignX, wallAli
     );
   };
 
-  // Top row with vertical pairs and middle desk - matching reference spacing
+  // Top row with vertical pairs and middle desk
   const topRowY = baseY;
   const vertical1X = baseX + 7;
   const vertical2X = baseX + 287;
@@ -94,10 +96,10 @@ export default function Part4({ onDeskClick, startX, startY, wallAlignX, wallAli
   const middleDeskY = topRowY + 5;
   
   // Row 1: 6 single desks (chairs on bottom)
-  const row1Y = topRowY + 85;
+  const row1Y = topRowY + 95;
   
   // Row 2: 5 horizontal pairs + cabinet
-  const row2Y = row1Y + horizontalContainerHeight + rowGap - 5;
+  const row2Y = row1Y + horizontalContainerHeight + rowGap;
   
   return (
     <>
@@ -106,25 +108,25 @@ export default function Part4({ onDeskClick, startX, startY, wallAlignX, wallAli
         <Wall />
       </div>
       
-      {/* Cabinets next to wall */}
+      {/* Cabinets next to wall - positioned to the right of wall */}
       {Array.from({ length: 4 }).map((_, idx) => (
         <div 
           key={`part4-cabinet-${idx}`} 
           className="absolute" 
           style={{ 
             left: `${wallX + 25}px`, 
-            top: `${wallY + 120 + idx * 60}px` 
+            top: `${wallY + wallSize + idx * 60}px` 
           }}
         >
           <Cabinet width={30} height={60} />
         </div>
       ))}
       
-      {/* Top cabinets */}
-      <div className="absolute" style={{ left: `${wallX + 120}px`, top: `${wallY}px` }}>
+      {/* Top cabinets - to the right of wall */}
+      <div className="absolute" style={{ left: `${wallX + wallSize}px`, top: `${wallY}px` }}>
         <Cabinet width={60} height={30} />
       </div>
-      <div className="absolute" style={{ left: `${wallX + 180}px`, top: `${wallY}px` }}>
+      <div className="absolute" style={{ left: `${wallX + wallSize + 60}px`, top: `${wallY}px` }}>
         <Cabinet width={60} height={30} />
       </div>
       
@@ -156,8 +158,8 @@ export default function Part4({ onDeskClick, startX, startY, wallAlignX, wallAli
         thinOutline={true}
       />
       
-      {/* Row 1: 6 single desks */}
-      {Array.from({ length: 6 }).map((_, idx) => {
+      {/* Row 1: 5 single desks */}
+      {Array.from({ length: 5 }).map((_, idx) => {
         const deskNumber = 6 + idx;
         const tag = getTag(deskNumber);
         return (
@@ -202,12 +204,12 @@ export default function Part4({ onDeskClick, startX, startY, wallAlignX, wallAli
         <Cabinet width={30} height={60} />
       </div>
       
-      {/* L-shaped desk */}
+      {/* L-shaped desk - positioned relative to wall cabinets */}
       <div 
         className="absolute cursor-pointer transition-transform hover:scale-105"
         style={{ 
-          left: `${wallX + 50}px`, 
-          top: `${wallY + 120 + 2 * 60 - 26}px` 
+          left: `${wallX + 55}px`, 
+          top: `${wallY + wallSize + 94}px` 
         }}
         onClick={() => onDeskClick(getTag(22))}
       >

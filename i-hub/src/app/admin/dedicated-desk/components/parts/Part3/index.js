@@ -1,7 +1,7 @@
 "use client";
 
-import DeskWithChair from "../../DeskWithChair";
-import Wall from "../../Wall";
+import DeskWithChair from "../../furnitures/DeskWithChair";
+import Wall from "../../furnitures/Wall";
 
 export default function Part3({ onDeskClick, startX = 0, tagPrefix = "C", deskAssignments = {}, zoom = 1, isStandalone = false, showPrivateInfo = true }) {
   const deskHeight = 80;
