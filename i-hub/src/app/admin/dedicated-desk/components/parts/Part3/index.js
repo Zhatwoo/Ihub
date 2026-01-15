@@ -3,7 +3,7 @@
 import DeskWithChair from "../../DeskWithChair";
 import Wall from "../../Wall";
 
-export default function Part3({ onDeskClick, startX = 0, tagPrefix = "C", deskAssignments = {}, zoom = 1, isStandalone = false }) {
+export default function Part3({ onDeskClick, startX = 0, tagPrefix = "C", deskAssignments = {}, zoom = 1, isStandalone = false, showPrivateInfo = true }) {
   const deskHeight = 80;
   const verticalPairWidth = 156;
   const verticalContainerWidth = 90;
@@ -20,22 +20,24 @@ export default function Part3({ onDeskClick, startX = 0, tagPrefix = "C", deskAs
     return (
       <div className="absolute" style={{ left: `${x}px`, top: `${y}px` }}>
         <div className="flex flex-row items-center">
-          <DeskWithChair 
-            orientation="vertical-left" 
+          <DeskWithChair
+            orientation="vertical-left"
             onClick={() => onDeskClick(leftTag)}
             isOccupied={!!deskAssignments[leftTag]}
             occupantType={deskAssignments[leftTag]?.type || "Employee"}
             occupantName={deskAssignments[leftTag]?.name || ""}
             zoom={zoom}
+            showPrivateInfo={showPrivateInfo}
           />
           <div style={{ marginLeft: "-24px" }}>
-            <DeskWithChair 
-              orientation="vertical-right" 
+            <DeskWithChair
+              orientation="vertical-right"
               onClick={() => onDeskClick(rightTag)}
               isOccupied={!!deskAssignments[rightTag]}
               occupantType={deskAssignments[rightTag]?.type || "Employee"}
               occupantName={deskAssignments[rightTag]?.name || ""}
               zoom={zoom}
+              showPrivateInfo={showPrivateInfo}
             />
           </div>
         </div>
@@ -64,6 +66,7 @@ export default function Part3({ onDeskClick, startX = 0, tagPrefix = "C", deskAs
               occupantType={deskAssignments[tag]?.type || "Employee"}
               occupantName={deskAssignments[tag]?.name || ""}
               zoom={zoom}
+              showPrivateInfo={showPrivateInfo}
             />
           </div>
         );
@@ -97,6 +100,7 @@ export default function Part3({ onDeskClick, startX = 0, tagPrefix = "C", deskAs
             occupantType={deskAssignments[getTag(31)]?.type || "Employee"}
             occupantName={deskAssignments[getTag(31)]?.name || ""}
             zoom={zoom}
+            showPrivateInfo={showPrivateInfo}
           />
           <div 
             className="relative cursor-pointer transition-transform hover:scale-105" 

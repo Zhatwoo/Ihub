@@ -225,8 +225,8 @@ export default function PrivateOffice() {
   ];
 
   return (
-    <div className="w-full">
-      <h1 className="text-slate-800 text-2xl sm:text-3xl font-bold mb-3 sm:mb-4">Private Office</h1>
+    <div className="w-full animate-fadeIn">
+      <h1 className="text-slate-800 text-2xl sm:text-3xl font-bold mb-3 sm:mb-4 animate-slideInLeft">Private Office</h1>
       
       <div className="flex flex-wrap gap-1 mb-4 sm:mb-6 border-b-2 border-gray-200">
         {['rooms', 'requests', 'schedule'].map(tab => (

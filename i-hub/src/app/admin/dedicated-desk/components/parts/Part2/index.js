@@ -3,7 +3,7 @@
 import DeskWithChair from "../../DeskWithChair";
 import Wall from "../../Wall";
 
-export default function Part2({ onDeskClick, startY = 0, tagPrefix = "B", deskAssignments = {}, zoom = 1, isStandalone = false }) {
+export default function Part2({ onDeskClick, startY = 0, tagPrefix = "B", deskAssignments = {}, zoom = 1, isStandalone = false, showPrivateInfo = true }) {
   const deskWidth = 80;
   const deskHeight = 80;
   const verticalPairWidth = 156;
@@ -28,6 +28,7 @@ export default function Part2({ onDeskClick, startY = 0, tagPrefix = "B", deskAs
             occupantType={deskAssignments[leftTag]?.type || "Employee"}
             occupantName={deskAssignments[leftTag]?.name || ""}
             zoom={zoom}
+            showPrivateInfo={showPrivateInfo}
           />
           <div style={{ marginLeft: "-24px" }}>
             <DeskWithChair 
@@ -37,6 +38,7 @@ export default function Part2({ onDeskClick, startY = 0, tagPrefix = "B", deskAs
               occupantType={deskAssignments[rightTag]?.type || "Employee"}
               occupantName={deskAssignments[rightTag]?.name || ""}
               zoom={zoom}
+              showPrivateInfo={showPrivateInfo}
             />
           </div>
         </div>
