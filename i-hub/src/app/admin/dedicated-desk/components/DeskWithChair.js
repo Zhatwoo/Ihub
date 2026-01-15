@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 
-export default function DeskWithChair({ onClick, orientation = "horizontal-top", className = "", thinOutline = false, isOccupied = false, occupantType = "Employee", occupantName = "", zoom = 1 }) {
+export default function DeskWithChair({ onClick, orientation = "horizontal-top", className = "", thinOutline = false, isOccupied = false, occupantType = "Employee", occupantName = "", zoom = 1, showPrivateInfo = true }) {
   const [showTooltip, setShowTooltip] = useState(false);
   const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
   const deskRef = useRef(null);
@@ -58,7 +58,7 @@ export default function DeskWithChair({ onClick, orientation = "horizontal-top",
       <div
         ref={deskRef}
         onClick={onClick}
-        onMouseEnter={() => isOccupied && occupantName && setShowTooltip(true)}
+        onMouseEnter={() => isOccupied && setShowTooltip(true)}
         onMouseLeave={() => setShowTooltip(false)}
         className={`relative cursor-pointer transition-transform hover:scale-105 ${className}`}
         style={{ width: containerWidth, height: containerHeight }}
@@ -146,7 +146,7 @@ export default function DeskWithChair({ onClick, orientation = "horizontal-top",
       </div>
       
       {/* Hover Tooltip for occupied desks - Rendered via Portal */}
-      {isOccupied && showTooltip && occupantName && typeof window !== 'undefined' ? createPortal(
+      {isOccupied && showTooltip && typeof window !== 'undefined' ? createPortal(
         <div 
           className="fixed pointer-events-none z-[99999]"
           style={{ 
@@ -165,14 +165,20 @@ export default function DeskWithChair({ onClick, orientation = "horizontal-top",
               lineHeight: 1
             }}
           >
-            <div className="font-medium" style={{ fontSize: baseNameSize, marginBottom: 0, lineHeight: 1 }}>{occupantName}</div>
-            <div className={`px-0.5 py-0 rounded-full inline-block ${
-              occupantType === "Tenant" 
-                ? "bg-blue-500/30 text-blue-200" 
-                : "bg-red-500/30 text-red-200"
-            }`} style={{ fontSize: baseTypeSize, lineHeight: 1, marginTop: 0 }}>
-              {occupantType}
-            </div>
+            {showPrivateInfo && occupantName ? (
+              <>
+                <div className="font-medium" style={{ fontSize: baseNameSize, marginBottom: 0, lineHeight: 1 }}>{occupantName}</div>
+                <div className={`px-0.5 py-0 rounded-full inline-block ${
+                  occupantType === "Tenant" 
+                    ? "bg-blue-500/30 text-blue-200" 
+                    : "bg-red-500/30 text-red-200"
+                }`} style={{ fontSize: baseTypeSize, lineHeight: 1, marginTop: 0 }}>
+                  {occupantType}
+                </div>
+              </>
+            ) : (
+              <div className="font-medium" style={{ fontSize: baseNameSize, lineHeight: 1 }}>Occupied</div>
+            )}
           </div>
           {/* Tooltip arrow */}
           <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-slate-800"></div>
