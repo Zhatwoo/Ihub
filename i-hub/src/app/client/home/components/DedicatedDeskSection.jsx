@@ -29,7 +29,7 @@ export default function DedicatedDeskSection() {
   };
 
   return (
-    <section className="pt-8 pb-8 bg-white">
+    <section className="pt-8 pb-8" style={{ backgroundColor: '#F8FAFC' }}>
       <div className="max-w-[90%] mx-auto px-4">
         <div className="relative">
           <div className="flex items-center justify-between mb-8">

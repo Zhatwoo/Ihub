@@ -9,6 +9,7 @@ import HeroSection from './components/HeroSection';
 import PrivateOfficesSection from './components/PrivateOfficesSection';
 import DedicatedDeskSection from './components/DedicatedDeskSection';
 import AmenitiesSection from './components/AmenitiesSection';
+import WhyChooseUs from './components/WhyChooseUs';
 import ContentSection from './components/ContentSection';
 import CTASection from './components/CTASection';
 
@@ -109,6 +110,7 @@ export default function ClientHomePage() {
       <PrivateOfficesSection />
       <DedicatedDeskSection />
       <AmenitiesSection />
+      <WhyChooseUs />
       <ContentSection />
       <CTASection />
       <Footer />
