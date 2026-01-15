@@ -57,8 +57,7 @@ export default function DedicatedDeskSection() {
           </div>
           <div
             ref={carouselRef}
-            className="flex gap-6 overflow-x-auto scrollbar-hide pb-4 scroll-smooth"
-            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+            className="flex gap-6 overflow-x-auto hide-scrollbar pb-4 scroll-smooth"
           >
             {availableSpaces.map((space) => (
               <div
@@ -91,11 +90,6 @@ export default function DedicatedDeskSection() {
           </div>
         </div>
       </div>
-      <style jsx>{`
-        .scrollbar-hide::-webkit-scrollbar {
-          display: none;
-        }
-      `}</style>
     </section>
   );
 }

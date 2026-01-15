@@ -36,24 +36,24 @@ export default function Hero() {
       </motion.div>
 
       {/* Main Content Container */}
-      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 pt-[12.8px] pb-20">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center min-h-[600px]">
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-[12.8px] pb-12 sm:pb-20">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 items-center min-h-[400px] sm:min-h-[500px] lg:min-h-[600px]">
           {/* Left Side - Text Content */}
           <motion.div 
-            className="space-y-8 -ml-[10%] mt-[15%]"
+            className="space-y-4 sm:space-y-6 lg:space-y-8 -ml-0 sm:-ml-[5%] lg:-ml-[10%] mt-0 sm:mt-[8%] lg:mt-[15%]"
             initial={{ x: '-100%', opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
           >
-            <h1 className={`${leagueSpartan.className} text-[91.08px] lg:text-[113.85px] font-bold text-slate-800 leading-[0.85]`}>
+            <h1 className={`${leagueSpartan.className} text-4xl sm:text-5xl md:text-6xl lg:text-[91.08px] xl:text-[113.85px] font-bold text-slate-800 leading-[0.85]`}>
               Welcome to <br/> Inspire Hub
             </h1>
-            <p className="text-[20.7px] lg:text-[23px] text-slate-700 leading-relaxed max-w-lg">
+            <p className="text-base sm:text-lg md:text-xl lg:text-[20.7px] xl:text-[23px] text-slate-700 leading-relaxed max-w-lg">
               The community, workspaces, and technology to make a good impression and get down to business.
             </p>
             <Link 
               href="/landingpage/contacts" 
-              className="inline-block bg-[#0F766E] hover:bg-[#0d6b64] text-white font-semibold px-8 py-4 rounded-[20px] transform scale-x-[1.9] scale-y-[1.7] mt-[15%] ml-[10%] border-[3px] border-white transition-colors duration-200"
+              className="inline-block bg-[#0F766E] hover:bg-[#0d6b64] text-white font-semibold px-6 py-3 sm:px-8 sm:py-4 rounded-[20px] transform scale-x-[1.5] sm:scale-x-[1.7] lg:scale-x-[1.9] scale-y-[1.3] sm:scale-y-[1.5] lg:scale-y-[1.7] mt-4 sm:mt-[10%] lg:mt-[15%] ml-0 sm:ml-[5%] lg:ml-[10%] border-[2px] sm:border-[3px] border-white transition-colors duration-200 text-sm sm:text-base"
             >
               Inquire
             </Link>
@@ -61,7 +61,7 @@ export default function Hero() {
 
           {/* Right Side - Overlapping Images */}
           <motion.div 
-            className="relative h-[500px] lg:h-[600px]"
+            className="relative h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px] hidden lg:block"
             initial={{ x: '100%', opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ duration: 0.8, ease: 'easeOut', delay: 0.4 }}
@@ -122,13 +122,13 @@ export default function Hero() {
         </div>
 
         {/* Search Bar - Bottom Center */}
-        <div className="mt-16 lg:mt-24 flex justify-center">
-          <div className="relative w-full max-w-[44.1rem]">
-            <div className="flex items-center bg-[#0F766E] rounded-[31.5px] border-[5.25px] border-white overflow-hidden">
+        <div className="mt-8 sm:mt-12 lg:mt-16 xl:mt-24 flex justify-center">
+          <div className="relative w-full max-w-full sm:max-w-lg lg:max-w-[44.1rem]">
+            <div className="flex items-center bg-[#0F766E] rounded-[20px] sm:rounded-[31.5px] border-[3px] sm:border-[5.25px] border-white overflow-hidden">
               {/* Search Icon */}
-              <div className="pl-[1.05rem] pr-[0.525rem]">
+              <div className="pl-2 sm:pl-[1.05rem] pr-1 sm:pr-[0.525rem]">
                 <svg
-                  className="w-[1.575rem] h-[1.575rem] text-teal-300"
+                  className="w-4 h-4 sm:w-[1.575rem] sm:h-[1.575rem] text-teal-300"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -146,11 +146,11 @@ export default function Hero() {
               <input
                 type="text"
                 placeholder="Search by room, capacity, or location..."
-                className="flex-1 px-[1.05rem] py-[1.05rem] bg-[#0F766E] text-teal-300 placeholder-teal-300 focus:outline-none rounded-none"
+                className="flex-1 px-2 sm:px-[1.05rem] py-2 sm:py-[1.05rem] bg-[#0F766E] text-teal-300 placeholder-teal-300 focus:outline-none rounded-none text-sm sm:text-base"
               />
               
               {/* Search Button */}
-              <button className="h-full bg-white hover:bg-gray-100 text-[#0F766E] font-semibold px-[1.75rem] py-[1.05rem] rounded-none rounded-r-[31.5px] transition-colors duration-200">
+              <button className="h-full bg-white hover:bg-gray-100 text-[#0F766E] font-semibold px-3 sm:px-[1.75rem] py-2 sm:py-[1.05rem] rounded-none rounded-r-[20px] sm:rounded-r-[31.5px] transition-colors duration-200 text-sm sm:text-base">
                 Search
               </button>
             </div>
