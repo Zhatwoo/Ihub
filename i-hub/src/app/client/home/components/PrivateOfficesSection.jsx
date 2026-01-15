@@ -59,10 +59,10 @@ export default function PrivateOfficesSection() {
             ref={carouselRef}
             className="flex gap-6 overflow-x-auto hide-scrollbar pb-4 scroll-smooth"
           >
-            {whyChooseFeatures.map((feature) => (
+            {whyChooseFeatures.map((feature, index) => (
               <div
                 key={feature.id}
-                className="flex-shrink-0 w-[300px] rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-shadow cursor-pointer group relative"
+                className="flex-shrink-0 w-[300px] rounded-2xl overflow-hidden cursor-pointer group relative transition-all duration-300 shadow-md hover:shadow-2xl hover:ring-2 hover:ring-teal-500"
               >
                 <div className="relative h-[200px]">
                   <Image
@@ -74,7 +74,14 @@ export default function PrivateOfficesSection() {
                   />
                 </div>
                 <div className="p-4 bg-white">
-                  <h3 className="text-lg font-semibold text-slate-800 mb-2">{feature.title}</h3>
+                  {index === 0 && (
+                    <div className="inline-block bg-teal-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded mb-1">
+                      FEATURED
+                    </div>
+                  )}
+                  <h3 className="text-lg font-semibold mb-2 text-slate-800">
+                    {feature.title}
+                  </h3>
                   <p className="text-sm text-gray-600 mb-3 line-clamp-2">{feature.description}</p>
                 </div>
               </div>
