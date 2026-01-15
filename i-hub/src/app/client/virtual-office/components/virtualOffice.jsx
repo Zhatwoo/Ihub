@@ -114,8 +114,8 @@ export default function VirtualOfficeHero() {
         }}
       >
         {/* Green Rectangle Box with Image - Hidden on mobile */}
-        <div className="hidden md:block absolute right-[30%] top-0 lg:right-[30%] lg:top-0 z-[100]" style={{ transform: 'translateY(-100%)' }}>
-          <div className="bg-transparent p-8 md:p-10 lg:p-12 w-96 h-72 md:w-[480px] md:h-[336px] lg:w-[576px] lg:h-96 relative z-[100]">
+        <div className="hidden md:block absolute right-[30%] top-0 lg:right-[30%] lg:top-0 z-100" style={{ transform: 'translateY(-100%)' }}>
+          <div className="bg-transparent p-8 md:p-10 lg:p-12 w-96 h-72 md:w-[480px] md:h-[336px] lg:w-[576px] lg:h-96 relative z-100">
             <Image
               src="/bg/image.png"
               alt="Virtual Office"
@@ -127,8 +127,8 @@ export default function VirtualOfficeHero() {
         </div>
 
         {/* Second Image to the Right - Hidden on mobile */}
-        <div className="hidden md:block absolute right-[calc(5%-8%+5%)] top-0 lg:right-[calc(5%-8%+5%)] lg:top-0 z-[101]" style={{ transform: 'translateY(-70%)' }}>
-          <div className="bg-transparent p-8 md:p-10 lg:p-12 w-96 h-72 md:w-[480px] md:h-[336px] lg:w-[576px] lg:h-96 relative z-[101]">
+        <div className="hidden md:block absolute right-[calc(5%-8%+5%)] top-0 lg:right-[calc(5%-8%+5%)] lg:top-0 z-101" style={{ transform: 'translateY(-70%)' }}>
+          <div className="bg-transparent p-8 md:p-10 lg:p-12 w-96 h-72 md:w-[480px] md:h-[336px] lg:w-[576px] lg:h-96 relative z-101">
             <Image
               src="/bg/image1.png"
               alt="Virtual Office"
@@ -139,8 +139,8 @@ export default function VirtualOfficeHero() {
         </div>
 
         {/* Third Image Below Second Image - Hidden on mobile */}
-        <div className="hidden md:block absolute right-[calc(5%-8%+15%)] top-0 lg:right-[calc(5%-8%+15%)] lg:top-0 z-[102]" style={{ transform: 'translateY(calc(40% + 100% - 450px))' }}>
-          <div className="bg-transparent p-8 md:p-10 lg:p-12 w-96 h-72 md:w-[480px] md:h-[336px] lg:w-[576px] lg:h-96 relative z-[102]">
+        <div className="hidden md:block absolute right-[calc(5%-8%+15%)] top-0 lg:right-[calc(5%-8%+15%)] lg:top-0 z-102" style={{ transform: 'translateY(calc(40% + 100% - 450px))' }}>
+          <div className="bg-transparent p-8 md:p-10 lg:p-12 w-96 h-72 md:w-[480px] md:h-[336px] lg:w-[576px] lg:h-96 relative z-102">
             <Image
               src="/bg/Image2.png"
               alt="Virtual Office"
@@ -156,7 +156,7 @@ export default function VirtualOfficeHero() {
             initial={{ opacity: 0, x: -50 }}
             animate={isTextInView ? { opacity: 1, x: 0 } : { opacity: 0, x: -50 }}
             transition={{ duration: 0.8, ease: 'easeOut' }}
-            className="max-w-full md:max-w-[63rem] bg-white backdrop-blur-sm p-4 sm:p-6 rounded-lg"
+            className="max-w-full md:max-w-252 bg-white backdrop-blur-sm p-4 sm:p-6 rounded-lg"
           >
             <motion.p 
               initial={{ opacity: 0 }}

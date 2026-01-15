@@ -413,7 +413,7 @@ export default function DedicatedDesk() {
         overflow: "auto",
       }}>
         {/* Header with Dropdown and Zoom Controls */}
-        <div className="sticky top-0 left-0 z-30 p-4 bg-gradient-to-b from-gray-100 via-gray-100 to-transparent">
+        <div className="sticky top-0 left-0 z-30 p-4 bg-linear-to-b from-gray-100 via-gray-100 to-transparent">
           <div className="flex items-start justify-between">
             {/* Part Selector Dropdown */}
             <div className="flex flex-col gap-2">
@@ -637,7 +637,7 @@ export default function DedicatedDesk() {
                         className={`group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 ease-out ${
                           request.status === 'approved'
                             ? 'bg-gray-50 text-gray-400 cursor-not-allowed'
-                            : 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 active:scale-95 shadow-lg hover:shadow-xl hover:shadow-emerald-500/50 border-0'
+                            : 'bg-linear-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 active:scale-95 shadow-lg hover:shadow-xl hover:shadow-emerald-500/50 border-0'
                         }`}
                         title={request.status === 'approved' ? 'Request already approved' : 'Approve this request'}
                       >
@@ -655,7 +655,7 @@ export default function DedicatedDesk() {
                         className={`group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 ease-out ${
                           request.status === 'rejected'
                             ? 'bg-gray-50 text-gray-400 cursor-not-allowed'
-                            : 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 active:scale-95 shadow-lg hover:shadow-xl hover:shadow-red-500/50 border-0'
+                            : 'bg-linear-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 active:scale-95 shadow-lg hover:shadow-xl hover:shadow-red-500/50 border-0'
                         }`}
                         title={request.status === 'rejected' ? 'Request already rejected' : 'Reject this request'}
                       >

@@ -4,6 +4,8 @@ import DeskWithChair from "../../DeskWithChair";
 import Wall from "../../Wall";
 import Cabinet from "../../Cabinet";
 
+// Part4 component - renders desk layout with proper showPrivateInfo prop handling
+
 export default function Part4({ onDeskClick, startX, startY, wallAlignX, wallAlignY, tagPrefix = "D", deskAssignments = {}, zoom = 1, isStandalone = false, showPrivateInfo = true }) {
   const deskWidth = 80;
   const horizontalContainerHeight = 70;
@@ -202,7 +204,7 @@ export default function Part4({ onDeskClick, startX, startY, wallAlignX, wallAli
       
       {/* L-shaped desk */}
       <div 
-        className="absolute cursor-pointer transition-transform hover:scale-105 relative"
+        className="absolute cursor-pointer transition-transform hover:scale-105"
         style={{ 
           left: `${wallX + 50}px`, 
           top: `${wallY + 120 + 2 * 60 - 26}px` 

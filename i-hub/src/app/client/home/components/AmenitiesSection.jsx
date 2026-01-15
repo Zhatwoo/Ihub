@@ -112,7 +112,7 @@ export default function AmenitiesSection() {
             {amenities.map((amenity) => (
               <div
                 key={amenity.id}
-                className="flex-shrink-0 w-[300px] rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-shadow cursor-pointer group relative"
+                className="shrink-0 w-[300px] rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-shadow cursor-pointer group relative"
               >
                 <div className="relative h-[200px]">
                   <Image
