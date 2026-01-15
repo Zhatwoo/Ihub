@@ -46,7 +46,7 @@ export default function AvailableRentals() {
   const isSectionInView = useInView(sectionRef, { once: true, amount: 0.2 });
 
   return (
-    <section ref={sectionRef} className="relative bg-white py-16 lg:py-24 overflow-hidden">
+    <section ref={sectionRef} className="relative bg-white py-12 sm:py-16 lg:py-24 overflow-hidden">
       {/* Background Gradient - Dark Slate to White */}
       <div 
         className="absolute bottom-0 left-0 right-0 h-1/2 pointer-events-none z-0"
@@ -57,15 +57,15 @@ export default function AvailableRentals() {
       
       {/* Section Title */}
       <motion.div 
-        className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8 mb-12 lg:mb-16"
+        className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-8 sm:mb-12 lg:mb-16"
         initial={{ y: 50, opacity: 0 }}
         animate={isSectionInView ? { y: 0, opacity: 1 } : { y: 50, opacity: 0 }}
         transition={{ duration: 0.6, ease: 'easeOut' }}
       >
-        <h2 className={`${leagueSpartan.className} text-3xl lg:text-4xl font-bold text-slate-800 mb-2`}>
+        <h2 className={`${leagueSpartan.className} text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-800 mb-2`}>
           Available Rental Spaces
         </h2>
-        <div className="w-24 h-1 bg-[#0F766E]"></div>
+        <div className="w-20 sm:w-24 h-1 bg-[#0F766E]"></div>
       </motion.div>
 
       {/* Color Palette Container - Full Width with scroll animation */}
@@ -73,10 +73,10 @@ export default function AvailableRentals() {
         initial={{ y: 50, opacity: 0 }}
         animate={isSectionInView ? { y: 0, opacity: 1 } : { y: 50, opacity: 0 }}
         transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
-        className="relative z-10 max-w-7xl mx-auto px-6 lg:px-8"
+        className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
       >
         {/* Container */}
-        <div className="h-[500px] lg:h-[600px] rounded-2xl overflow-hidden shadow-[0_10px_20px_#dbdbdb]">
+        <div className="h-[400px] sm:h-[500px] lg:h-[600px] rounded-xl sm:rounded-2xl overflow-hidden shadow-[0_10px_20px_#dbdbdb]">
           {/* Palette Section */}
           <div className="flex h-full w-full">
             {rentalOptions.map((option, index) => (
@@ -101,19 +101,19 @@ export default function AvailableRentals() {
                 </div>
                 
                 {/* Content */}
-                <div className="relative z-10 flex flex-col items-center justify-center text-center px-4 h-full">
+                <div className="relative z-10 flex flex-col items-center justify-center text-center px-2 sm:px-4 h-full">
                   {/* Title and Details - Always centered vertically */}
-                  <div className="flex flex-col items-center justify-center space-y-4">
-                    <h3 className={`${leagueSpartan.className} text-xl lg:text-2xl font-bold`}>
+                  <div className="flex flex-col items-center justify-center space-y-2 sm:space-y-4">
+                    <h3 className={`${leagueSpartan.className} text-lg sm:text-xl lg:text-2xl font-bold`}>
                       {option.title}
                     </h3>
                     
                     {/* Description and Button - Show on hover */}
-                    <div className="flex flex-col items-center opacity-0 group-hover:opacity-100 transition-opacity duration-100 ease-linear overflow-hidden max-h-0 group-hover:max-h-96 space-y-4">
-                      <p className={`${leagueSpartan.className} text-sm lg:text-base leading-relaxed max-w-xs`}>
+                    <div className="flex flex-col items-center opacity-0 group-hover:opacity-100 transition-opacity duration-100 ease-linear overflow-hidden max-h-0 group-hover:max-h-96 space-y-2 sm:space-y-4">
+                      <p className={`${leagueSpartan.className} text-xs sm:text-sm lg:text-base leading-relaxed max-w-xs px-2`}>
                         {option.description}
                       </p>
-                      <button className={`${leagueSpartan.className} bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white font-semibold px-6 py-2 rounded-full transition-all duration-200 text-sm`}>
+                      <button className={`${leagueSpartan.className} bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white font-semibold px-4 sm:px-6 py-1.5 sm:py-2 rounded-full transition-all duration-200 text-xs sm:text-sm`}>
                         Inquire
                       </button>
                     </div>

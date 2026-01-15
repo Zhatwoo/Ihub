@@ -21,16 +21,16 @@ export default function FlexibleWorkspace() {
   return (
     <section className="relative bg-[#F8FAFC] overflow-hidden">
       <ThreeDScrollTriggerContainer>
-        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-6 lg:py-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
           {/* Main Content Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 lg:gap-8 items-center">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-center">
             {/* Left Side - Two Columns of Scrolling Images */}
-            <div className="flex gap-4 h-[300px] lg:h-[350px]">
+            <div className="flex gap-2 sm:gap-4 h-[250px] sm:h-[300px] lg:h-[350px]">
               {/* Column 1 - Scrolling Down */}
               <div className="flex-1 h-full">
                 <ThreeDScrollTriggerColumn baseVelocity={5} direction={1}>
                   {/* Image 1 */}
-                  <div className="relative w-full h-[200px] lg:h-[220px] rounded-xl overflow-hidden border-4 border-white shrink-0 mb-4">
+                  <div className="relative w-full h-[150px] sm:h-[180px] lg:h-[220px] rounded-lg sm:rounded-xl overflow-hidden border-2 sm:border-4 border-white shrink-0 mb-2 sm:mb-4">
                     <Image
                       src="/images/IMG_5265.jpg"
                       alt="Office workspace"
@@ -107,7 +107,7 @@ export default function FlexibleWorkspace() {
               <div className="flex-1 h-full">
                 <ThreeDScrollTriggerColumn baseVelocity={5} direction={-1}>
                   {/* Image 1 */}
-                  <div className="relative w-full h-[200px] lg:h-[220px] rounded-xl overflow-hidden border-4 border-white shrink-0 mb-4">
+                  <div className="relative w-full h-[150px] sm:h-[180px] lg:h-[220px] rounded-lg sm:rounded-xl overflow-hidden border-2 sm:border-4 border-white shrink-0 mb-2 sm:mb-4">
                     <Image
                       src="/images/IMG_5283.jpg"
                       alt="Office workspace"
@@ -182,14 +182,14 @@ export default function FlexibleWorkspace() {
             </div>
 
           {/* Right Column - Text Content */}
-          <div className="space-y-3 ml-[30%] text-right scale-[1.2]">
+          <div className="space-y-2 sm:space-y-3 ml-0 lg:ml-[30%] text-left lg:text-right scale-100 lg:scale-[1.2] mt-4 lg:mt-0">
             <div>
-              <h2 className={`${leagueSpartan.className} text-2xl lg:text-3xl font-bold text-[#1F2937] mb-2`}>
+              <h2 className={`${leagueSpartan.className} text-xl sm:text-2xl lg:text-3xl font-bold text-[#1F2937] mb-2`}>
                 Flexible Workspaces for Modern Professionals
               </h2>
-              <div className="w-24 h-1 bg-[#0F766E] ml-auto"></div>
+              <div className="w-20 sm:w-24 h-1 bg-[#0F766E] lg:ml-auto"></div>
             </div>
-            <p className={`${roboto.className} text-base lg:text-lg text-[#1F2937] leading-relaxed max-w-lg ml-auto`}>
+            <p className={`${roboto.className} text-sm sm:text-base lg:text-lg text-[#1F2937] leading-relaxed max-w-lg lg:ml-auto`}>
               Whether you're a freelancer, a startup, or remote team, our beautifully furnished desks are ready to support your productivity. Enjoy a comfortable environment, and a vibrant community all at an affordable rate.
             </p>
           </div>

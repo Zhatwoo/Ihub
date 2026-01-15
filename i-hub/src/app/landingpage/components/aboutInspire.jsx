@@ -59,7 +59,7 @@ export default function AboutInspire() {
   }, [bottomLeftSlideshowImages.length]);
 
   return (
-    <section id="about-i-hub" ref={sectionRef} className="relative bg-white py-16 lg:py-24 overflow-hidden">
+    <section id="about-i-hub" ref={sectionRef} className="relative bg-white py-12 sm:py-16 lg:py-24 overflow-hidden">
       {/* Top Background - Solid Color */}
       <div 
         className="absolute top-0 left-0 right-0 h-1/2 bg-[#1F2937] pointer-events-none z-0"
@@ -72,12 +72,12 @@ export default function AboutInspire() {
             initial={{ opacity: 0, x: '50%', scale: 0.5 }}
             animate={isInView ? { opacity: 1, x: 0, scale: 1 } : { opacity: 0, x: '50%', scale: 0.5 }}
             transition={{ duration: 0.8, ease: 'easeOut', delay: 0.1 }}
-            className="bg-[#1F2937] p-8 lg:p-12 flex flex-col justify-center min-h-[300px] lg:min-h-[400px]"
+            className="bg-[#1F2937] p-6 sm:p-8 lg:p-12 flex flex-col justify-center min-h-[250px] sm:min-h-[300px] lg:min-h-[400px]"
           >
-            <h2 className={`${leagueSpartan.className} text-3xl lg:text-4xl font-bold text-white mb-6 text-right`}>
+            <h2 className={`${leagueSpartan.className} text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4 sm:mb-6 text-left sm:text-right`}>
               About Inspire Hub
             </h2>
-            <p className={`${roboto.className} text-base lg:text-lg text-white leading-relaxed text-right`}>
+            <p className={`${roboto.className} text-sm sm:text-base lg:text-lg text-white leading-relaxed text-left sm:text-right`}>
               At Inspire Hub, we create environments where productivity meets comfort. Our co-working spaces are designed to empower professionals, entrepreneurs, and businesses to thrive in a collaborative and inspiring atmosphere.
             </p>
           </motion.div>
@@ -87,7 +87,7 @@ export default function AboutInspire() {
             initial={{ opacity: 0, x: '-50%', scale: 0.5 }}
             animate={isInView ? { opacity: 1, x: 0, scale: 1 } : { opacity: 0, x: '-50%', scale: 0.5 }}
             transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
-            className="relative h-[300px] lg:h-[400px] overflow-hidden"
+            className="relative h-[250px] sm:h-[300px] lg:h-[400px] overflow-hidden"
           >
             {topRightSlideshowImages.map((image, index) => (
               <motion.div
@@ -117,7 +117,7 @@ export default function AboutInspire() {
             initial={{ opacity: 0, x: '50%', scale: 0.5 }}
             animate={isInView ? { opacity: 1, x: 0, scale: 1 } : { opacity: 0, x: '50%', scale: 0.5 }}
             transition={{ duration: 0.8, ease: 'easeOut', delay: 0.3 }}
-            className="relative h-[300px] lg:h-[400px] overflow-hidden"
+            className="relative h-[250px] sm:h-[300px] lg:h-[400px] overflow-hidden"
           >
             {bottomLeftSlideshowImages.map((image, index) => (
               <motion.div
@@ -147,12 +147,12 @@ export default function AboutInspire() {
             initial={{ opacity: 0, x: '-50%', scale: 0.5 }}
             animate={isInView ? { opacity: 1, x: 0, scale: 1 } : { opacity: 0, x: '-50%', scale: 0.5 }}
             transition={{ duration: 0.8, ease: 'easeOut', delay: 0.4 }}
-            className="bg-[#1F2937] p-8 lg:p-12 flex flex-col justify-center min-h-[300px] lg:min-h-[400px]"
+            className="bg-[#1F2937] p-6 sm:p-8 lg:p-12 flex flex-col justify-center min-h-[250px] sm:min-h-[300px] lg:min-h-[400px]"
           >
-            <h2 className={`${leagueSpartan.className} text-3xl lg:text-4xl font-bold text-white mb-6`}>
+            <h2 className={`${leagueSpartan.className} text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4 sm:mb-6`}>
               Complimentary Amenities
             </h2>
-            <p className={`${roboto.className} text-base lg:text-lg text-white leading-relaxed`}>
+            <p className={`${roboto.className} text-sm sm:text-base lg:text-lg text-white leading-relaxed`}>
               From high-speed internet to free coffee, our complimentary offerings ensure that you can focus on what truly matters—growing your business and connecting with others in a comfortable and productive environment.
             </p>
           </motion.div>

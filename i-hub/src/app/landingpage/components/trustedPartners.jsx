@@ -9,32 +9,32 @@ export default function TrustedPartners() {
   const isSectionInView = useInView(sectionRef, { once: true, amount: 0.2 });
 
   return (
-    <section ref={sectionRef} className="py-16 lg:py-24 bg-white">
-      <div className="max-w-7xl mx-auto px-6 lg:px-8">
+    <section ref={sectionRef} className="py-12 sm:py-16 lg:py-24 bg-white">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Title */}
         <motion.div 
-          className="text-center mb-12 lg:mb-16"
+          className="text-center mb-8 sm:mb-12 lg:mb-16"
           initial={{ y: 50, opacity: 0 }}
           animate={isSectionInView ? { y: 0, opacity: 1 } : { y: 50, opacity: 0 }}
           transition={{ duration: 0.6, ease: 'easeOut' }}
         >
-          <h2 className="text-3xl lg:text-4xl font-bold text-[#1F2937] mb-4">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1F2937] mb-3 sm:mb-4">
             Our Trusted Partners
           </h2>
-          <div className="w-32 h-1 bg-[#0F766E] mx-auto"></div>
+          <div className="w-24 sm:w-32 h-1 bg-[#0F766E] mx-auto"></div>
         </motion.div>
 
         {/* Logos Grid */}
-        <div className="space-y-12 lg:space-y-16">
+        <div className="space-y-8 sm:space-y-12 lg:space-y-16">
           {/* Top Row - 4 Logos */}
           <motion.div 
-            className="grid grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12 items-center justify-items-center"
+            className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 lg:gap-12 items-center justify-items-center"
             initial={{ y: 50, opacity: 0 }}
             animate={isSectionInView ? { y: 0, opacity: 1 } : { y: 50, opacity: 0 }}
             transition={{ duration: 0.6, ease: 'easeOut', delay: 0.2 }}
           >
             {/* SMDC */}
-            <div className="flex items-center justify-center w-full h-20 relative">
+            <div className="flex items-center justify-center w-full h-16 sm:h-20 relative">
               <Image
                 src="/LOGOS/SMDC.png"
                 alt="SMDC Logo"
@@ -46,7 +46,7 @@ export default function TrustedPartners() {
             </div>
 
             {/* Vista Land */}
-            <div className="flex items-center justify-center w-full h-20 relative">
+            <div className="flex items-center justify-center w-full h-16 sm:h-20 relative">
               <Image
                 src="/LOGOS/Vista Land.png"
                 alt="Vista Land Logo"
@@ -58,7 +58,7 @@ export default function TrustedPartners() {
             </div>
 
             {/* Alliance Global */}
-            <div className="flex items-center justify-center w-full h-20 relative">
+            <div className="flex items-center justify-center w-full h-16 sm:h-20 relative">
               <Image
                 src="/LOGOS/Alliance Global.png"
                 alt="Alliance Global Logo"
@@ -70,7 +70,7 @@ export default function TrustedPartners() {
             </div>
 
             {/* AyalaLand */}
-            <div className="flex items-center justify-center w-full h-20 relative">
+            <div className="flex items-center justify-center w-full h-16 sm:h-20 relative">
               <Image
                 src="/LOGOS/Ayala land.png"
                 alt="AyalaLand Logo"
@@ -84,13 +84,13 @@ export default function TrustedPartners() {
 
           {/* Bottom Row - 3 Logos Centered */}
           <motion.div 
-            className="flex flex-wrap items-center justify-center gap-8 lg:gap-12"
+            className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 lg:gap-12"
             initial={{ y: 50, opacity: 0 }}
             animate={isSectionInView ? { y: 0, opacity: 1 } : { y: 50, opacity: 0 }}
             transition={{ duration: 0.6, ease: 'easeOut', delay: 0.4 }}
           >
             {/* Megaworld International */}
-            <div className="flex items-center justify-center w-full sm:w-[200px] lg:w-[250px] h-20 relative">
+            <div className="flex items-center justify-center w-full sm:w-[180px] lg:w-[250px] h-16 sm:h-20 relative">
               <Image
                 src="/LOGOS/Megaworld.png"
                 alt="Megaworld International Logo"
@@ -102,7 +102,7 @@ export default function TrustedPartners() {
             </div>
 
             {/* UnionBank */}
-            <div className="flex items-center justify-center w-full sm:w-[200px] lg:w-[250px] h-20 relative">
+            <div className="flex items-center justify-center w-full sm:w-[180px] lg:w-[250px] h-16 sm:h-20 relative">
               <Image
                 src="/LOGOS/UB.png"
                 alt="UnionBank Logo"
@@ -114,7 +114,7 @@ export default function TrustedPartners() {
             </div>
 
             {/* GM Fastcash Lending Corporation */}
-            <div className="flex items-center justify-center w-full sm:w-[200px] lg:w-[250px] h-20 relative">
+            <div className="flex items-center justify-center w-full sm:w-[180px] lg:w-[250px] h-16 sm:h-20 relative">
               <Image
                 src="/LOGOS/GM.png"
                 alt="GM Fastcash Lending Corporation Logo"
