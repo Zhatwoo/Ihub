@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
 
@@ -8,6 +9,11 @@ export default function VirtualOffice() {
   const [clients, setClients] = useState([]);
   const [showFormModal, setShowFormModal] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [deleteClientId, setDeleteClientId] = useState(null);
   const [formData, setFormData] = useState({
     fullName: '',
     company: '',
@@ -16,6 +22,16 @@ export default function VirtualOffice() {
     phoneNumber: '',
     dateStart: ''
   });
+
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+    setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 4000);
+  };
+
+  // Mount state for portal
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Fetch clients from Firebase
   useEffect(() => {
@@ -48,7 +64,7 @@ export default function VirtualOffice() {
       setShowFormModal(false);
     } catch (error) {
       console.error('Error saving client:', error);
-      alert('Failed to save client. Please try again.');
+      showToast('Failed to save client. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
@@ -78,14 +94,19 @@ export default function VirtualOffice() {
   };
 
   const handleDelete = async (clientId) => {
-    if (confirm('Are you sure you want to delete this client?')) {
+    setDeleteClientId(clientId);
+    setConfirmAction(() => async () => {
       try {
         await deleteDoc(doc(db, 'virtual-office-clients', clientId));
+        showToast('Client deleted successfully!', 'success');
       } catch (error) {
         console.error('Error deleting client:', error);
-        alert('Failed to delete client. Please try again.');
+        showToast('Failed to delete client. Please try again.', 'error');
       }
-    }
+      setShowConfirmDialog(false);
+      setDeleteClientId(null);
+    });
+    setShowConfirmDialog(true);
   };
 
   return (
@@ -168,117 +189,97 @@ export default function VirtualOffice() {
         )}
       </div>
 
-      {showFormModal && (
-        <div className="fixed inset-0 bg-slate-800/60 backdrop-blur-sm flex items-center justify-center z-50 animate-[fadeIn_0.2s_ease] p-4">
-          <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-7 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl animate-[slideUp_0.3s_ease]">
+      {showFormModal && mounted && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] animate-[fadeIn_0.2s_ease] p-4" onClick={closeFormModal}>
+          <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-7 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-[slideUp_0.3s_ease]" onClick={(e) => e.stopPropagation()}>
             <div className="flex justify-between items-center mb-4 sm:mb-6 pb-3 sm:pb-4 border-b-2 border-gray-100">
               <h2 className="text-slate-800 text-lg sm:text-xl font-bold">Add Client</h2>
-              <button 
-                onClick={closeFormModal} 
-                disabled={loading}
-                className="w-8 h-8 sm:w-9 sm:h-9 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 text-lg sm:text-xl hover:bg-gray-200 hover:text-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                ×
-              </button>
+              <div className="flex items-center gap-2">
+                <button type="submit" form="client-form" disabled={loading} className="px-4 py-2 sm:py-2.5 bg-teal-600 text-white text-xs sm:text-sm font-medium rounded-xl hover:bg-teal-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">{loading ? 'Adding...' : 'Add Client'}</button>
+                <button onClick={closeFormModal} disabled={loading} className="w-8 h-8 sm:w-9 sm:h-9 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 text-lg sm:text-xl hover:bg-gray-200 hover:text-slate-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed">×</button>
+              </div>
             </div>
-            <form onSubmit={handleSubmit}>
-              <div className="mb-4 sm:mb-5">
-                <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Full Name <span className="text-red-500">*</span></label>
-                <input 
-                  type="text" 
-                  name="fullName" 
-                  value={formData.fullName} 
-                  onChange={handleChange} 
-                  placeholder="Enter full name" 
-                  required 
-                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3.5 border-2 border-gray-200 rounded-xl text-sm sm:text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all" 
-                />
-              </div>
-              
-              <div className="mb-4 sm:mb-5">
-                <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Company <span className="text-red-500">*</span></label>
-                <input 
-                  type="text" 
-                  name="company" 
-                  value={formData.company} 
-                  onChange={handleChange} 
-                  placeholder="Enter company name" 
-                  required 
-                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3.5 border-2 border-gray-200 rounded-xl text-sm sm:text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all" 
-                />
-              </div>
-              
-              <div className="mb-4 sm:mb-5">
-                <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Email Address <span className="text-red-500">*</span></label>
-                <input 
-                  type="email" 
-                  name="email" 
-                  value={formData.email} 
-                  onChange={handleChange} 
-                  placeholder="Enter email address" 
-                  required 
-                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3.5 border-2 border-gray-200 rounded-xl text-sm sm:text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all" 
-                />
-              </div>
-              
-              <div className="mb-4 sm:mb-5">
-                <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Position <span className="text-red-500">*</span></label>
-                <input 
-                  type="text" 
-                  name="position" 
-                  value={formData.position} 
-                  onChange={handleChange} 
-                  placeholder="Enter position/title" 
-                  required 
-                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3.5 border-2 border-gray-200 rounded-xl text-sm sm:text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all" 
-                />
-              </div>
-              
-              <div className="mb-4 sm:mb-5">
-                <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Phone Number <span className="text-red-500">*</span></label>
-                <input 
-                  type="tel" 
-                  name="phoneNumber" 
-                  value={formData.phoneNumber} 
-                  onChange={handleChange} 
-                  placeholder="Enter phone number" 
-                  required 
-                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3.5 border-2 border-gray-200 rounded-xl text-sm sm:text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all" 
-                />
-              </div>
-              
-              <div className="mb-4 sm:mb-5">
-                <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Date Start <span className="text-red-500">*</span></label>
-                <input 
-                  type="date" 
-                  name="dateStart" 
-                  value={formData.dateStart} 
-                  onChange={handleChange} 
-                  required 
-                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3.5 border-2 border-gray-200 rounded-xl text-sm sm:text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all cursor-pointer" 
-                />
-              </div>
-              
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-4 sm:mt-6">
-                <button 
-                  type="button" 
-                  onClick={closeFormModal} 
-                  disabled={loading}
-                  className="w-full sm:w-auto px-5 sm:px-7 py-2.5 sm:py-3.5 bg-gray-100 text-gray-600 rounded-xl text-sm sm:text-base font-semibold hover:bg-gray-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Cancel
-                </button>
-                <button 
-                  type="submit" 
-                  disabled={loading} 
-                  className="w-full sm:flex-1 py-2.5 sm:py-3.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl text-sm sm:text-base font-semibold shadow-lg shadow-teal-600/30 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-600/40 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                >
-                  {loading ? 'Adding...' : 'Add Client'}
-                </button>
+            <form id="client-form" onSubmit={handleSubmit}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+                {/* Column 1: Name, Email, Phone Number */}
+                <div className="flex flex-col gap-4 sm:gap-5">
+                  <div>
+                    <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Full Name <span className="text-red-500">*</span></label>
+                    <input type="text" name="fullName" value={formData.fullName} onChange={handleChange} placeholder="Enter full name" required className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Email Address <span className="text-red-500">*</span></label>
+                    <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Enter email address" required className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Phone Number <span className="text-red-500">*</span></label>
+                    <input type="tel" name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} placeholder="Enter phone number" required className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all" />
+                  </div>
+                </div>
+                {/* Column 2: Company, Position, Date Start */}
+                <div className="flex flex-col gap-4 sm:gap-5">
+                  <div>
+                    <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Company <span className="text-red-500">*</span></label>
+                    <input type="text" name="company" value={formData.company} onChange={handleChange} placeholder="Enter company name" required className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Position <span className="text-red-500">*</span></label>
+                    <input type="text" name="position" value={formData.position} onChange={handleChange} placeholder="Enter position/title" required className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all" />
+                  </div>
+                  <div>
+                    <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Date Start <span className="text-red-500">*</span></label>
+                    <input type="date" name="dateStart" value={formData.dateStart} onChange={handleChange} required className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all cursor-pointer" />
+                  </div>
+                </div>
               </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Toast Notification */}
+      {toast.show && mounted && createPortal(
+        <div className="fixed top-6 right-6 z-[10000] animate-[slideInRight_0.3s_ease]">
+          <div className={`px-5 py-4 rounded-xl shadow-2xl flex items-center gap-3 min-w-[300px] max-w-md ${
+            toast.type === 'error' ? 'bg-gradient-to-r from-red-500 to-red-600 text-white' 
+            : toast.type === 'success' ? 'bg-gradient-to-r from-teal-600 to-teal-700 text-white'
+            : 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
+          }`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+              toast.type === 'error' ? 'bg-red-400/30' : toast.type === 'success' ? 'bg-teal-400/30' : 'bg-blue-400/30'
+            }`}>
+              <span className="text-lg font-bold">{toast.type === 'error' ? '✕' : toast.type === 'success' ? '✓' : 'ℹ'}</span>
+            </div>
+            <span className="font-medium flex-1 text-sm sm:text-base">{toast.message}</span>
+            <button onClick={() => setToast({ show: false, message: '', type: 'success' })} className="ml-2 text-white/80 hover:text-white text-xl font-bold transition-colors flex-shrink-0 w-6 h-6 flex items-center justify-center rounded-full hover:bg-white/20">×</button>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Confirmation Dialog */}
+      {showConfirmDialog && mounted && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10001] animate-[fadeIn_0.2s_ease] p-4" onClick={() => { setShowConfirmDialog(false); setConfirmAction(null); setDeleteClientId(null); }}>
+          <div className="bg-white rounded-xl sm:rounded-2xl p-6 sm:p-8 w-full max-w-md shadow-2xl animate-[slideUp_0.3s_ease]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg sm:text-xl font-bold text-slate-800 mb-1">Delete Client</h3>
+                <p className="text-sm text-gray-600">Are you sure you want to delete this client? This action cannot be undone.</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => { setShowConfirmDialog(false); setConfirmAction(null); setDeleteClientId(null); }} className="flex-1 px-4 py-2.5 sm:py-3 bg-gray-200 text-slate-800 font-medium rounded-xl hover:bg-gray-300 transition-colors">Cancel</button>
+              <button onClick={() => { if (confirmAction) confirmAction(); }} className="flex-1 px-4 py-2.5 sm:py-3 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition-colors">Delete</button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

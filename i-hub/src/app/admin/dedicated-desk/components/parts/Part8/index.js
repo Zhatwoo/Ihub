@@ -1,7 +1,7 @@
 "use client";
 
-import DeskWithChair from "../../DeskWithChair";
-import Wall from "../../Wall";
+import DeskWithChair from "../../furnitures/DeskWithChair";
+import Wall from "../../furnitures/Wall";
 
 export default function Part8({ onDeskClick, startX = 0, startY = 0, wallAlignX = 320, wallAlignY = 0, tagPrefix = "H", deskAssignments = {}, zoom = 1, isStandalone = false, showPrivateInfo = true }) {
   const deskWidth = 80;
