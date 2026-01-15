@@ -33,8 +33,8 @@ export default function AdminDashboard() {
       
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 lg:gap-5 mb-4 sm:mb-6">
         {stats.map((stat, i) => (
-          <div key={i} className={`bg-white rounded-xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3 border border-gray-200 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 animate-stagger animate-stagger-${i + 1} border-l-[3px] sm:border-l-[4px] ${stat.borderColor}`}>
-            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-gradient-to-br ${stat.iconBg} flex items-center justify-center text-lg sm:text-xl lg:text-2xl shadow-sm sm:shadow-md shrink-0`}>
+          <div key={i} className={`bg-white rounded-xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3 border border-gray-200 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 animate-stagger animate-stagger-${i + 1} border-l-[3px] sm:border-l-4 ${stat.borderColor}`}>
+            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl bg-linear-to-br ${stat.iconBg} flex items-center justify-center text-lg sm:text-xl lg:text-2xl shadow-sm sm:shadow-md shrink-0`}>
               {stat.icon}
             </div>
             <div className="flex items-baseline gap-2">

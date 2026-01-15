@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+@theme {
+  --z-60: 60;
+  --z-100: 100;
+  --z-101: 101;
+  --z-102: 102;
+  --z-200: 200;
+  --z-99999: 99999;
+  --max-width-252: 63rem;
+}
+
 body {
   font-family: Arial, Helvetica, sans-serif;
 }

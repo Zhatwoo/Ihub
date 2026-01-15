@@ -40,7 +40,7 @@ export default function Hero() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 items-center min-h-[400px] sm:min-h-[500px] lg:min-h-[600px]">
           {/* Left Side - Text Content */}
           <motion.div 
-            className="space-y-4 sm:space-y-6 lg:space-y-8 -ml-0 sm:-ml-[5%] lg:-ml-[10%] mt-0 sm:mt-[8%] lg:mt-[15%]"
+            className="space-y-4 sm:space-y-6 lg:space-y-8 ml-0 sm:-ml-[5%] lg:-ml-[10%] mt-0 sm:mt-[8%] lg:mt-[15%]"
             initial={{ x: '-100%', opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
@@ -53,7 +53,7 @@ export default function Hero() {
             </p>
             <Link 
               href="/landingpage/contacts" 
-              className="inline-block bg-[#0F766E] hover:bg-[#0d6b64] text-white font-semibold px-6 py-3 sm:px-8 sm:py-4 rounded-[20px] transform scale-x-[1.5] sm:scale-x-[1.7] lg:scale-x-[1.9] scale-y-[1.3] sm:scale-y-[1.5] lg:scale-y-[1.7] mt-4 sm:mt-[10%] lg:mt-[15%] ml-0 sm:ml-[5%] lg:ml-[10%] border-[2px] sm:border-[3px] border-white transition-colors duration-200 text-sm sm:text-base"
+              className="inline-block bg-[#0F766E] hover:bg-[#0d6b64] text-white font-semibold px-6 py-3 sm:px-8 sm:py-4 rounded-[20px] transform scale-x-[1.5] sm:scale-x-[1.7] lg:scale-x-[1.9] scale-y-[1.3] sm:scale-y-[1.5] lg:scale-y-[1.7] mt-4 sm:mt-[10%] lg:mt-[15%] ml-0 sm:ml-[5%] lg:ml-[10%] border-2 sm:border-[3px] border-white transition-colors duration-200 text-sm sm:text-base"
             >
               Inquire
             </Link>
@@ -68,7 +68,7 @@ export default function Hero() {
           >
             {/* Mid Image */}
             <motion.div 
-              className="absolute bottom-[15%] left-[12%] w-[362.25px] lg:w-[410.55px] h-[301.875px] lg:h-[338.1px] rounded-2xl overflow-hidden z-[60] border-8 border-white cursor-pointer"
+              className="absolute bottom-[15%] left-[12%] w-[362.25px] lg:w-[410.55px] h-[301.875px] lg:h-[338.1px] rounded-2xl overflow-hidden z-60 border-8 border-white cursor-pointer"
               whileHover={{ y: -20, zIndex: 100, scale: 1.05 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
             >
@@ -150,7 +150,7 @@ export default function Hero() {
               />
               
               {/* Search Button */}
-              <button className="h-full bg-white hover:bg-gray-100 text-[#0F766E] font-semibold px-3 sm:px-[1.75rem] py-2 sm:py-[1.05rem] rounded-none rounded-r-[20px] sm:rounded-r-[31.5px] transition-colors duration-200 text-sm sm:text-base">
+              <button className="h-full bg-white hover:bg-gray-100 text-[#0F766E] font-semibold px-3 sm:px-7 py-2 sm:py-[1.05rem] rounded-none rounded-r-[20px] sm:rounded-r-[31.5px] transition-colors duration-200 text-sm sm:text-base">
                 Search
               </button>
             </div>

@@ -233,7 +233,7 @@ export default function DedicatedDeskSection() {
               <div
                 key={space.id}
                 onClick={() => handleCardClick(space)}
-                className={`flex-shrink-0 w-[300px] rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:ring-2 hover:ring-teal-500 transition-all duration-300 cursor-pointer group relative ${!space.image ? 'flex flex-col' : ''}`}
+                className={`shrink-0 w-[300px] rounded-2xl overflow-hidden shadow-md hover:shadow-xl hover:ring-2 hover:ring-teal-500 transition-all duration-300 cursor-pointer group relative ${!space.image ? 'flex flex-col' : ''}`}
               >
                 {space.image ? (
                   <div className="relative h-[200px]">

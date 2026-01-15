@@ -102,7 +102,7 @@ export default function PrivateOfficesSection() {
                 <div
                   key={feature.id}
                   onClick={() => handleCardClick(feature)}
-                  className="flex-shrink-0 w-[300px] rounded-2xl overflow-hidden cursor-pointer group relative transition-all duration-300 shadow-md hover:shadow-2xl hover:ring-2 hover:ring-teal-500"
+                  className="shrink-0 w-[300px] rounded-2xl overflow-hidden cursor-pointer group relative transition-all duration-300 shadow-md hover:shadow-2xl hover:ring-2 hover:ring-teal-500"
                 >
                   <div className="relative h-[200px]">
                     <Image
