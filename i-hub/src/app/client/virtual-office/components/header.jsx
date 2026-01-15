@@ -57,7 +57,7 @@ export default function VirtualOfficeHeader() {
           </Link>
           <button
             onClick={handleLogout}
-            className="text-white text-[0.9646875rem] font-medium hover:text-teal-100 transition-colors"
+            className="text-white text-[0.9646875rem] font-medium cursor-pointer hover:text-red-500 transition-colors"
           >
             Logout
           </button>
