@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { signOut } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 const navItems = [
   { name: 'Home', href: '/client' },
@@ -11,11 +13,26 @@ const navItems = [
 
 export default function Header() {
   const pathname = usePathname();
+  const router = useRouter();
 
   const handleContactClick = () => {
     // Store referrer in sessionStorage
     if (typeof window !== 'undefined') {
       sessionStorage.setItem('contactReturnTo', '/client/home');
+    }
+  };
+
+  const handleLogout = async () => {
+    try {
+      if (auth) {
+        await signOut(auth);
+      }
+      // Redirect to landing page after logout
+      router.push('/');
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Even if there's an error, redirect to landing page
+      router.push('/');
     }
   };
 
@@ -39,6 +56,13 @@ export default function Header() {
           >
             Contact
           </Link>
+          <button
+            id="logout-btn"
+            onClick={handleLogout}
+            className="px-4 py-2 rounded-lg text-sm font-medium transition-all text-gray-600 hover:bg-gray-100 hover:text-slate-800"
+          >
+            Logout
+          </button>
         </nav>
       </div>
     </header>
