@@ -40,7 +40,7 @@ export default function HeroSection() {
   };
 
   return (
-    <section className="relative h-[600px] overflow-hidden -mt-[80px] pt-[80px]">
+    <section className="relative h-[600px] overflow-hidden -mt-[80px] pt-[80px] rounded-b-[30px]">
       {/* Full-Width Background Image Carousel */}
       <div className="absolute inset-0 w-full h-full">
         {heroImages.map((src, index) => (

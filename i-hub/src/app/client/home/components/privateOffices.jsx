@@ -2,58 +2,74 @@
 export const whyChooseFeatures = [
   {
     id: 1,
-    title: 'Premium Spaces',
+    title: 'Premium Private Office',
     description: 'Modern, well-equipped private offices designed for productivity and comfort.',
-    image: '/images/coron2.jpg',
+    image: '/images/IMG_5315.jpg',
     rating: 4.95,
     badge: 'Guest favorite'
   },
   {
     id: 2,
-    title: 'Easy Booking',
-    description: 'Simple online reservation system. Book your space in just a few clicks.',
-    image: '/images/IMG_5302.jpg',
+    title: 'Glass-Enclosed Workspace',
+    description: 'Private offices with glass partitions for a modern, professional environment.',
+    image: '/images/IMG_5311.jpg',
     rating: 4.91,
     badge: 'Guest favorite'
   },
   {
     id: 3,
-    title: 'Full Amenities',
-    description: 'High-speed WiFi, projectors, whiteboards, and catering options available.',
-    image: '/images/IMG_5271.jpg',
+    title: 'Executive Office Suite',
+    description: 'Spacious private offices with premium amenities and modern design.',
+    image: '/images/IMG_5307.jpg',
     rating: 4.95,
     badge: 'Guest favorite'
   },
   {
     id: 4,
-    title: 'Prime Location',
-    description: 'Strategically located in the heart of the city with easy access to transportation.',
-    image: '/images/IMG_5302.jpg',
+    title: 'Professional Office Space',
+    description: 'Well-lit private offices perfect for focused work and client meetings.',
+    image: '/images/IMG_5304.jpg',
     rating: 4.98,
     badge: 'Guest favorite'
   },
   {
     id: 5,
-    title: 'Secure & Safe',
-    description: '24/7 security monitoring and secure access systems to ensure your peace of mind.',
-    image: '/images/IMG_5271.jpg',
+    title: 'Modern Private Office',
+    description: 'Contemporary private offices with glass walls and premium furnishings.',
+    image: '/images/IMG_5302.jpg',
     rating: 4.92,
     badge: 'Guest favorite'
   },
   {
     id: 6,
-    title: 'Professional Support',
-    description: 'Dedicated customer service team ready to assist you with all your workspace needs.',
-    image: '/images/IMG_5302.jpg',
+    title: 'Dedicated Office Suite',
+    description: 'Private office spaces with all the amenities you need for success.',
+    image: '/images/IMG_5299.jpg',
     rating: 4.95,
     badge: 'Guest favorite'
   },
   {
     id: 7,
-    title: 'Flexible Options',
-    description: 'Choose from hourly, daily, or monthly rental options that fit your schedule.',
-    image: '/images/IMG_5271.jpg',
+    title: 'Premium Office Space',
+    description: 'Elegant private offices designed for productivity and professional growth.',
+    image: '/images/IMG_5287.jpg',
     rating: 4.94,
+    badge: 'Guest favorite'
+  },
+  {
+    id: 8,
+    title: 'Private Workspace',
+    description: 'Secure and comfortable private offices for your business needs.',
+    image: '/images/IMG_5285.jpg',
+    rating: 4.93,
+    badge: 'Guest favorite'
+  },
+  {
+    id: 9,
+    title: 'Executive Office',
+    description: 'Spacious private offices with modern amenities and professional design.',
+    image: '/images/IMG_5283.jpg',
+    rating: 4.96,
     badge: 'Guest favorite'
   }
 ];

@@ -165,7 +165,7 @@ export default function WhatYouGot({ children }) {
         style={{
           height: '350px',
           clipPath: 'polygon(0% 0%, 100% 0%, 100% 20%, 60% 20%, 40% 150%, 0% 100%)',
-          transform: 'rotate(180deg)'
+          transform: 'translateY(-700px) rotate(180deg)'
         }}
       >
       </div>

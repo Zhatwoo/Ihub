@@ -2,12 +2,12 @@
 
 export default function ContentSection() {
   return (
-    <section className="py-20 bg-[#1F2937]">
-      <div className="px-4 py-16 mx-auto sm:max-w-xl md:max-w-full lg:max-w-screen-xl md:px-24 lg:px-8 lg:py-20">
+    <section className="py-0 bg-[#1F2937]">
+      <div className="px-4 py-16 mx-auto sm:max-w-xl md:max-w-full lg:max-w-screen-xl md:px-24 lg:px-8 lg:py-20 scale-[0.85] origin-top">
         <div className="max-w-xl mb-10 md:mx-auto sm:text-center lg:max-w-2xl md:mb-12">
           <div>
             <p className="inline-block px-3 py-px mb-4 text-xs font-semibold tracking-wider text-teal-900 uppercase rounded-full bg-teal-100">
-              Brand new
+              Why Choose Us
             </p>
           </div>
           <h2 className="max-w-lg mb-6 font-sans text-3xl font-bold leading-none tracking-tight text-white sm:text-4xl md:mx-auto">
@@ -34,13 +34,12 @@ export default function ContentSection() {
                   height="24"
                 />
               </svg>
-              <span className="relative">The</span>
+              <span className="relative">Why You</span>
             </span>{' '}
-            quick, brown fox jumps over a lazy dog
+            Choose Us
           </h2>
           <p className="text-base text-white/90 md:text-lg">
-            Sed ut perspiciatis unde omnis iste natus error sit voluptatem
-            accusantium doloremque rem aperiam, eaque ipsa quae.
+            Experience the perfect blend of professional workspace, modern amenities, and exceptional service that sets us apart from the rest.
           </p>
         </div>
         <div className="grid max-w-screen-lg gap-8 lg:grid-cols-[1fr_1.5fr] sm:mx-auto">
@@ -64,31 +63,26 @@ export default function ContentSection() {
           <div className="flex flex-col justify-center">
             <div className="pb-4 mb-4 border-b border-white/20">
               <h6 className="mb-2 font-semibold leading-5 text-white">
-                Sit error voluptatem accusantium
+                Prime Location & Modern Facilities
               </h6>
               <p className="text-sm text-white/90">
-                Sportacus andrew weatherall goose Refined gentlemen super mario
-                des lynam alpha trion zap rowsdower, omar sharif old.
+                Strategically located in Alliance Global Tower with state-of-the-art facilities, high-speed internet, and premium amenities designed for productivity and success.
               </p>
             </div>
             <div className="pb-4 mb-4 border-b border-white/20">
               <h6 className="mb-2 font-semibold leading-5 text-white">
-                Cheese on toast airedale the big cheese
+                Flexible Workspace Solutions
               </h6>
               <p className="text-sm text-white/90">
-                Chase ball of string eat plants, meow, and throw up because I ate
-                plants going to catch the red dot today going to catch the red dot
-                today. I could pee on this if I had the energy.
+                Choose from dedicated desks, private offices, or virtual office services. We offer flexible terms that adapt to your business needs, whether you need daily, monthly, or long-term arrangements.
               </p>
             </div>
             <div>
               <h6 className="mb-2 font-semibold leading-5 text-white">
-                A flower in my garden, a mystery
+                Exceptional Support & Service
               </h6>
               <p className="text-sm text-white/90">
-                Sed ut perspiciatis unde omnis iste natus error sit voluptatem
-                accusantium doloremque laudantium, totam rem aperiam, eaque ipsa
-                quae doloremque laudantium.
+                Our dedicated team is committed to providing exceptional customer service, ensuring your workspace needs are met with professionalism and care every step of the way.
               </p>
             </div>
           </div>

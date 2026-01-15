@@ -2,57 +2,51 @@
 export const availableSpaces = [
   {
     id: 1,
-    title: 'Executive Suite',
-    location: 'Silang Junction South',
-    image: '/images/IMG_5326.jpg',
+    title: 'Section A',
+    location: 'Alliance Global Tower',
+    image: '/images/IMG_5321.jpg',
     rating: 4.98,
     badge: 'Guest favorite'
   },
   {
     id: 2,
-    title: 'Modern Workspace',
-    location: 'Tagaytay',
-    image: '/images/IMG_5302.jpg',
+    title: 'Section B',
+    location: 'Alliance Global Tower',
+    image: '/images/IMG_5319.jpg',
     rating: 5.0,
     badge: 'Guest favorite'
   },
   {
     id: 3,
-    title: 'Business Center',
-    location: 'Maitim 2nd East',
-    image: '/images/IMG_5271.jpg',
+    title: 'Section C',
+    location: 'Alliance Global Tower',
+    image: '/images/IMG_5318.jpg',
     rating: 4.96,
     badge: 'Guest favorite'
   },
   {
     id: 4,
-    title: 'Private Office',
-    location: 'Tagaytay',
-    image: '/images/IMG_5302.jpg',
+    title: 'Section D',
+    location: 'Alliance Global Tower',
+    image: '/images/IMG_5290.jpg',
     rating: 4.88,
     badge: 'Guest favorite'
   },
   {
     id: 5,
-    title: 'Co-working Space',
-    location: 'Silang Junction South',
-    image: '/images/IMG_5271.jpg',
+    title: 'Section E',
+    location: 'Alliance Global Tower',
+    image: '/images/IMG_5280.jpg',
     rating: 4.99,
     badge: 'Guest favorite'
   },
   {
     id: 6,
-    title: 'Professional Office',
-    location: 'Tagaytay',
-    image: '/images/IMG_5326.jpg',
-    rating: 4.81
-  },
-  {
-    id: 7,
-    title: 'Premium Workspace',
-    location: 'Silang Junction North',
-    image: '/images/IMG_5302.jpg',
-    rating: 5.0
+    title: 'Click to book your desk',
+    location: 'Alliance Global Tower',
+    image: null,
+    rating: 4.81,
+    badge: 'Guest favorite'
   }
 ];
 
