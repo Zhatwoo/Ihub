@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { db } from '@/lib/firebase';
-import { collection, doc, setDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, onSnapshot, getDocs, getDoc, updateDoc } from 'firebase/firestore';
 import Part1 from "./components/parts/Part1";
 import Part2 from "./components/parts/Part2";
 import Part3 from "./components/parts/Part3";
@@ -23,6 +23,10 @@ export default function DedicatedDesk() {
   const [selectedPart, setSelectedPart] = useState(null);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [partZoom, setPartZoom] = useState(0.5);
+  const [requests, setRequests] = useState([]);
+  const [loadingRequests, setLoadingRequests] = useState(false);
+  const [selectedUserInfo, setSelectedUserInfo] = useState(null);
+  const [showUserInfoModal, setShowUserInfoModal] = useState(false);
   
   // Animation on mount
   useEffect(() => {
@@ -44,6 +48,100 @@ export default function DedicatedDesk() {
 
     return () => unsubscribe();
   }, []);
+
+  // Helper function to fetch all requests
+  const fetchAllRequests = async () => {
+    if (!db) return [];
+    
+    const allRequests = [];
+    
+    // Get all client users
+    const usersRef = collection(db, 'accounts', 'client', 'users');
+    const usersSnapshot = await getDocs(usersRef);
+    
+    // Helper function to check if value is valid
+    const isValidValue = (value) => {
+      if (value === null || value === undefined) return false;
+      const strValue = String(value).trim();
+      if (strValue === '') return false;
+      if (strValue.toUpperCase() === 'N/A') return false;
+      if (strValue.toUpperCase() === 'NA') return false;
+      if (strValue.toLowerCase() === 'null') return false;
+      if (strValue.toLowerCase() === 'undefined') return false;
+      return true;
+    };
+    
+    // For each user, check if they have desk requests
+    for (const userDoc of usersSnapshot.docs) {
+      const userId = userDoc.id;
+      const userData = userDoc.data();
+      
+      // Check for desk request only (dedicated desk page)
+      const deskRequestRef = doc(collection(db, 'accounts', 'client', 'users', userId, 'request'), 'desk');
+      const deskRequestDoc = await getDoc(deskRequestRef);
+      
+      if (deskRequestDoc.exists()) {
+        const requestData = deskRequestDoc.data();
+        const deskId = requestData.deskId;
+        const section = requestData.section;
+        const location = requestData.location;
+        
+        const hasDeskId = isValidValue(deskId);
+        const hasSection = isValidValue(section);
+        const hasLocation = isValidValue(location);
+        const isDeskIdNA = deskId && String(deskId).trim().toUpperCase() === 'N/A';
+        const isDeskRequest = requestData.requestType !== 'privateroom' && 
+                               (!requestData.requestType || requestData.requestType === 'desk');
+        
+        // Filter out approved requests - they should not appear in the requests section
+        const isNotApproved = requestData.status !== 'approved';
+        
+        if (!isDeskIdNA && hasDeskId && hasSection && hasLocation && isDeskRequest && isNotApproved) {
+          allRequests.push({
+            id: `${userId}-desk`,
+            userId: userId,
+            requestType: 'desk',
+            ...requestData,
+            userInfo: {
+              firstName: userData.firstName || '',
+              lastName: userData.lastName || '',
+              email: userData.email || '',
+              companyName: userData.companyName || '',
+              contact: userData.contact || '',
+            }
+          });
+        }
+      }
+    }
+    
+    // Sort by requestDate (newest first)
+    allRequests.sort((a, b) => {
+      const dateA = new Date(a.requestDate || a.createdAt || 0);
+      const dateB = new Date(b.requestDate || b.createdAt || 0);
+      return dateB - dateA;
+    });
+    
+    return allRequests;
+  };
+
+  // Fetch all user requests from Firebase
+  useEffect(() => {
+    if (!db || activeTab !== 'requests') return;
+    
+    const fetchRequests = async () => {
+      setLoadingRequests(true);
+      try {
+        const requests = await fetchAllRequests();
+        setRequests(requests);
+      } catch (error) {
+        console.error('Error fetching requests:', error);
+      } finally {
+        setLoadingRequests(false);
+      }
+    };
+    
+    fetchRequests();
+  }, [activeTab]);
   
   const handleZoomIn = () => setZoom(prev => Math.min(prev + 0.1, 2));
   const handleZoomOut = () => setZoom(prev => Math.max(prev - 0.1, 0.3));
@@ -56,6 +154,81 @@ export default function DedicatedDesk() {
   const handleDeskClick = (deskTag) => {
     setSelectedDesk(deskTag);
     setShowModal(true);
+  };
+
+  // Handle accept request
+  const handleAcceptRequest = async (request) => {
+    if (!db) return;
+    
+    if (!request.deskId) {
+      alert('Error: Desk ID is missing from the request.');
+      return;
+    }
+    
+    try {
+      // Update request status
+      const requestRef = doc(collection(db, 'accounts', 'client', 'users', request.userId, 'request'), 'desk');
+      await updateDoc(requestRef, {
+        status: 'approved',
+        updatedAt: new Date().toISOString(),
+        approvedAt: new Date().toISOString()
+      });
+      
+      // Automatically assign the desk to the user
+      const deskTag = request.deskId; // e.g., "A1", "A16"
+      const deskRef = doc(db, 'desk-assignments', deskTag);
+      
+      // Prepare assignment data from request
+      const fullName = `${request.userInfo?.firstName || ''} ${request.userInfo?.lastName || ''}`.trim();
+      const assignmentData = {
+        desk: deskTag,
+        name: fullName || 'Unknown',
+        type: 'Tenant', // Always set as Tenant when accepting from requests
+        email: request.userInfo?.email || request.requestedBy?.email || '',
+        contactNumber: request.userInfo?.contact || request.requestedBy?.contact || '',
+        company: request.userInfo?.companyName || request.requestedBy?.companyName || '',
+        assignedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      
+      // Save desk assignment
+      await setDoc(deskRef, assignmentData, { merge: true });
+      
+      // Refresh requests list
+      const requests = await fetchAllRequests();
+      setRequests(requests);
+      
+      alert(`Request approved successfully! Desk ${deskTag} has been assigned to ${fullName}.`);
+    } catch (error) {
+      console.error('Error accepting request:', error);
+      alert('Failed to approve request. Please try again.');
+    }
+  };
+
+  // Handle reject request
+  const handleRejectRequest = async (request) => {
+    if (!db) return;
+    
+    if (!confirm(`Are you sure you want to reject the desk request for ${request.userInfo?.firstName} ${request.userInfo?.lastName}?`)) {
+      return;
+    }
+    
+    try {
+      const requestRef = doc(collection(db, 'accounts', 'client', 'users', request.userId, 'request'), 'desk');
+      await updateDoc(requestRef, {
+        status: 'rejected',
+        updatedAt: new Date().toISOString(),
+        rejectedAt: new Date().toISOString()
+      });
+      
+      // Refresh requests list
+      const requests = await fetchAllRequests();
+      setRequests(requests);
+      alert('Request rejected successfully!');
+    } catch (error) {
+      console.error('Error rejecting request:', error);
+      alert('Failed to reject request. Please try again.');
+    }
   };
 
   const handleCloseModal = () => {
@@ -376,11 +549,134 @@ export default function DedicatedDesk() {
   };
 
   // Render Requests View
-  const renderRequestsView = () => (
-    <div className="bg-white rounded-xl border border-gray-200 p-6 animate-slideUp">
-      <p className="text-gray-500 text-center">Requests view coming soon...</p>
-    </div>
-  );
+  const renderRequestsView = () => {
+    if (loadingRequests) {
+      return (
+        <div className="bg-white rounded-xl border border-gray-200 p-6 animate-slideUp">
+          <div className="flex items-center justify-center py-12">
+            <div className="text-gray-500">Loading requests...</div>
+          </div>
+        </div>
+      );
+    }
+
+    if (requests.length === 0) {
+      return (
+        <div className="bg-white rounded-xl border border-gray-200 p-6 animate-slideUp">
+          <div className="text-center py-12">
+            <p className="text-gray-500 text-lg font-medium">No requests found</p>
+            <p className="text-gray-400 text-sm mt-1">All requests will appear here</p>
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden animate-slideUp">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b-2 border-gray-200">
+              <tr>
+                <th className="px-4 py-4 text-left text-xs sm:text-sm font-semibold text-slate-800 uppercase tracking-wider">Name</th>
+                <th className="px-4 py-4 text-left text-xs sm:text-sm font-semibold text-slate-800 uppercase tracking-wider">Email</th>
+                <th className="px-4 py-4 text-left text-xs sm:text-sm font-semibold text-slate-800 uppercase tracking-wider">Company</th>
+                <th className="px-4 py-4 text-left text-xs sm:text-sm font-semibold text-slate-800 uppercase tracking-wider">Contact</th>
+                <th className="px-4 py-4 text-left text-xs sm:text-sm font-semibold text-slate-800 uppercase tracking-wider">Details</th>
+                <th className="px-4 py-4 text-left text-xs sm:text-sm font-semibold text-slate-800 uppercase tracking-wider">Request Date</th>
+                <th className="px-4 py-4 text-left text-xs sm:text-sm font-semibold text-slate-800 uppercase tracking-wider">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {requests.map((request) => (
+                <tr key={request.id} className="bg-gray-50 hover:bg-gray-100 transition-colors">
+                  <td className="px-4 py-4">
+                    <span className="text-slate-800 font-semibold text-sm">
+                      {request.userInfo?.firstName || ''} {request.userInfo?.lastName || ''}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4">
+                    <span className="text-gray-600 text-sm">{request.userInfo?.email || 'N/A'}</span>
+                  </td>
+                  <td className="px-4 py-4">
+                    <span className="text-gray-600 text-sm">{request.userInfo?.companyName || 'N/A'}</span>
+                  </td>
+                  <td className="px-4 py-4">
+                    <span className="text-gray-600 text-sm">{request.userInfo?.contact || 'N/A'}</span>
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="text-sm text-gray-600">
+                      <div><span className="font-semibold">Desk:</span> {request.deskId || 'N/A'}</div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-4">
+                    <span className="text-gray-600 text-sm">
+                      {request.requestDate 
+                        ? new Date(request.requestDate).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })
+                        : request.createdAt
+                        ? new Date(request.createdAt).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })
+                        : 'N/A'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-4">
+                    <div className="flex gap-2.5">
+                      <button
+                        onClick={() => handleAcceptRequest(request)}
+                        disabled={request.status === 'approved'}
+                        className={`group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 ease-out ${
+                          request.status === 'approved'
+                            ? 'bg-gray-50 text-gray-400 cursor-not-allowed'
+                            : 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 active:scale-95 shadow-lg hover:shadow-xl hover:shadow-emerald-500/50 border-0'
+                        }`}
+                        title={request.status === 'approved' ? 'Request already approved' : 'Approve this request'}
+                      >
+                        <svg className={`w-4 h-4 transition-transform duration-300 ${request.status !== 'approved' ? 'group-hover:scale-110' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+                        </svg>
+                        <span>Accept</span>
+                        {request.status !== 'approved' && (
+                          <span className="absolute inset-0 rounded-lg bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></span>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => handleRejectRequest(request)}
+                        disabled={request.status === 'rejected'}
+                        className={`group relative inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 ease-out ${
+                          request.status === 'rejected'
+                            ? 'bg-gray-50 text-gray-400 cursor-not-allowed'
+                            : 'bg-gradient-to-r from-red-500 to-red-600 text-white hover:from-red-600 hover:to-red-700 active:scale-95 shadow-lg hover:shadow-xl hover:shadow-red-500/50 border-0'
+                        }`}
+                        title={request.status === 'rejected' ? 'Request already rejected' : 'Reject this request'}
+                      >
+                        <svg className={`w-4 h-4 transition-transform duration-300 ${request.status !== 'rejected' ? 'group-hover:scale-110' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        <span>Reject</span>
+                        {request.status !== 'rejected' && (
+                          <span className="absolute inset-0 rounded-lg bg-white opacity-0 group-hover:opacity-10 transition-opacity duration-300"></span>
+                        )}
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
 
   // Render List View
   const renderListView = () => (
@@ -413,7 +709,15 @@ export default function DedicatedDesk() {
                     <span className="text-slate-800 font-semibold text-sm">{assignment.deskTag}</span>
                   </td>
                   <td className="px-4 py-4">
-                    <span className="text-gray-600 text-sm">{assignment.name || 'N/A'}</span>
+                    <button
+                      onClick={() => {
+                        setSelectedUserInfo(assignment);
+                        setShowUserInfoModal(true);
+                      }}
+                      className="text-gray-600 text-sm hover:text-teal-600 hover:underline transition-colors cursor-pointer font-medium"
+                    >
+                      {assignment.name || 'N/A'}
+                    </button>
                   </td>
                   <td className="px-4 py-4">
                     <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
@@ -514,6 +818,87 @@ export default function DedicatedDesk() {
         existingAssignment={selectedDesk ? deskAssignments[selectedDesk] : null}
         onSave={handleSaveAssignment}
       />
+
+      {/* User Info Modal */}
+      {showUserInfoModal && selectedUserInfo && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+          onClick={() => setShowUserInfoModal(false)}
+        >
+          <div 
+            className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-slideUp"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-2xl font-bold text-slate-800">User Information</h3>
+              <button
+                onClick={() => setShowUserInfoModal(false)}
+                className="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+                aria-label="Close modal"
+              >
+                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Name</label>
+                <p className="text-lg text-slate-800 mt-1">{selectedUserInfo.name || 'N/A'}</p>
+              </div>
+              
+              <div>
+                <label className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Type</label>
+                <p className="mt-1">
+                  <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                    selectedUserInfo.type === 'Tenant' 
+                      ? 'bg-blue-100 text-blue-700 border border-blue-200' 
+                      : 'bg-red-100 text-red-700 border border-red-200'
+                  }`}>
+                    {selectedUserInfo.type || 'N/A'}
+                  </span>
+                </p>
+              </div>
+              
+              <div>
+                <label className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Email</label>
+                <p className="text-lg text-slate-800 mt-1">{selectedUserInfo.email || 'N/A'}</p>
+              </div>
+              
+              <div>
+                <label className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Contact Number</label>
+                <p className="text-lg text-slate-800 mt-1">{selectedUserInfo.contactNumber || 'N/A'}</p>
+              </div>
+              
+              <div>
+                <label className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Company</label>
+                <p className="text-lg text-slate-800 mt-1 font-medium">{selectedUserInfo.company || 'N/A'}</p>
+              </div>
+              
+              <div>
+                <label className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Desk</label>
+                <p className="text-lg text-slate-800 mt-1 font-semibold">{selectedUserInfo.deskTag || selectedUserInfo.desk || 'N/A'}</p>
+              </div>
+              
+              <div>
+                <label className="text-sm font-semibold text-gray-600 uppercase tracking-wide">Assigned At</label>
+                <p className="text-lg text-slate-800 mt-1">
+                  {selectedUserInfo.assignedAt 
+                    ? new Date(selectedUserInfo.assignedAt).toLocaleDateString('en-US', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })
+                    : 'N/A'}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
