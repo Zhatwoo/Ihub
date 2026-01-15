@@ -3,7 +3,7 @@
 import Wall from "../../Wall";
 import DeskWithChair from "../../DeskWithChair";
 
-export default function Part6({ onDeskClick, wallAlignX, wallAlignY, tagPrefix = "F", deskAssignments = {}, zoom = 1, isStandalone = false }) {
+export default function Part6({ onDeskClick, wallAlignX, wallAlignY, tagPrefix = "F", deskAssignments = {}, zoom = 1, isStandalone = false, showPrivateInfo = true }) {
   const wallSize = 120;
   const deskHeight = 80;
   const verticalPairWidth = 156;
@@ -34,6 +34,7 @@ export default function Part6({ onDeskClick, wallAlignX, wallAlignY, tagPrefix =
             occupantType={deskAssignments[leftTag]?.type || "Employee"}
             occupantName={deskAssignments[leftTag]?.name || ""}
             zoom={zoom}
+            showPrivateInfo={showPrivateInfo}
           />
           <div style={{ marginLeft: "-24px" }}>
             <DeskWithChair 
@@ -43,6 +44,7 @@ export default function Part6({ onDeskClick, wallAlignX, wallAlignY, tagPrefix =
               occupantType={deskAssignments[rightTag]?.type || "Employee"}
               occupantName={deskAssignments[rightTag]?.name || ""}
               zoom={zoom}
+              showPrivateInfo={showPrivateInfo}
             />
           </div>
         </div>
@@ -94,6 +96,7 @@ export default function Part6({ onDeskClick, wallAlignX, wallAlignY, tagPrefix =
           occupantType={deskAssignments[getTag(5)]?.type || "Employee"}
           occupantName={deskAssignments[getTag(5)]?.name || ""}
           zoom={zoom}
+          showPrivateInfo={showPrivateInfo}
         />
       </div>
       
@@ -136,6 +139,7 @@ export default function Part6({ onDeskClick, wallAlignX, wallAlignY, tagPrefix =
           occupantType={deskAssignments[getTag(20)]?.type || "Employee"}
           occupantName={deskAssignments[getTag(20)]?.name || ""}
           zoom={zoom}
+          showPrivateInfo={showPrivateInfo}
         />
       </div>
       
@@ -154,6 +158,7 @@ export default function Part6({ onDeskClick, wallAlignX, wallAlignY, tagPrefix =
           occupantType={deskAssignments[getTag(21)]?.type || "Employee"}
           occupantName={deskAssignments[getTag(21)]?.name || ""}
           zoom={zoom}
+          showPrivateInfo={showPrivateInfo}
         />
       </div>
       
@@ -183,6 +188,7 @@ export default function Part6({ onDeskClick, wallAlignX, wallAlignY, tagPrefix =
           occupantType={deskAssignments[getTag(26)]?.type || "Employee"}
           occupantName={deskAssignments[getTag(26)]?.name || ""}
           zoom={zoom}
+          showPrivateInfo={showPrivateInfo}
         />
       </div>
       

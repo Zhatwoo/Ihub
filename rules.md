@@ -29,6 +29,15 @@ service cloud.firestore {
       allow create: if isAuthenticated() && isOwner(userId);
       allow update: if isOwner(userId);
       allow delete: if isOwner(userId);
+      
+      // Request subcollection: /accounts/client/users/{userId}/request/{requestType}
+      // Allows users to create/update their own desk or privateroom requests
+      match /request/{requestType} {
+        allow read: if isOwner(userId);
+        allow create: if isAuthenticated() && isOwner(userId);
+        allow update: if isOwner(userId);
+        allow delete: if isOwner(userId);
+      }
     }
     
     // Admin document (parent document for admin users subcollection)

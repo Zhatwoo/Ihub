@@ -42,7 +42,31 @@ export const availableSpaces = [
   },
   {
     id: 6,
-    title: 'Click to book your desk',
+    title: 'Section F',
+    location: 'Alliance Global Tower',
+    image: '/images/IMG_5321.jpg',
+    rating: 4.95,
+    badge: 'Guest favorite'
+  },
+  {
+    id: 7,
+    title: 'Section G',
+    location: 'Alliance Global Tower',
+    image: '/images/IMG_5319.jpg',
+    rating: 4.97,
+    badge: 'Guest favorite'
+  },
+  {
+    id: 8,
+    title: 'Section H',
+    location: 'Alliance Global Tower',
+    image: '/images/IMG_5318.jpg',
+    rating: 4.93,
+    badge: 'Guest favorite'
+  },
+  {
+    id: 9,
+    title: 'Click to View All Desks',
     location: 'Alliance Global Tower',
     image: null,
     rating: 4.81,
