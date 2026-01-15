@@ -161,10 +161,9 @@ export default function WhatYouGot({ children }) {
       {children}
       {/* Diagonal Divider Design at Bottom - Rotated 180 degrees */}
       <div 
-        className="w-full bg-[#0F766E] absolute bottom-0 h-[200px] md:h-[350px]"
+        className="w-full bg-[#0F766E] absolute bottom-0 left-0 h-[200px] md:h-[350px] -translate-y-[400px] md:-translate-y-[700px] rotate-180 origin-center"
         style={{
-          clipPath: 'polygon(0% 0%, 100% 0%, 100% 25%, 70% 25%, 50% 120%, 0% 100%)',
-          transform: 'translateY(-400px) md:translateY(-700px) rotate(180deg)'
+          clipPath: 'polygon(0% 0%, 100% 0%, 100% 25%, 70% 25%, 50% 120%, 0% 100%)'
         }}
       >
       </div>
