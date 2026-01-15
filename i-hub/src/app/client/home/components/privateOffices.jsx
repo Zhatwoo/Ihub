@@ -1,76 +1,44 @@
-// Private Offices Features Data
-export const whyChooseFeatures = [
-  {
-    id: 1,
-    title: 'Premium Private Office',
-    description: 'Modern, well-equipped private offices designed for productivity and comfort.',
-    image: '/images/IMG_5315.jpg',
-    rating: 4.95,
-    badge: 'Guest favorite'
-  },
-  {
-    id: 2,
-    title: 'Glass-Enclosed Workspace',
-    description: 'Private offices with glass partitions for a modern, professional environment.',
-    image: '/images/IMG_5311.jpg',
-    rating: 4.91,
-    badge: 'Guest favorite'
-  },
-  {
-    id: 3,
-    title: 'Executive Office Suite',
-    description: 'Spacious private offices with premium amenities and modern design.',
-    image: '/images/IMG_5307.jpg',
-    rating: 4.95,
-    badge: 'Guest favorite'
-  },
-  {
-    id: 4,
-    title: 'Professional Office Space',
-    description: 'Well-lit private offices perfect for focused work and client meetings.',
-    image: '/images/IMG_5304.jpg',
-    rating: 4.98,
-    badge: 'Guest favorite'
-  },
-  {
-    id: 5,
-    title: 'Modern Private Office',
-    description: 'Contemporary private offices with glass walls and premium furnishings.',
-    image: '/images/IMG_5302.jpg',
-    rating: 4.92,
-    badge: 'Guest favorite'
-  },
-  {
-    id: 6,
-    title: 'Dedicated Office Suite',
-    description: 'Private office spaces with all the amenities you need for success.',
-    image: '/images/IMG_5299.jpg',
-    rating: 4.95,
-    badge: 'Guest favorite'
-  },
-  {
-    id: 7,
-    title: 'Premium Office Space',
-    description: 'Elegant private offices designed for productivity and professional growth.',
-    image: '/images/IMG_5287.jpg',
-    rating: 4.94,
-    badge: 'Guest favorite'
-  },
-  {
-    id: 8,
-    title: 'Private Workspace',
-    description: 'Secure and comfortable private offices for your business needs.',
-    image: '/images/IMG_5285.jpg',
-    rating: 4.93,
-    badge: 'Guest favorite'
-  },
-  {
-    id: 9,
-    title: 'Executive Office',
-    description: 'Spacious private offices with modern amenities and professional design.',
-    image: '/images/IMG_5283.jpg',
-    rating: 4.96,
-    badge: 'Guest favorite'
-  }
-];
+'use client';
+
+import { useState, useEffect } from 'react';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot } from 'firebase/firestore';
+
+// Custom hook to fetch private offices from Firebase
+export function usePrivateOffices() {
+  const [rooms, setRooms] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!db) {
+      setLoading(false);
+      return;
+    }
+
+    const unsubscribe = onSnapshot(collection(db, 'rooms'), (snapshot) => {
+      const roomsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        name: doc.data().name || 'Private Office',
+        title: doc.data().name || 'Private Office',
+        description: doc.data().inclusions || 'Modern, well-equipped private office designed for productivity and comfort.',
+        image: doc.data().image || '/rooms/default.png',
+        rating: 4.95, // Default rating
+        badge: 'Guest favorite',
+        rentFee: doc.data().rentFee || 0,
+        currency: doc.data().currency || 'PHP',
+        rentFeePeriod: doc.data().rentFeePeriod || 'per hour',
+        inclusions: doc.data().inclusions || ''
+      }));
+      setRooms(roomsData);
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  return { rooms, loading };
+}
+
+// Export for backward compatibility (if needed)
+export const whyChooseFeatures = [];
 

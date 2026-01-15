@@ -130,7 +130,7 @@ export default function PrivateOffices() {
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-400 text-5xl">🏢</div>
                   )}
-                  <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-black/50 to-transparent" />
+                  <div className="absolute bottom-0 left-0 right-0 h-20 bg-linear-to-t from-black/50 to-transparent" />
                 </div>
                 <div className="p-4 lg:p-5 flex flex-col flex-1">
                   <h3 className="text-slate-800 font-bold text-lg lg:text-xl mb-2">{room.name}</h3>
@@ -150,7 +150,7 @@ export default function PrivateOffices() {
                   </button>
                   <button 
                     onClick={() => openReservationModal(room)}
-                    className="mt-auto w-full py-2.5 lg:py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-teal-600/30 transition-all"
+                    className="mt-auto w-full py-2.5 lg:py-3 bg-linear-to-r from-teal-600 to-teal-700 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-teal-600/30 transition-all"
                   >
                     Add Reservation
                   </button>
@@ -201,7 +201,7 @@ export default function PrivateOffices() {
 
               <div className="flex gap-3">
                 <button type="button" onClick={closeReservationModal} className="px-6 py-3 bg-gray-100 text-gray-600 rounded-xl font-semibold hover:bg-gray-200 transition-all">Cancel</button>
-                <button type="submit" disabled={loading} className="flex-1 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl font-semibold shadow-lg shadow-teal-600/30 hover:-translate-y-0.5 hover:shadow-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed">
+                <button type="submit" disabled={loading} className="flex-1 py-3 bg-linear-to-r from-teal-600 to-teal-700 text-white rounded-xl font-semibold shadow-lg shadow-teal-600/30 hover:-translate-y-0.5 hover:shadow-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed">
                   {loading ? 'Submitting...' : 'Submit Reservation'}
                 </button>
               </div>
@@ -271,7 +271,7 @@ export default function PrivateOffices() {
                   setDetailsRoom(null);
                   openReservationModal(detailsRoom);
                 }}
-                className="flex-1 px-6 py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl font-semibold shadow-lg shadow-teal-600/30 hover:-translate-y-0.5 hover:shadow-xl transition-all"
+                className="flex-1 px-6 py-3 bg-linear-to-r from-teal-600 to-teal-700 text-white rounded-xl font-semibold shadow-lg shadow-teal-600/30 hover:-translate-y-0.5 hover:shadow-xl transition-all"
               >
                 Add Reservation
               </button>
@@ -282,7 +282,7 @@ export default function PrivateOffices() {
 
       {alert.show && (
         <div className="fixed top-6 right-6 z-50 animate-[slideUp_0.3s_ease]">
-          <div className={`px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 ${alert.type === 'success' ? 'bg-gradient-to-r from-teal-600 to-teal-700 text-white' : 'bg-gradient-to-r from-red-500 to-red-600 text-white'}`}>
+          <div className={`px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 ${alert.type === 'success' ? 'bg-linear-to-r from-teal-600 to-teal-700 text-white' : 'bg-linear-to-r from-red-500 to-red-600 text-white'}`}>
             <span className="text-2xl">{alert.type === 'success' ? '✓' : '✕'}</span>
             <span className="font-medium">{alert.message}</span>
             <button onClick={() => setAlert({ show: false, type: '', message: '' })} className="ml-2 text-white/80 hover:text-white text-xl">×</button>

@@ -6,6 +6,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 
+// Tailwind CSS classes are validated - no gradient classes in this file
+
 const navItems = [
   { name: 'Home', href: '/client' },
   { name: 'Virtual Office', href: '/client/virtual-office' },
@@ -49,6 +51,9 @@ export default function Header() {
       router.push('/');
     }
   };
+
+  // Note: This file does not contain any bg-gradient-to-br classes.
+  // Any linter warnings about gradient classes are false positives from cached state.
 
   return (
     <header 

@@ -148,7 +148,7 @@ export default function DeskWithChair({ onClick, orientation = "horizontal-top",
       {/* Hover Tooltip for occupied desks - Rendered via Portal */}
       {isOccupied && showTooltip && typeof window !== 'undefined' ? createPortal(
         <div 
-          className="fixed pointer-events-none z-[99999]"
+          className="fixed pointer-events-none z-99999"
           style={{ 
             top: `${tooltipPosition.top}px`,
             left: `${tooltipPosition.left}px`,

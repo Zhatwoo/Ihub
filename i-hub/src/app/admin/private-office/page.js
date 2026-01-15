@@ -241,21 +241,21 @@ export default function PrivateOffice() {
           <div className="flex flex-col gap-4 sm:gap-5 lg:gap-6 animate-fadeIn">
             <div className="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-2 sm:gap-3">
               <input type="text" placeholder="Search offices..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="flex-1 w-full px-3 sm:px-4 py-2 sm:py-2.5 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all" />
-              <button onClick={openAddModal} className="w-full sm:w-auto px-4 sm:px-5 lg:px-6 py-2 sm:py-2.5 lg:py-3 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-lg shadow-teal-600/30 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-600/40 transition-all whitespace-nowrap">+ Add Office</button>
+              <button onClick={openAddModal} className="w-full sm:w-auto px-4 sm:px-5 lg:px-6 py-2 sm:py-2.5 lg:py-3 bg-linear-to-r from-teal-600 to-teal-700 text-white rounded-xl text-xs sm:text-sm font-semibold shadow-lg shadow-teal-600/30 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-600/40 transition-all whitespace-nowrap">+ Add Office</button>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 lg:gap-6">
               {filteredRooms.length === 0 ? (
                 <p className="text-gray-500 text-center py-10 col-span-full">{searchTerm ? 'No offices found.' : 'No offices created yet.'}</p>
               ) : (
                 filteredRooms.map((room) => (
-                  <div key={room.id} onClick={() => openViewModal(room)} className="bg-white rounded-2xl overflow-hidden cursor-pointer border border-gray-200 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-slate-800/10 hover:border-transparent relative before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-gradient-to-r before:from-slate-800 before:to-teal-600 before:opacity-0 hover:before:opacity-100 before:transition-opacity">
+                  <div key={room.id} onClick={() => openViewModal(room)} className="bg-white rounded-2xl overflow-hidden cursor-pointer border border-gray-200 transition-all duration-300 hover:-translate-y-2 hover:shadow-xl hover:shadow-slate-800/10 hover:border-transparent relative before:content-[''] before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-linear-to-r before:from-slate-800 before:to-teal-600 before:opacity-0 hover:before:opacity-100 before:transition-opacity">
                     <div className="relative w-full h-44 bg-gray-100">
                       {room.image ? (
                         <Image src={room.image} alt={room.name} fill className="object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-gray-400 text-4xl">🏢</div>
                       )}
-                      <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-black/40 to-transparent" />
+                      <div className="absolute bottom-0 left-0 right-0 h-16 bg-linear-to-t from-black/40 to-transparent" />
                     </div>
                     <div className="p-4 pt-3">
                       <div className="text-slate-800 font-bold text-lg mb-2">{room.name}</div>
@@ -346,15 +346,15 @@ export default function PrivateOffice() {
           <div className="flex flex-col gap-4 sm:gap-5 lg:gap-6 animate-fadeIn">
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
               {statCards.map(card => (
-                <div key={card.key} onClick={() => setSelectedFilter(card.key)} className={`bg-white rounded-xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3 border border-gray-200 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-800/10 border-l-[3px] sm:border-l-[4px] ${card.color} ${selectedFilter === card.key ? `ring-2 ${card.ring} -translate-y-0.5 shadow-xl` : ''} overflow-hidden`}>
-                  <div className={`text-lg sm:text-xl lg:text-2xl w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center bg-gradient-to-br ${card.iconBg} shrink-0 flex-shrink-0 shadow-sm sm:shadow-md`}>{card.icon}</div>
+                <div key={card.key} onClick={() => setSelectedFilter(card.key)} className={`bg-white rounded-xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3 border border-gray-200 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-800/10 border-l-[3px] sm:border-l-4 ${card.color} ${selectedFilter === card.key ? `ring-2 ${card.ring} -translate-y-0.5 shadow-xl` : ''} overflow-hidden`}>
+                  <div className={`text-lg sm:text-xl lg:text-2xl w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center bg-linear-to-br ${card.iconBg} shrink-0 shadow-sm sm:shadow-md`}>{card.icon}</div>
                   <div className="flex flex-row items-baseline gap-1.5 sm:gap-2 flex-1 min-w-0 overflow-hidden">
-                    <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800 whitespace-nowrap shrink-0 flex-shrink-0">
+                    <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800 whitespace-nowrap shrink-0">
                       {card.key === 'total' ? schedules.length : 
                        card.key === 'active' ? schedules.filter(s => s.status === 'upcoming' || s.status === 'ongoing' || s.status === 'active').length :
                        schedules.filter(s => s.status === card.key).length}
                     </span>
-                    <span className="text-xs sm:text-sm text-gray-500 font-semibold break-words leading-tight uppercase tracking-wide flex-1 min-w-0 hyphens-auto">{card.label}</span>
+                    <span className="text-xs sm:text-sm text-gray-500 font-semibold wrap-break-word leading-tight uppercase tracking-wide flex-1 min-w-0 hyphens-auto">{card.label}</span>
                   </div>
                 </div>
               ))}
@@ -495,7 +495,7 @@ export default function PrivateOffice() {
               </div>
               <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mt-4 sm:mt-6">
                 <button type="button" onClick={closeFormModal} className="w-full sm:w-auto px-5 sm:px-7 py-2.5 sm:py-3.5 bg-gray-100 text-gray-600 rounded-xl text-sm sm:text-base font-semibold hover:bg-gray-200 transition-all">Cancel</button>
-                <button type="submit" disabled={loading || uploading} className="w-full sm:flex-1 py-2.5 sm:py-3.5 bg-gradient-to-r from-teal-600 to-teal-700 text-white rounded-xl text-sm sm:text-base font-semibold shadow-lg shadow-teal-600/30 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-600/40 transition-all disabled:opacity-60 disabled:cursor-not-allowed">{loading || uploading ? 'Saving...' : editingRoom ? 'Update' : 'Add Office'}</button>
+                <button type="submit" disabled={loading || uploading} className="w-full sm:flex-1 py-2.5 sm:py-3.5 bg-linear-to-r from-teal-600 to-teal-700 text-white rounded-xl text-sm sm:text-base font-semibold shadow-lg shadow-teal-600/30 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-600/40 transition-all disabled:opacity-60 disabled:cursor-not-allowed">{loading || uploading ? 'Saving...' : editingRoom ? 'Update' : 'Add Office'}</button>
               </div>
             </form>
           </div>
@@ -523,15 +523,15 @@ export default function PrivateOffice() {
             <div className="flex flex-col gap-3 sm:gap-4">
               <div className="flex flex-col gap-1 p-3 sm:p-4 bg-gray-50 rounded-xl">
                 <span className="text-gray-500 text-[10px] xs:text-xs uppercase tracking-wide font-semibold">Office Name</span>
-                <span className="text-slate-800 text-base sm:text-lg font-semibold break-words">{selectedRoom.name}</span>
+                <span className="text-slate-800 text-base sm:text-lg font-semibold wrap-break-word">{selectedRoom.name}</span>
               </div>
               <div className="flex flex-col gap-1 p-3 sm:p-4 bg-gray-50 rounded-xl">
                 <span className="text-gray-500 text-[10px] xs:text-xs uppercase tracking-wide font-semibold">Rent Fee</span>
-                <span className="text-slate-800 text-base sm:text-lg font-semibold break-words">{getCurrencySymbol(selectedRoom.currency || 'PHP')}{selectedRoom.rentFee?.toLocaleString() || '0'} {selectedRoom.rentFeePeriod || 'per hour'}</span>
+                <span className="text-slate-800 text-base sm:text-lg font-semibold wrap-break-word">{getCurrencySymbol(selectedRoom.currency || 'PHP')}{selectedRoom.rentFee?.toLocaleString() || '0'} {selectedRoom.rentFeePeriod || 'per hour'}</span>
               </div>
               <div className="flex flex-col gap-1 p-3 sm:p-4 bg-gray-50 rounded-xl">
                 <span className="text-gray-500 text-[10px] xs:text-xs uppercase tracking-wide font-semibold">Inclusions</span>
-                <span className="text-slate-800 text-sm sm:text-lg font-semibold break-words whitespace-pre-line">{selectedRoom.inclusions || 'None'}</span>
+                <span className="text-slate-800 text-sm sm:text-lg font-semibold wrap-break-word whitespace-pre-line">{selectedRoom.inclusions || 'None'}</span>
               </div>
             </div>
           </div>

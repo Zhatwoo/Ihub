@@ -137,7 +137,7 @@ function ContactsContent() {
                   transition={{ duration: 0.6, ease: 'easeOut', delay: 0.3 + index * 0.1 }}
                   className="flex items-start gap-4 p-6 bg-[#F8FAFC] rounded-xl hover:bg-[#F1F5F9] transition-colors"
                 >
-                  <div className="flex-shrink-0 w-12 h-12 bg-[#0F766E] rounded-lg flex items-center justify-center text-white">
+                  <div className="shrink-0 w-12 h-12 bg-[#0F766E] rounded-lg flex items-center justify-center text-white">
                     {info.icon}
                   </div>
                   <div className="flex-1">

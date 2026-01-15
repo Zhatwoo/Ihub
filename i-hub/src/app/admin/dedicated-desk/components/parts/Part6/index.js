@@ -193,7 +193,7 @@ export default function Part6({ onDeskClick, wallAlignX, wallAlignY, tagPrefix =
       </div>
       
       <div 
-        className="absolute cursor-pointer transition-transform hover:scale-105 relative" 
+        className="absolute cursor-pointer transition-transform hover:scale-105" 
         style={{ 
           left: `${col3StartX + 66 - 85 - 80 - 90 + 66}px`, 
           top: `${col2StartY + 2 * deskHeight + 5}px` 
