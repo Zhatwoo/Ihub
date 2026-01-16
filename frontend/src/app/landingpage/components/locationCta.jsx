@@ -3,6 +3,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { League_Spartan, Roboto } from 'next/font/google';
 import { motion, useInView } from 'framer-motion';
+import ConfirmationModal from './ConfirmationModal';
 
 const leagueSpartan = League_Spartan({
   subsets: ['latin'],
@@ -20,11 +21,17 @@ export default function LocationCta() {
   const sectionRef = useRef(null);
   const isInView = useInView(sectionRef, { once: true, amount: 0.2 });
   const [formData, setFormData] = useState({
-    contact: '',
+    fullName: '',
     email: '',
   });
   const [loading, setLoading] = useState(false);
   const [waveHeight, setWaveHeight] = useState('200px');
+  const [modal, setModal] = useState({
+    isOpen: false,
+    type: 'success',
+    title: '',
+    message: '',
+  });
 
   useEffect(() => {
     const handleResize = () => {
@@ -41,8 +48,13 @@ export default function LocationCta() {
 
     try {
       // Validate required fields
-      if (!formData.contact || !formData.email) {
-        alert('Please fill in both contact number and email address.');
+      if (!formData.fullName || !formData.email) {
+        setModal({
+          isOpen: true,
+          type: 'error',
+          title: 'Missing Information',
+          message: 'Please fill in both full name and email address.',
+        });
         setLoading(false);
         return;
       }
@@ -51,7 +63,7 @@ export default function LocationCta() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          contact: formData.contact,
+          fullName: formData.fullName,
           email: formData.email,
         }),
       });
@@ -63,19 +75,33 @@ export default function LocationCta() {
       }
 
       // Success
-      alert('Thank you! We will contact you soon to schedule a meeting.');
+      setModal({
+        isOpen: true,
+        type: 'success',
+        title: 'Schedule Request Sent!',
+        message: 'Thank you for your interest! We have received your request and will contact you soon to schedule a meeting.',
+      });
       
       // Reset form
       setFormData({
-        contact: '',
+        fullName: '',
         email: '',
       });
     } catch (error) {
       console.error('Error submitting schedule request:', error);
-      alert(error.message || 'Failed to submit request. Please try again later.');
+      setModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Failed to Send Request',
+        message: error.message || 'There was an error sending your request. Please try again later.',
+      });
     } finally {
       setLoading(false);
     }
+  };
+
+  const closeModal = () => {
+    setModal({ ...modal, isOpen: false });
   };
 
   const handleChange = (e) => {
@@ -156,25 +182,25 @@ export default function LocationCta() {
 
             {/* Form */} 
             <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-              {/* Contact Number and Email Fields */}
+              {/* Full Name and Email Fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6">
-                {/* Contact Number */}
+                {/* Full Name */}
                 <div>
                   <label
-                    htmlFor="contact"
+                    htmlFor="fullName"
                     className={`${roboto.className} block text-sm font-medium text-slate-700 mb-2`}
                   >
-                    Contact #:
+                    Full Name:
                   </label>
                   <input
-                    type="tel"
-                    id="contact"
-                    name="contact"
-                    value={formData.contact}
+                    type="text"
+                    id="fullName"
+                    name="fullName"
+                    value={formData.fullName}
                     onChange={handleChange}
                     required
                     className={`${roboto.className} w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0F766E] focus:border-transparent text-sm sm:text-base`}
-                    placeholder="Enter your contact number"
+                    placeholder="Enter your full name"
                   />
                 </div>
 
@@ -213,6 +239,15 @@ export default function LocationCta() {
           </motion.div>
         </div>
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={modal.isOpen}
+        onClose={closeModal}
+        type={modal.type}
+        title={modal.title}
+        message={modal.message}
+      />
     </section>
   );
 }

@@ -8,6 +8,7 @@ import { useSearchParams } from 'next/navigation';
 import LandingPageHeader from '../components/header';
 import ClientHeader from '@/app/client/home/components/header';
 import Footer from '../components/footer';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 const leagueSpartan = League_Spartan({
   subsets: ['latin'],
@@ -37,6 +38,12 @@ function ContactsContent() {
     message: ''
   });
   const [loading, setLoading] = useState(false);
+  const [modal, setModal] = useState({
+    isOpen: false,
+    type: 'success',
+    title: '',
+    message: '',
+  });
 
   const handleChange = (e) => {
     setFormData({
@@ -56,9 +63,21 @@ function ContactsContent() {
         body: JSON.stringify(formData),
       });
 
-      if (!res.ok) throw new Error('Failed');
+      const data = await res.json();
 
-      alert('Message sent!');
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to send message');
+      }
+
+      // Success
+      setModal({
+        isOpen: true,
+        type: 'success',
+        title: 'Message Sent Successfully!',
+        message: 'Thank you for contacting us! We have received your message and will get back to you soon.',
+      });
+
+      // Reset form
       setFormData({
         name: '',
         email: '',
@@ -67,10 +86,20 @@ function ContactsContent() {
         message: '',
       });
     } catch (error) {
-      alert('Error sending message');
+      console.error('Error sending message:', error);
+      setModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Failed to Send Message',
+        message: error.message || 'There was an error sending your message. Please try again later.',
+      });
     } finally {
       setLoading(false);
     }
+  };
+
+  const closeModal = () => {
+    setModal({ ...modal, isOpen: false });
   };
 
   const contactInfo = [
@@ -92,8 +121,8 @@ function ContactsContent() {
         </svg>
       ),
       title: 'Phone',
-      content: '+63 917 000 0000',
-      link: 'tel:+639170000000'
+      content: '(02) 5322 1002',
+      link: 'tel:(02) 5322 1002'
     },
     {
       icon: (
@@ -102,8 +131,8 @@ function ContactsContent() {
         </svg>
       ),
       title: 'Email',
-      content: 'hello@inspirehub.com',
-      link: 'mailto:hello@inspirehub.com'
+      content: 'inspire-ihub@gmail.com',
+      link: 'mailto:inspire-ihub@gmail.com'
     }
   ];
 
@@ -188,11 +217,10 @@ function ContactsContent() {
               </h3>
               <div className="flex items-center gap-4">
                 {[
-                  { name: 'Facebook', href: 'https://facebook.com', icon: 'facebook' },
-                  { name: 'Instagram', href: 'https://instagram.com', icon: 'instagram' },
+                  { name: 'Facebook', href: 'https://www.facebook.com/inspireholdings?mibextid=ZbWKwL', icon: 'facebook' },
+                  { name: 'Instagram', href: 'https://www.instagram.com/inspire.holdings.inc/?igsh=MTdscWZsZXlubnY3aw%3D%3D#', icon: 'instagram' },
                   { name: 'LinkedIn', href: 'https://linkedin.com', icon: 'linkedin' },
-                  { name: 'YouTube', href: 'https://youtube.com', icon: 'youtube' },
-                  { name: 'TikTok', href: 'https://tiktok.com', icon: 'tiktok' },
+                  { name: 'YouTube', href: 'https://www.youtube.com/channel/UCUGE-qPvLqYmZhQ25aLXm6A', icon: 'youtube' },
                 ].map((social) => (
                   <Link
                     key={social.name}
@@ -340,6 +368,15 @@ function ContactsContent() {
         </div>
       </div>
       <Footer />
+      
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={modal.isOpen}
+        onClose={closeModal}
+        type={modal.type}
+        title={modal.title}
+        message={modal.message}
+      />
     </div>
   );
 }
