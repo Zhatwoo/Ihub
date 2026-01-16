@@ -19,6 +19,9 @@ export default function Header() {
   const router = useRouter();
   const [isScrolled, setIsScrolled] = useState(false);
 
+  // Check if we're on the home page
+  const isHomePage = pathname === '/client' || pathname === '/client/home' || pathname === '/client/';
+
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
@@ -55,10 +58,23 @@ export default function Header() {
   // Note: This file does not contain any bg-gradient-to-br classes.
   // Any linter warnings about gradient classes are false positives from cached state.
 
+  // Determine background color:
+  // - On home page: transparent when not scrolled, green when scrolled
+  // - On other pages: always green (even when not scrolled)
+  const getBackgroundColor = () => {
+    if (isHomePage) {
+      // Home page: transparent when not scrolled, green when scrolled
+      return isScrolled ? '#0F766E' : 'transparent';
+    } else {
+      // Other pages: always green
+      return '#0F766E';
+    }
+  };
+
   return (
     <header 
-      className={`sticky top-0 z-40 transition-all duration-300 ${isScrolled ? 'shadow-sm' : ''}`}
-      style={{ backgroundColor: isScrolled ? '#0D9488' : 'transparent' }}
+      className={`sticky top-0 z-40 transition-all duration-300 ${isScrolled || !isHomePage ? 'shadow-sm' : ''}`}
+      style={{ backgroundColor: getBackgroundColor() }}
     >
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         <Link href="/client" className="flex items-center gap-3">
