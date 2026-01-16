@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 
 export default function DeskAssignmentModal({ 
@@ -24,9 +24,28 @@ export default function DeskAssignmentModal({
   const [toast, setToast] = useState({ show: false, message: "", type: "error" });
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
+  const timeoutRefs = useRef([]);
+
+  // Prevent body scroll when modal is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
 
   useEffect(() => {
     setMounted(true);
+    return () => {
+      setMounted(false);
+      // Clean up all timeouts on unmount
+      timeoutRefs.current.forEach(timeoutId => clearTimeout(timeoutId));
+      timeoutRefs.current = [];
+    };
   }, []);
 
   useEffect(() => {
@@ -53,7 +72,10 @@ export default function DeskAssignmentModal({
 
   const showToast = (message, type = "error") => {
     setToast({ show: true, message, type });
-    setTimeout(() => setToast({ show: false, message: "", type: "error" }), 4000);
+    const timeoutId = setTimeout(() => {
+      setToast({ show: false, message: "", type: "error" });
+    }, 4000);
+    timeoutRefs.current.push(timeoutId);
   };
 
   const handleChange = (e) => {
@@ -82,10 +104,11 @@ export default function DeskAssignmentModal({
     try {
       await onSave(deskTag, formData);
       showToast("Desk assigned successfully!", "success");
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         onClose();
         setFormData({ name: "", type: "Employee", email: "", contactNumber: "", company: "" });
       }, 1000);
+      timeoutRefs.current.push(timeoutId);
     } catch (error) {
       console.error("Error saving assignment:", error);
       showToast(error.message || "Failed to save assignment. Please try again.", "error");
@@ -96,22 +119,24 @@ export default function DeskAssignmentModal({
 
   const handleDelete = async () => {
     setShowDropdown(false);
-    setConfirmAction(() => async () => {
-    setLoading(true);
-    try {
-      await onSave(deskTag, null);
-      showToast("Assignment removed successfully!", "success");
-      setTimeout(() => {
-        onClose();
-      }, 1000);
-    } catch (error) {
-      console.error("Error deleting assignment:", error);
-      showToast(error.message || "Failed to delete assignment. Please try again.", "error");
-    } finally {
-      setLoading(false);
-      setShowConfirmDialog(false);
-    }
-    });
+    const executeDelete = async () => {
+      setLoading(true);
+      try {
+        await onSave(deskTag, null);
+        showToast("Assignment removed successfully!", "success");
+        const timeoutId = setTimeout(() => {
+          onClose();
+        }, 1000);
+        timeoutRefs.current.push(timeoutId);
+      } catch (error) {
+        console.error("Error deleting assignment:", error);
+        showToast(error.message || "Failed to delete assignment. Please try again.", "error");
+      } finally {
+        setLoading(false);
+        setShowConfirmDialog(false);
+      }
+    };
+    setConfirmAction(() => executeDelete);
     setShowConfirmDialog(true);
   };
 
@@ -157,10 +182,11 @@ export default function DeskAssignmentModal({
     try {
       await onSave(deskTag, formData);
       showToast("Assignment updated successfully!", "success");
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         setIsEditMode(false);
         setShowDropdown(false);
       }, 1000);
+      timeoutRefs.current.push(timeoutId);
     } catch (error) {
       console.error("Error updating assignment:", error);
       showToast(error.message || "Failed to update assignment. Please try again.", "error");
@@ -179,7 +205,12 @@ export default function DeskAssignmentModal({
       onClick={onClose}
     >
       <div 
-        className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-7 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl animate-[slideUp_0.3s_ease]"
+        className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-7 w-full max-w-lg max-h-[90vh] overflow-y-auto shadow-2xl animate-[slideUp_0.3s_ease] scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+        style={{ 
+          paddingBottom: "2rem",
+          maxHeight: "90vh",
+          overscrollBehavior: "contain"
+        }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center mb-4 sm:mb-6 pb-3 sm:pb-4 border-b-2 border-gray-100">
@@ -399,7 +430,7 @@ export default function DeskAssignmentModal({
 
       {/* Toast Notification */}
       {toast.show && (
-        <div className="fixed top-6 right-6 z-[10000] animate-slideInRight">
+        <div className="fixed top-6 right-6 z-[10000] animate-slideInRight" role="alert" aria-live="assertive">
           <div className={`px-5 py-4 rounded-xl shadow-2xl flex items-center gap-3 min-w-[300px] max-w-md ${
             toast.type === "error" ? "bg-gradient-to-r from-red-500 to-red-600 text-white" 
             : toast.type === "success" ? "bg-gradient-to-r from-teal-600 to-teal-700 text-white"
@@ -418,7 +449,18 @@ export default function DeskAssignmentModal({
 
       {/* Confirmation Dialog */}
       {showConfirmDialog && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10001] animate-[fadeIn_0.2s_ease] p-4" onClick={(e) => { if (e.target === e.currentTarget) { setShowConfirmDialog(false); setConfirmAction(null); } }}>
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10001] animate-[fadeIn_0.2s_ease] p-4" 
+          onClick={(e) => { 
+            if (e.target === e.currentTarget) { 
+              setShowConfirmDialog(false); 
+              setConfirmAction(null); 
+            } 
+          }}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirm-dialog-title"
+        >
           <div className="bg-white rounded-xl sm:rounded-2xl p-6 sm:p-8 w-full max-w-md shadow-2xl animate-[slideUp_0.3s_ease]" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-4 mb-6">
               <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
@@ -427,13 +469,13 @@ export default function DeskAssignmentModal({
                 </svg>
               </div>
               <div className="flex-1">
-                <h3 className="text-lg sm:text-xl font-bold text-slate-800 mb-1">Confirm Action</h3>
+                <h3 id="confirm-dialog-title" className="text-lg sm:text-xl font-bold text-slate-800 mb-1">Confirm Action</h3>
                 <p className="text-sm text-gray-600">Are you sure you want to remove this assignment?</p>
               </div>
             </div>
             <div className="flex gap-3">
               <button onClick={(e) => { e.stopPropagation(); setShowConfirmDialog(false); setConfirmAction(null); }} disabled={loading} className="flex-1 px-4 py-2.5 sm:py-3 bg-gray-200 text-slate-800 font-medium rounded-xl hover:bg-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">Cancel</button>
-              <button onClick={() => { if (confirmAction) { confirmAction(); } }} disabled={loading} className="flex-1 px-4 py-2.5 sm:py-3 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">{loading ? "Removing..." : "Remove"}</button>
+              <button onClick={() => { const action = confirmAction; if (action) { action(); } }} disabled={loading} className="flex-1 px-4 py-2.5 sm:py-3 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">{loading ? "Removing..." : "Remove"}</button>
             </div>
           </div>
         </div>

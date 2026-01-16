@@ -36,6 +36,7 @@ function ContactsContent() {
     subject: '',
     message: ''
   });
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setFormData({
@@ -44,17 +45,32 @@ function ContactsContent() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Contact form submitted:', formData);
-    alert('Thank you for contacting us! We will get back to you soon.');
-    setFormData({
-      name: '',
-      email: '',
-      phone: '',
-      subject: '',
-      message: ''
-    });
+    setLoading(true);
+
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      if (!res.ok) throw new Error('Failed');
+
+      alert('Message sent!');
+      setFormData({
+        name: '',
+        email: '',
+        phone: '',
+        subject: '',
+        message: '',
+      });
+    } catch (error) {
+      alert('Error sending message');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const contactInfo = [
@@ -311,11 +327,12 @@ function ContactsContent() {
               >
                 <motion.button
                   type="submit"
-                  whileHover={{ scale: 1.05, boxShadow: '0 10px 25px rgba(15, 118, 110, 0.4)' }}
-                  whileTap={{ scale: 0.95 }}
-                  className={`w-full px-8 py-4 bg-[#0F766E] text-white ${leagueSpartan.className} font-semibold rounded-lg hover:bg-[#0d7a71] transition-all duration-300 shadow-lg text-lg`}
+                  disabled={loading}
+                  whileHover={{ scale: loading ? 1 : 1.05, boxShadow: loading ? 'none' : '0 10px 25px rgba(15, 118, 110, 0.4)' }}
+                  whileTap={{ scale: loading ? 1 : 0.95 }}
+                  className={`w-full px-8 py-4 bg-[#0F766E] text-white ${leagueSpartan.className} font-semibold rounded-lg hover:bg-[#0d7a71] transition-all duration-300 shadow-lg text-lg disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
-                  Send Message
+                  {loading ? 'Sending...' : 'Send Message'}
                 </motion.button>
               </motion.div>
             </form>
