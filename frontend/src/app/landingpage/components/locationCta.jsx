@@ -23,6 +23,7 @@ export default function LocationCta() {
     contact: '',
     email: '',
   });
+  const [loading, setLoading] = useState(false);
   const [waveHeight, setWaveHeight] = useState('200px');
 
   useEffect(() => {
@@ -34,10 +35,47 @@ export default function LocationCta() {
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle form submission here
-    console.log('Form submitted:', formData);
+    setLoading(true);
+
+    try {
+      // Validate required fields
+      if (!formData.contact || !formData.email) {
+        alert('Please fill in both contact number and email address.');
+        setLoading(false);
+        return;
+      }
+
+      const res = await fetch('/api/schedule', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contact: formData.contact,
+          email: formData.email,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to send schedule request');
+      }
+
+      // Success
+      alert('Thank you! We will contact you soon to schedule a meeting.');
+      
+      // Reset form
+      setFormData({
+        contact: '',
+        email: '',
+      });
+    } catch (error) {
+      console.error('Error submitting schedule request:', error);
+      alert(error.message || 'Failed to submit request. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleChange = (e) => {
@@ -134,6 +172,7 @@ export default function LocationCta() {
                     name="contact"
                     value={formData.contact}
                     onChange={handleChange}
+                    required
                     className={`${roboto.className} w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0F766E] focus:border-transparent text-sm sm:text-base`}
                     placeholder="Enter your contact number"
                   />
@@ -153,6 +192,7 @@ export default function LocationCta() {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
+                    required
                     className={`${roboto.className} w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0F766E] focus:border-transparent text-sm sm:text-base`}
                     placeholder="Enter your email address"
                   />
@@ -163,9 +203,10 @@ export default function LocationCta() {
               <div className="flex justify-center pt-2 sm:pt-4">
                 <button
                   type="submit"
-                  className={`${leagueSpartan.className} bg-[#0F766E] text-white font-semibold px-6 sm:px-8 py-2.5 sm:py-3 rounded-lg hover:bg-[#0d6b64] transition-colors duration-200 text-base sm:text-lg w-full sm:w-auto`}
+                  disabled={loading}
+                  className={`${leagueSpartan.className} bg-[#0F766E] text-white font-semibold px-6 sm:px-8 py-2.5 sm:py-3 rounded-lg hover:bg-[#0d6b64] transition-colors duration-200 text-base sm:text-lg w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
-                  Schedule
+                  {loading ? 'Sending...' : 'Schedule'}
                 </button>
               </div>
             </form>

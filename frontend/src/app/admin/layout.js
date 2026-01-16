@@ -82,7 +82,7 @@ export default function AdminLayout({ children }) {
               </div>
             </div>
           </div>
-          <nav className="flex flex-col p-2 lg:p-4 gap-1.5 overflow-y-auto">
+          <nav className="flex flex-col p-2 lg:p-4 gap-1.5 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
             {navItems.map((item, index) => (
               <Link 
                 key={item.name} 
@@ -150,7 +150,7 @@ export default function AdminLayout({ children }) {
         </div>
         )}
         
-        <main className={`${!isRegisterPage ? 'p-3 sm:p-4 lg:p-6 xl:p-8' : ''} bg-slate-50 min-h-screen w-full overflow-x-hidden`}>
+        <main className={`${!isRegisterPage ? 'p-3 sm:p-4 lg:p-6 xl:p-8 pb-12' : ''} bg-slate-50 min-h-screen w-full overflow-x-hidden overflow-y-auto`}>
           <div className={`transition-all duration-500 ease-out ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
             {children}
           </div>

@@ -42,8 +42,10 @@ export default function ByPartView({
       backgroundSize: "20px 20px",
       width: "100%",
       height: "calc(100vh - 280px)",
+      maxHeight: "calc(100vh - 280px)",
       minHeight: "500px",
       overflow: "auto",
+      paddingBottom: "20px",
     }}>
       {/* Header with Dropdown and Zoom Controls */}
       <div className="sticky top-0 left-0 z-30 p-4 bg-linear-to-b from-gray-100 via-gray-100 to-transparent">

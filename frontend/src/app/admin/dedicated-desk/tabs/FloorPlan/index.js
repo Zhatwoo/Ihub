@@ -90,7 +90,9 @@ export default function FloorPlanView({
           backgroundSize: "20px 20px",
           width: "100%",
           height: "calc(100vh - 240px)",
+          maxHeight: "calc(100vh - 240px)",
           overflow: "auto",
+          paddingBottom: "20px",
         }}
       >
         <div 
