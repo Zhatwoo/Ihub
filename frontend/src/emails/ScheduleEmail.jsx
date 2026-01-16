@@ -11,7 +11,7 @@ import {
   Column,
 } from '@react-email/components';
 
-export default function ScheduleEmail({ contact, email }) {
+export default function ScheduleEmail({ fullName, email }) {
   return (
     <Html>
       <Head />
@@ -27,10 +27,10 @@ export default function ScheduleEmail({ contact, email }) {
           <Section style={content}>
             <Row>
               <Column>
-                <Text style={label}>Contact Number:</Text>
+                <Text style={label}>Full Name:</Text>
               </Column>
               <Column>
-                <Text style={value}>{contact}</Text>
+                <Text style={value}>{fullName}</Text>
               </Column>
             </Row>
             <Hr style={divider} />

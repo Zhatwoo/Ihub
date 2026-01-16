@@ -6,12 +6,12 @@ import ScheduleEmail from '@/emails/ScheduleEmail';
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { contact, email } = body;
+    const { fullName, email } = body;
 
     // Validate required fields
-    if (!contact || !email) {
+    if (!fullName || !email) {
       return NextResponse.json(
-        { success: false, error: 'Missing required fields: contact, email' },
+        { success: false, error: 'Missing required fields: fullName, email' },
         { status: 400 }
       );
     }
@@ -20,7 +20,7 @@ export async function POST(req) {
     let emailHtml;
     try {
       emailHtml = await render(
-        <ScheduleEmail contact={contact} email={email} />
+        <ScheduleEmail fullName={fullName} email={email} />
       );
     } catch (renderError) {
       console.error('Email render error:', renderError);

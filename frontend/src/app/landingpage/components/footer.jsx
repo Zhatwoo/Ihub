@@ -15,11 +15,10 @@ const roboto = Roboto({
 });
 
 const socials = [
-  { label: 'Facebook', href: 'https://facebook.com', icon: 'facebook' },
-  { label: 'Instagram', href: 'https://instagram.com', icon: 'instagram' },
+  { label: 'Facebook', href: 'https://www.facebook.com/inspireholdings?mibextid=ZbWKwL', icon: 'facebook' },
+  { label: 'Instagram', href: 'https://www.instagram.com/inspire.holdings.inc/?igsh=MTdscWZsZXlubnY3aw%3D%3D#', icon: 'instagram' },
   { label: 'LinkedIn', href: 'https://linkedin.com', icon: 'linkedin' },
-  { label: 'YouTube', href: 'https://youtube.com', icon: 'youtube' },
-  { label: 'TikTok', href: 'https://tiktok.com', icon: 'tiktok' },
+  { label: 'YouTube', href: 'https://www.youtube.com/channel/UCUGE-qPvLqYmZhQ25aLXm6A', icon: 'youtube' },
 ];
 
 export default function Footer() {
@@ -69,8 +68,8 @@ export default function Footer() {
           </p>
           <div className={`${roboto.className} text-xs sm:text-sm lg:text-base space-y-1 text-white/90`}>
             <p>Alliance Global Tower, Taguig, Metro Manila</p>
-            <p>Contact #: +63 917 000 0000</p>
-            <p>Email: hello@inspirehub.com</p>
+            <p>Contact #: (02) 5322 1002</p>
+            <p>Email: inspire-ihub@gmail.com</p>
           </div>
         </div>
 
@@ -81,7 +80,6 @@ export default function Footer() {
               <li>Dedicated Desks</li>
               <li>Private Offices</li>
               <li>Virtual Office</li>
-              <li>Meeting Rooms</li>
             </ul>
           </div>
 

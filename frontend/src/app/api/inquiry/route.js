@@ -16,30 +16,56 @@ export async function POST(req) {
       );
     }
 
-    const emailHtml = await render(
-      <InquiryEmail 
-        fullName={fullName}
-        email={email}
-        phoneNumber={phoneNumber}
-        company={company}
-        position={position}
-        preferredStartDate={preferredStartDate}
-      />
-    );
+    // Render email template
+    let emailHtml;
+    try {
+      emailHtml = await render(
+        <InquiryEmail 
+          fullName={fullName}
+          email={email}
+          phoneNumber={phoneNumber}
+          company={company}
+          position={position}
+          preferredStartDate={preferredStartDate}
+        />
+      );
+    } catch (renderError) {
+      console.error('Email render error:', renderError);
+      throw new Error(`Failed to render email: ${renderError.message}`);
+    }
 
-    const data = await resend.emails.send({
-      from: 'Virtual Office Inquiry <onboarding@resend.dev>', // Update with your verified domain
-      to: ['ndelatorre08252002@gmail.com'], // Update with your email
-      replyTo: email,
-      subject: `New Virtual Office Inquiry from ${fullName}`,
-      html: emailHtml,
-    });
+    // Send email via Resend
+    let data;
+    try {
+      // Validate resend is properly initialized
+      if (!resend) {
+        throw new Error('Resend instance is not initialized');
+      }
+      if (!resend.emails) {
+        throw new Error('Resend emails API is not available. Check RESEND_API_KEY environment variable.');
+      }
+
+      data = await resend.emails.send({
+        from: 'Virtual Office Inquiry <onboarding@resend.dev>', // Update with your verified domain
+        to: ['ndelatorre08252002@gmail.com'], // Update with your email
+        replyTo: email,
+        subject: `New Virtual Office Inquiry from ${fullName}`,
+        html: emailHtml,
+      });
+    } catch (sendError) {
+      console.error('Resend send error:', sendError);
+      throw new Error(`Failed to send email: ${sendError.message}`);
+    }
 
     return NextResponse.json({ success: true, data });
   } catch (error) {
-    console.error('Resend email error:', error);
+    console.error('Inquiry API error:', error);
     return NextResponse.json(
-      { success: false, error: 'Failed to send email' },
+      { 
+        success: false, 
+        error: error.message || 'Failed to send email',
+        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      },
       { status: 500 }
     );
   }

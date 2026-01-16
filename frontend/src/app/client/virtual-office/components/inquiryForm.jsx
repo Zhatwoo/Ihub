@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
+import ConfirmationModal from '@/app/landingpage/components/ConfirmationModal';
 
 export default function InquiryForm() {
   const formRef = useRef(null);
@@ -17,6 +18,13 @@ export default function InquiryForm() {
     position: '',
     preferredStartDate: ''
   });
+  const [loading, setLoading] = useState(false);
+  const [modal, setModal] = useState({
+    isOpen: false,
+    type: 'success',
+    title: '',
+    message: '',
+  });
 
   const handleChange = (e) => {
     setFormData({
@@ -25,10 +33,67 @@ export default function InquiryForm() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle form submission here
-    console.log('Form submitted:', formData);
+    setLoading(true);
+
+    try {
+      // Validate required fields
+      if (!formData.fullName || !formData.email || !formData.phoneNumber || !formData.preferredStartDate) {
+        setModal({
+          isOpen: true,
+          type: 'error',
+          title: 'Missing Information',
+          message: 'Please fill in all required fields (Full Name, Email, Phone Number, and Preferred Start Date).',
+        });
+        setLoading(false);
+        return;
+      }
+
+      const res = await fetch('/api/inquiry', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Failed to send inquiry');
+      }
+
+      // Success
+      setModal({
+        isOpen: true,
+        type: 'success',
+        title: 'Inquiry Sent Successfully!',
+        message: 'Thank you for your interest in our Virtual Office solution! We have received your inquiry and will get back to you soon.',
+      });
+
+      // Reset form
+      setFormData({
+        fullName: '',
+        email: '',
+        phoneNumber: '',
+        company: '',
+        position: '',
+        preferredStartDate: ''
+      });
+    } catch (error) {
+      console.error('Error submitting inquiry:', error);
+      setModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Failed to Send Inquiry',
+        message: error.message || 'There was an error sending your inquiry. Please try again later.',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const closeModal = () => {
+    setModal({ ...modal, isOpen: false });
   };
 
   return (
@@ -204,15 +269,25 @@ export default function InquiryForm() {
           >
             <motion.button
               type="submit"
-              whileHover={{ scale: 1.05, boxShadow: '0 10px 25px rgba(15, 118, 110, 0.4)' }}
-              whileTap={{ scale: 0.95 }}
-              className="w-full sm:w-auto px-6 sm:px-8 md:px-[3.9675rem] py-3 sm:py-4 md:py-[1.3225rem] bg-[#0F766E] text-white font-semibold rounded-lg hover:bg-[#0d7a71] transition-all duration-300 shadow-lg text-base sm:text-lg md:text-[1.3225rem]"
+              disabled={loading}
+              whileHover={{ scale: loading ? 1 : 1.05, boxShadow: loading ? 'none' : '0 10px 25px rgba(15, 118, 110, 0.4)' }}
+              whileTap={{ scale: loading ? 1 : 0.95 }}
+              className="w-full sm:w-auto px-6 sm:px-8 md:px-[3.9675rem] py-3 sm:py-4 md:py-[1.3225rem] bg-[#0F766E] text-white font-semibold rounded-lg hover:bg-[#0d7a71] transition-all duration-300 shadow-lg text-base sm:text-lg md:text-[1.3225rem] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Inquire
+              {loading ? 'Sending...' : 'Inquire'}
             </motion.button>
           </motion.div>
         </motion.form>
       </div>
+
+      {/* Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={modal.isOpen}
+        onClose={closeModal}
+        type={modal.type}
+        title={modal.title}
+        message={modal.message}
+      />
     </div>
   );
 }

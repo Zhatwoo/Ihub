@@ -31,6 +31,25 @@ export default function DedicatedDeskSection() {
   const [currentUser, setCurrentUser] = useState(null);
   const [userInfo, setUserInfo] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [scaleFactor, setScaleFactor] = useState(0.6);
+
+  // Handle responsive scaling for floor plan
+  useEffect(() => {
+    const updateScale = () => {
+      const width = window.innerWidth;
+      if (width < 640) {
+        setScaleFactor(0.25);
+      } else if (width < 1024) {
+        setScaleFactor(0.4);
+      } else {
+        setScaleFactor(0.6);
+      }
+    };
+
+    updateScale();
+    window.addEventListener('resize', updateScale);
+    return () => window.removeEventListener('resize', updateScale);
+  }, []);
 
   // Get current user
   useEffect(() => {
@@ -265,41 +284,42 @@ export default function DedicatedDeskSection() {
       {/* Modal */}
       {isModalOpen && selectedSpace && (
         <div 
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-md p-2 sm:p-4"
           onClick={closeModal}
         >
           <div 
-            className="bg-white rounded-2xl shadow-2xl max-w-7xl w-full max-h-[90vh] overflow-hidden relative flex flex-col"
+            className="bg-white rounded-xl sm:rounded-2xl shadow-2xl max-w-7xl w-full max-h-[95vh] sm:max-h-[90vh] overflow-hidden relative flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
-              <div>
-                <h2 className={`${leagueSpartan.className} text-2xl font-bold text-slate-800`}>
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between z-10">
+              <div className="flex-1 min-w-0 pr-2">
+                <h2 className={`${leagueSpartan.className} text-lg sm:text-xl md:text-2xl font-bold text-slate-800 truncate`}>
                   {selectedSpace.title}
                 </h2>
-                <p className="text-sm text-gray-600">{selectedSpace.location}</p>
+                <p className="text-xs sm:text-sm text-gray-600 truncate">{selectedSpace.location}</p>
               </div>
               <button
                 onClick={closeModal}
-                className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
+                className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
                 aria-label="Close modal"
               >
-                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
 
-            {/* Modal Content - Split Layout */}
-            <div className="flex flex-1 overflow-hidden">
+            {/* Modal Content - Responsive Split Layout */}
+            <div className="flex flex-col lg:flex-row flex-1 overflow-hidden">
               {/* Left Side - Desk Layout */}
-              <div className="flex-1 p-6 overflow-auto">
+              <div className="flex-1 p-3 sm:p-4 lg:p-6 overflow-auto min-h-[300px] sm:min-h-[400px] lg:min-h-0">
                 <div 
                   className="relative bg-gray-50 rounded-lg overflow-auto flex items-center justify-center border-2 border-blue-500" 
                   style={{ 
-                    minHeight: '600px', 
-                    maxHeight: '70vh',
+                    minHeight: '300px',
+                    height: '100%',
+                    maxHeight: 'calc(95vh - 200px)',
                     backgroundImage: "radial-gradient(circle, #d1d1d1 1px, transparent 1px)",
                     backgroundSize: "20px 20px"
                   }}
@@ -309,7 +329,7 @@ export default function DedicatedDeskSection() {
                     style={{ 
                       width: '1400px', 
                       height: '1000px',
-                      transform: 'scale(0.6)',
+                      transform: `scale(${scaleFactor})`,
                       transformOrigin: 'center center'
                     }}
                   >
@@ -319,62 +339,62 @@ export default function DedicatedDeskSection() {
               </div>
 
               {/* Right Side - Desk Info and CTA */}
-              <div className="w-96 bg-white border-l border-gray-200 p-6 flex flex-col">
-                <div className="flex-1">
-                  <h3 className={`${leagueSpartan.className} text-xl font-bold text-slate-800 mb-4`}>
+              <div className="w-full lg:w-96 bg-white border-t lg:border-t-0 lg:border-l border-gray-200 p-4 sm:p-6 flex flex-col">
+                <div className="flex-1 overflow-y-auto">
+                  <h3 className={`${leagueSpartan.className} text-lg sm:text-xl font-bold text-slate-800 mb-3 sm:mb-4`}>
                     Desk Information
                   </h3>
                   
                   {/* Selected Desk Display */}
                   {selectedDesk ? (
-                    <div className="mb-6 p-4 bg-teal-50 rounded-lg border border-teal-200">
-                      <p className="text-sm text-gray-600 mb-1">Selected Desk</p>
-                      <p className={`${leagueSpartan.className} text-2xl font-bold text-teal-700`}>
+                    <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-teal-50 rounded-lg border border-teal-200">
+                      <p className="text-xs sm:text-sm text-gray-600 mb-1">Selected Desk</p>
+                      <p className={`${leagueSpartan.className} text-xl sm:text-2xl font-bold text-teal-700`}>
                         {selectedDesk}
                       </p>
                     </div>
                   ) : (
-                    <div className="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                      <p className="text-sm text-gray-500 text-center">
+                    <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <p className="text-xs sm:text-sm text-gray-500 text-center">
                         Click on a desk to select
                       </p>
                     </div>
                   )}
 
                   {/* Desk Location */}
-                  <div className="mb-6">
-                    <p className="text-sm text-gray-600 mb-2">Location</p>
-                    <p className="text-base font-semibold text-slate-800">
+                  <div className="mb-4 sm:mb-6">
+                    <p className="text-xs sm:text-sm text-gray-600 mb-2">Location</p>
+                    <p className="text-sm sm:text-base font-semibold text-slate-800">
                       {selectedSpace.location}
                     </p>
-                    <p className="text-sm text-gray-600 mt-1">
+                    <p className="text-xs sm:text-sm text-gray-600 mt-1">
                       {selectedSpace.title}
                     </p>
                   </div>
 
                   {/* Section Info */}
-                  <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-                    <p className="text-sm text-gray-600 mb-2">Section Details</p>
+                  <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-gray-50 rounded-lg">
+                    <p className="text-xs sm:text-sm text-gray-600 mb-2">Section Details</p>
                     <div className="space-y-2">
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Section:</span>
-                        <span className="text-sm font-semibold text-slate-800">{selectedSpace.title}</span>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs sm:text-sm text-gray-600">Section:</span>
+                        <span className="text-xs sm:text-sm font-semibold text-slate-800">{selectedSpace.title}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Rating:</span>
-                        <span className="text-sm font-semibold text-slate-800">{selectedSpace.rating} ⭐</span>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs sm:text-sm text-gray-600">Rating:</span>
+                        <span className="text-xs sm:text-sm font-semibold text-slate-800">{selectedSpace.rating} ⭐</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm text-gray-600">Status:</span>
-                        <span className="text-sm font-semibold text-green-600">Available</span>
+                      <div className="flex justify-between items-center">
+                        <span className="text-xs sm:text-sm text-gray-600">Status:</span>
+                        <span className="text-xs sm:text-sm font-semibold text-green-600">Available</span>
                       </div>
                     </div>
                   </div>
 
                   {/* Photo/Image Display */}
-                  <div className="mb-6">
-                    <p className="text-sm text-gray-600 mb-2">Section Photo</p>
-                    <div className="relative w-full h-64 rounded-lg overflow-hidden border-4 border-purple-500">
+                  <div className="mb-4 sm:mb-6">
+                    <p className="text-xs sm:text-sm text-gray-600 mb-2">Section Photo</p>
+                    <div className="relative w-full h-48 sm:h-64 rounded-lg overflow-hidden border-2 sm:border-4 border-purple-500">
                       <Image
                         src={selectedSpace.image}
                         alt={selectedSpace.title}
@@ -387,11 +407,11 @@ export default function DedicatedDeskSection() {
                 </div>
 
                 {/* CTA Button */}
-                <div className="mt-auto pt-6 border-t border-gray-200">
+                <div className="mt-4 sm:mt-auto pt-4 sm:pt-6 border-t border-gray-200">
                   <button
                     onClick={handleRequestDesk}
                     disabled={!selectedDesk || isSubmitting || !currentUser}
-                    className={`w-full py-3 px-4 rounded-lg font-semibold transition-all duration-200 ${
+                    className={`w-full py-2.5 sm:py-3 px-4 rounded-lg text-sm sm:text-base font-semibold transition-all duration-200 ${
                       selectedDesk && !isSubmitting && currentUser
                         ? 'bg-[#0F766E] text-white hover:bg-[#0d6b64] shadow-lg hover:shadow-xl'
                         : 'bg-gray-300 text-gray-500 cursor-not-allowed'
