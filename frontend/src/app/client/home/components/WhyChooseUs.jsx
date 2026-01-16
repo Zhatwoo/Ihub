@@ -30,12 +30,9 @@ const reasons = [
 export default function WhyChooseUs() {
   return (
     <section className="py-16 bg-slate-900 text-white">
-      <div className="max-w-6xl mx-auto px-4">
+      <div className="max-w-[90rem] mx-auto px-8 lg:px-16">
         {/* Header */}
         <div className="text-center mb-12">
-          <div className="inline-block bg-teal-500 text-white px-4 py-1 rounded-full text-sm font-semibold mb-4">
-            WHY CHOOSE US
-          </div>
           <h2 className={`${leagueSpartan.className} text-4xl font-bold mb-4`}>Why You Choose Us</h2>
           <p className="text-gray-300 max-w-2xl mx-auto">
             Experience the perfect blend of professional workspace, modern amenities, and exceptional service that sets us apart from the rest.
@@ -43,7 +40,7 @@ export default function WhyChooseUs() {
         </div>
 
         {/* Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           {/* Images */}
           <div className="grid grid-cols-2 gap-4">
             <div className="relative h-48 rounded-lg overflow-hidden">
