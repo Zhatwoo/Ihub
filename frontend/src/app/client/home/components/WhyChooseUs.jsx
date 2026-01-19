@@ -1,6 +1,5 @@
 'use client';
 
-import Image from 'next/image';
 import { League_Spartan } from 'next/font/google';
 
 const leagueSpartan = League_Spartan({
@@ -44,43 +43,63 @@ export default function WhyChooseUs() {
 
         {/* Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-          {/* Images */}
+          {/* Videos */}
           <div className="grid grid-cols-2 gap-4">
             <div className="relative h-48 rounded-lg overflow-hidden">
-              <Image
-                src="/images/IMG_5337.jpg"
-                alt="Team collaboration"
-                fill
-                className="object-cover"
-                unoptimized
-              />
+              <video
+                src="/bg/Why you choose uu/Why you choose us video.mp4"
+                poster="/bg/Why you choose uu/Why you choose us video.png"
+                className="w-full h-full object-cover"
+                autoPlay
+                loop
+                muted
+                playsInline
+                aria-label="Why choose us video"
+              >
+                Your browser does not support the video tag.
+              </video>
             </div>
             <div className="relative h-48 rounded-lg overflow-hidden">
-              <Image
-                src="/images/IMG_5335.jpg"
-                alt="Modern workspace"
-                fill
-                className="object-cover"
-                unoptimized
-              />
+              <video
+                src="/bg/Why you choose uu/why video 2.mp4"
+                poster="/bg/Why you choose uu/why video 2.png"
+                className="w-full h-full object-cover"
+                autoPlay
+                loop
+                muted
+                playsInline
+                aria-label="Modern workspace video"
+              >
+                Your browser does not support the video tag.
+              </video>
             </div>
             <div className="relative h-48 rounded-lg overflow-hidden">
-              <Image
-                src="/images/IMG_5334.jpg"
-                alt="Meeting room"
-                fill
-                className="object-cover"
-                unoptimized
-              />
+              <video
+                src="/bg/Why you choose uu/Why video 3.mp4"
+                poster="/bg/Why you choose uu/Why video 3.png"
+                className="w-full h-full object-cover"
+                autoPlay
+                loop
+                muted
+                playsInline
+                aria-label="Meeting room video"
+              >
+                Your browser does not support the video tag.
+              </video>
             </div>
             <div className="relative h-48 rounded-lg overflow-hidden">
-              <Image
-                src="/images/IMG_5333.jpg"
-                alt="Office space"
-                fill
-                className="object-cover"
-                unoptimized
-              />
+              <video
+                src="/bg/Why you choose uu/Why video 4.mp4"
+                poster="/bg/Why you choose uu/Why video 4.png"
+                className="w-full h-full object-cover"
+                autoPlay
+                loop
+                muted
+                playsInline
+                aria-label="Office space video"
+              >
+                Your browser does not support the video tag.
+              </video>
             </div>
           </div>
 
