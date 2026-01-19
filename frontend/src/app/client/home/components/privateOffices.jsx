@@ -11,8 +11,10 @@ export function usePrivateOffices() {
   useEffect(() => {
     const fetchRooms = async () => {
       try {
+        // Fetch all rooms - backend ensures all admin-created rooms are visible to all clients
         const response = await api.get('/api/rooms');
         if (response.success && response.data) {
+          // Map all rooms - no client-specific filtering needed
           const roomsData = response.data.map(room => ({
             id: room.id,
             name: room.name || 'Private Office',

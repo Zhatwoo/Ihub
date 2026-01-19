@@ -9,6 +9,7 @@ import LandingPageHeader from '../components/header';
 import ClientHeader from '@/app/client/home/components/header';
 import Footer from '../components/footer';
 import ConfirmationModal from '../components/ConfirmationModal';
+import { api } from '@/lib/api';
 
 const leagueSpartan = League_Spartan({
   subsets: ['latin'],
@@ -57,34 +58,28 @@ function ContactsContent() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
+      const response = await api.post('/api/emails/contact', formData);
 
-      const data = await res.json();
+      if (response.success) {
+        // Success
+        setModal({
+          isOpen: true,
+          type: 'success',
+          title: 'Message Sent Successfully!',
+          message: response.message || 'Thank you for contacting us! We have received your message and will get back to you soon.',
+        });
 
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to send message');
+        // Reset form
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          subject: '',
+          message: '',
+        });
+      } else {
+        throw new Error(response.message || 'Failed to send message');
       }
-
-      // Success
-      setModal({
-        isOpen: true,
-        type: 'success',
-        title: 'Message Sent Successfully!',
-        message: 'Thank you for contacting us! We have received your message and will get back to you soon.',
-      });
-
-      // Reset form
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        subject: '',
-        message: '',
-      });
     } catch (error) {
       console.error('Error sending message:', error);
       setModal({

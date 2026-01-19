@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from 'react';
 import { League_Spartan, Roboto } from 'next/font/google';
 import { motion, useInView } from 'framer-motion';
 import ConfirmationModal from './ConfirmationModal';
+import { api } from '@/lib/api';
 
 const leagueSpartan = League_Spartan({
   subsets: ['latin'],
@@ -59,34 +60,28 @@ export default function LocationCta() {
         return;
       }
 
-      const res = await fetch('/api/schedule', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fullName: formData.fullName,
-          email: formData.email,
-        }),
+      const response = await api.post('/api/emails/schedule', {
+        fullName: formData.fullName,
+        email: formData.email,
       });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to send schedule request');
-      }
-
-      // Success
-      setModal({
-        isOpen: true,
-        type: 'success',
-        title: 'Schedule Request Sent!',
-        message: 'Thank you for your interest! We have received your request and will contact you soon to schedule a meeting.',
-      });
+      if (response.success) {
+        // Success
+        setModal({
+          isOpen: true,
+          type: 'success',
+          title: 'Schedule Request Sent!',
+          message: response.message || 'Thank you for your interest! We have received your request and will contact you soon to schedule a meeting.',
+        });
       
-      // Reset form
-      setFormData({
-        fullName: '',
-        email: '',
-      });
+        // Reset form
+        setFormData({
+          fullName: '',
+          email: '',
+        });
+      } else {
+        throw new Error(response.message || 'Failed to send schedule request');
+      }
     } catch (error) {
       console.error('Error submitting schedule request:', error);
       setModal({

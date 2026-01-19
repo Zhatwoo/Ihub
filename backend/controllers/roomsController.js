@@ -7,6 +7,7 @@ import { sendFirestoreError } from '../utils/firestoreHelper.js';
 
 /**
  * Get all rooms
+ * Returns all rooms visible to all clients (no user-specific filtering)
  */
 export const getAllRooms = async (req, res) => {
   try {
@@ -16,12 +17,31 @@ export const getAllRooms = async (req, res) => {
       return sendFirestoreError(res);
     }
     
+    // Fetch all rooms from Firestore
     const roomsSnapshot = await firestore.collection('rooms').get();
     
-    const rooms = roomsSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
+    // Map all rooms - make them visible to all clients
+    // Filter out rooms that are explicitly marked as hidden/deleted
+    const rooms = roomsSnapshot.docs
+      .map(doc => {
+        const roomData = doc.data();
+        return {
+          id: doc.id,
+          ...roomData
+        };
+      })
+      // Filter out rooms that are deleted or explicitly hidden
+      .filter(room => {
+        // Include room if:
+        // - status is not 'deleted' or 'hidden'
+        // - visible is not false
+        // - Or if status/visible fields don't exist (default to visible)
+        const status = room.status?.toLowerCase();
+        const visible = room.visible !== false; // Default to true if not set
+        const isDeleted = status === 'deleted' || status === 'hidden';
+        
+        return visible && !isDeleted;
+      });
 
     res.json({
       success: true,
@@ -98,11 +118,16 @@ export const createRoom = async (req, res) => {
       return sendFirestoreError(res);
     }
     
-    const roomRef = await firestore.collection('rooms').add({
+    // Ensure room is visible to all clients by default
+    const roomDataWithDefaults = {
       ...roomData,
+      visible: true, // Make room visible to all clients
+      status: roomData.status || 'active', // Default to active
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    });
+    };
+    
+    const roomRef = await firestore.collection('rooms').add(roomDataWithDefaults);
 
     const newRoom = await roomRef.get();
 
@@ -148,10 +173,15 @@ export const updateRoom = async (req, res) => {
       });
     }
 
-    await roomRef.update({
+    // Ensure room remains visible to all clients unless explicitly set to hidden
+    const updateDataWithDefaults = {
       ...updateData,
+      // If visible is not explicitly set to false, keep it true (visible to all clients)
+      visible: updateData.visible !== undefined ? updateData.visible : true,
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    });
+    };
+    
+    await roomRef.update(updateDataWithDefaults);
 
     const updatedRoom = await roomRef.get();
 

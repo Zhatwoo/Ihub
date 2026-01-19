@@ -3,8 +3,6 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 
 // Tailwind CSS classes are validated - no gradient classes in this file
 
@@ -41,10 +39,12 @@ export default function Header() {
     }
   };
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     try {
-      if (auth) {
-        await signOut(auth);
+      // Clear authentication data from localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('user');
+        localStorage.removeItem('idToken');
       }
       // Redirect to landing page after logout
       router.push('/');

@@ -3,18 +3,18 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 import { useState } from 'react';
 
 export default function VirtualOfficeHeader() {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const handleLogout = async () => {
+  const handleLogout = () => {
     try {
-      if (auth) {
-        await signOut(auth);
+      // Clear authentication data from localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('user');
+        localStorage.removeItem('idToken');
       }
       // Redirect to landing page after logout
       router.push('/');

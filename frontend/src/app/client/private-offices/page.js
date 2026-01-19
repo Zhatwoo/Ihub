@@ -94,8 +94,11 @@ export default function PrivateOffices() {
         setRoomsLoading(true);
         // Fetch from backend API endpoint: GET /api/rooms
         // Backend controller fetches from Firestore 'rooms' collection
+        // All rooms created by admin are visible to all clients
         const response = await api.get('/api/rooms');
         if (response.success && response.data) {
+          // Ensure all rooms are displayed (no client-specific filtering)
+          // Backend already filters out deleted/hidden rooms
           setRooms(response.data);
         } else {
           console.error('Failed to fetch rooms:', response.message);
