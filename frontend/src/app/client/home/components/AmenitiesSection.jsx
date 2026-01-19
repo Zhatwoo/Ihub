@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import Image from 'next/image';
 import { League_Spartan } from 'next/font/google';
 
@@ -63,6 +63,8 @@ const amenities = [
 
 export default function AmenitiesSection() {
   const carouselRef = useRef(null);
+  const [selectedAmenity, setSelectedAmenity] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const scrollCarousel = (direction) => {
     const carousel = carouselRef.current;
@@ -76,6 +78,16 @@ export default function AmenitiesSection() {
     } else {
       carousel.scrollBy({ left: scrollAmount, behavior: 'smooth' });
     }
+  };
+
+  const handleCardClick = (amenity) => {
+    setSelectedAmenity(amenity);
+    setIsModalOpen(true);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setSelectedAmenity(null);
   };
 
   return (
@@ -112,6 +124,7 @@ export default function AmenitiesSection() {
             {amenities.map((amenity) => (
               <div
                 key={amenity.id}
+                onClick={() => handleCardClick(amenity)}
                 className="shrink-0 w-[300px] rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-shadow cursor-pointer group relative"
               >
                 <div className="relative h-[200px]">
@@ -132,6 +145,53 @@ export default function AmenitiesSection() {
           </div>
         </div>
       </div>
+
+      {/* Photo Modal - Modern Minimalist Design */}
+      {isModalOpen && selectedAmenity && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4"
+          onClick={closeModal}
+        >
+          <div 
+            className="bg-white rounded-3xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden relative flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Minimalist Header */}
+            <div className="sticky top-0 bg-white/95 backdrop-blur-sm border-b border-gray-100 px-8 py-5 flex items-center justify-between z-10 shrink-0">
+              <div className="flex-1">
+                <h2 className={`${leagueSpartan.className} text-2xl font-semibold text-slate-900 tracking-tight`}>
+                  {selectedAmenity.title}
+                </h2>
+                {selectedAmenity.description && (
+                  <p className="text-gray-500 text-sm mt-1">{selectedAmenity.description}</p>
+                )}
+              </div>
+              <button
+                onClick={closeModal}
+                className="w-8 h-8 rounded-lg hover:bg-gray-100 flex items-center justify-center transition-colors shrink-0 text-gray-400 hover:text-gray-600"
+                aria-label="Close modal"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Image Content */}
+            <div className="flex-1 overflow-y-auto">
+              <div className="relative w-full h-[70vh] min-h-[400px]">
+                <Image
+                  src={selectedAmenity.image}
+                  alt={selectedAmenity.title}
+                  fill
+                  className="object-contain"
+                  unoptimized
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
