@@ -45,29 +45,54 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || '',
 };
 
-// Initialize Firebase only if it hasn't been initialized
-let app;
-try {
-  if (missingVars.length === 0) {
-    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
-  } else {
-    // Create a dummy app to prevent crashes, but it won't work
-    app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+// Validate that API key is not empty before initializing
+const hasValidConfig = missingVars.length === 0 && 
+  firebaseConfig.apiKey && 
+  firebaseConfig.apiKey.trim() !== '';
+
+// Initialize Firebase only if it hasn't been initialized and config is valid
+let app = null;
+if (hasValidConfig) {
+  try {
+    if (getApps().length === 0) {
+      app = initializeApp(firebaseConfig);
+      console.log('✅ Firebase initialized successfully');
+    } else {
+      app = getApps()[0];
+    }
+  } catch (error) {
+    console.error('❌ Firebase initialization error:', error.message);
+    if (error.code === 'auth/invalid-api-key') {
+      console.error(
+        '⚠️  Invalid Firebase API key. Please check your NEXT_PUBLIC_FIREBASE_API_KEY in .env.local'
+      );
+      console.error('   Current API key:', firebaseConfig.apiKey ? `${firebaseConfig.apiKey.substring(0, 10)}...` : 'MISSING');
+    }
+    app = null;
   }
-} catch (error) {
-  console.error('❌ Firebase initialization error:', error.message);
-  if (error.code === 'auth/invalid-api-key') {
-    console.error(
-      '⚠️  Invalid Firebase API key. Please check your NEXT_PUBLIC_FIREBASE_API_KEY in .env.local'
-    );
-  }
-  // Don't throw - allow app to continue with limited functionality
+} else {
   if (typeof window === 'undefined') {
-    console.error('⚠️  Firebase will not be available. Please fix your environment variables and restart the server.');
+    console.warn('⚠️  Firebase not initialized - missing or invalid environment variables');
+    console.warn('   Missing variables:', missingVars.join(', '));
+    console.warn('   Please check your .env.local file and restart the dev server');
   }
 }
 
+// Only export Firebase services if app is initialized
 export const auth = app ? getAuth(app) : null;
 export const db = app ? getFirestore(app) : null;
 export const storage = app ? getStorage(app) : null;
+
+// Helper function to safely get Firestore with error handling
+export const getDb = () => {
+  if (!db) {
+    console.warn('⚠️  Firestore is not initialized. Check your Firebase configuration.');
+    throw new Error('Firestore is not available. Please check your Firebase configuration in .env.local');
+  }
+  return db;
+};
+
+// Helper to check if Firebase is available
+export const isFirebaseAvailable = () => app !== null;
+
 export default app;

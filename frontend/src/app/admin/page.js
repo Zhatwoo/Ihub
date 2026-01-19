@@ -1,21 +1,41 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { db } from '@/lib/firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { api } from '@/lib/api';
 
 export default function AdminDashboard() {
   const [rooms, setRooms] = useState([]);
   const [schedules, setSchedules] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsubRooms = onSnapshot(collection(db, 'rooms'), (snapshot) => {
-      setRooms(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
-    const unsubSchedules = onSnapshot(collection(db, 'schedules'), (snapshot) => {
-      setSchedules(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
-    });
-    return () => { unsubRooms(); unsubSchedules(); };
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        // Fetch rooms and schedules from backend
+        const [roomsResponse, schedulesResponse] = await Promise.all([
+          api.get('/api/rooms'),
+          api.get('/api/schedules')
+        ]);
+
+        if (roomsResponse.success) {
+          setRooms(roomsResponse.data || []);
+        }
+        if (schedulesResponse.success) {
+          setSchedules(schedulesResponse.data || []);
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+    
+    // Poll for updates every 30 seconds
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const stats = [
@@ -26,6 +46,15 @@ export default function AdminDashboard() {
   ];
 
   const recentBookings = schedules.slice(0, 5);
+
+  if (loading) {
+    return (
+      <div className="w-full animate-fadeIn">
+        <h1 className="text-slate-800 text-2xl sm:text-3xl font-bold mb-4 sm:mb-6 animate-slideInLeft">Dashboard</h1>
+        <p className="text-gray-500">Loading...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full animate-fadeIn">

@@ -2,10 +2,8 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase';
-import { collection, doc, setDoc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
+import { api } from '@/lib/api';
 
 export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
   const router = useRouter();
@@ -42,57 +40,44 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
     setLoading(true);
 
     try {
-      if (!auth) {
-        throw new Error('Firebase authentication is not initialized. Please check your environment variables.');
-      }
-
-      if (!db) {
-        throw new Error('Firebase Firestore is not initialized. Please check your environment variables.');
-      }
-
-      // Create user account
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        formData.email,
-        formData.password
-      );
-
-      // Save additional user data to Firestore
-      // All users registering through this form are clients
-      // Save to /accounts/client/{userId} (subcollection under client document)
-      const userDoc = {
+      // Call backend signup API
+      const response = await api.post('/api/auth/signup', {
+        email: formData.email,
+        password: formData.password,
         firstName: formData.firstName,
         lastName: formData.lastName,
-        email: formData.email,
         companyName: formData.companyName,
         contact: formData.contact,
-        createdAt: new Date().toISOString(),
-        role: 'client', // All registrations are clients
-      };
+      });
 
-      // Save to /accounts/client/users/{userId}
-      // Structure: accounts (collection) > client (document) > users (subcollection) > {userId} (document)
-      await setDoc(doc(collection(db, 'accounts', 'client', 'users'), userCredential.user.uid), userDoc);
+      if (response.success && response.data) {
+        // Store tokens in localStorage
+        if (response.data.idToken) {
+          localStorage.setItem('idToken', response.data.idToken);
+          localStorage.setItem('refreshToken', response.data.refreshToken);
+          localStorage.setItem('user', JSON.stringify({
+            uid: response.data.uid,
+            email: response.data.email,
+            role: response.data.role,
+          }));
+        }
 
-      // Success - close modal and redirect to client home
-      onClose();
-      router.push('/client/home');
+        // Success - close modal and redirect to client home
+        onClose();
+        router.push(response.data.redirectPath || '/client/home');
+      } else {
+        setError(response.message || 'Sign up failed. Please try again.');
+      }
     } catch (error) {
       console.error('Sign up error:', error);
       
-      // Handle specific Firebase errors
+      // Handle API errors
       let errorMessage = 'An error occurred during sign up. Please try again.';
       
-      if (error.code === 'auth/email-already-in-use') {
-        errorMessage = 'This email is already registered. Please use a different email or log in.';
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email address.';
-      } else if (error.code === 'auth/operation-not-allowed') {
-        errorMessage = 'Email/password accounts are not enabled. Please contact support.';
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = 'Password is too weak. Please choose a stronger password.';
-      } else if (error.message) {
+      if (error.message) {
         errorMessage = error.message;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
       }
       
       setError(errorMessage);

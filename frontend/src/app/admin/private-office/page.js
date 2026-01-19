@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
-import { db } from '@/lib/firebase';
-import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot } from 'firebase/firestore';
+import { api } from '@/lib/api';
 
 export default function PrivateOffice() {
   const [activeTab, setActiveTab] = useState('rooms');
@@ -57,22 +56,44 @@ export default function PrivateOffice() {
     setMounted(true);
   }, []);
 
-  // Fetch rooms from Firebase
+  // Fetch rooms from backend
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'rooms'), (snapshot) => {
-      const roomsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setRooms(roomsData);
-    });
-    return () => unsubscribe();
+    const fetchRooms = async () => {
+      try {
+        const response = await api.get('/api/rooms');
+        if (response.success && response.data) {
+          setRooms(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching rooms:', error);
+      }
+    };
+
+    fetchRooms();
+    
+    // Poll for updates every 30 seconds
+    const interval = setInterval(fetchRooms, 30000);
+    return () => clearInterval(interval);
   }, []);
 
-  // Fetch schedules from Firebase
+  // Fetch schedules from backend
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'schedules'), (snapshot) => {
-      const schedulesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setSchedules(schedulesData);
-    });
-    return () => unsubscribe();
+    const fetchSchedules = async () => {
+      try {
+        const response = await api.get('/api/schedules');
+        if (response.success && response.data) {
+          setSchedules(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching schedules:', error);
+      }
+    };
+
+    fetchSchedules();
+    
+    // Poll for updates every 30 seconds
+    const interval = setInterval(fetchSchedules, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -116,15 +137,28 @@ export default function PrivateOffice() {
         if (uploadedPath) imagePath = uploadedPath;
       }
       const roomData = { name: formData.name, rentFee: parseFloat(formData.rentFee), currency: formData.currency, rentFeePeriod: formData.rentFeePeriod, description: formData.description, inclusions: formData.inclusions, image: imagePath };
+      
+      let response;
       if (editingRoom) {
-        await updateDoc(doc(db, 'rooms', editingRoom.id), roomData);
+        response = await api.put(`/api/rooms/${editingRoom.id}`, roomData);
       } else {
-        await addDoc(collection(db, 'rooms'), roomData);
+        response = await api.post('/api/rooms', roomData);
       }
-      resetForm();
+      
+      if (response.success) {
+        showToast(editingRoom ? 'Room updated successfully!' : 'Room added successfully!', 'success');
+        // Refresh rooms list
+        const roomsResponse = await api.get('/api/rooms');
+        if (roomsResponse.success && roomsResponse.data) {
+          setRooms(roomsResponse.data);
+        }
+        resetForm();
+      } else {
+        showToast(response.message || 'Failed to save room', 'error');
+      }
     } catch (error) {
       console.error('Error saving room:', error);
-      showToast('Failed to save room', 'error');
+      showToast(error.message || 'Failed to save room', 'error');
     } finally {
       setLoading(false);
     }
@@ -150,13 +184,23 @@ export default function PrivateOffice() {
     if (!selectedRoom) return;
     setConfirmAction(() => async () => {
       try {
-        await deleteDoc(doc(db, 'rooms', selectedRoom.id));
-        setShowViewModal(false);
-        setSelectedRoom(null);
-        showToast('Office deleted successfully!', 'success');
+        const response = await api.delete(`/api/rooms/${selectedRoom.id}`);
+        
+        if (response.success) {
+          setShowViewModal(false);
+          setSelectedRoom(null);
+          showToast('Office deleted successfully!', 'success');
+          // Refresh rooms list
+          const roomsResponse = await api.get('/api/rooms');
+          if (roomsResponse.success && roomsResponse.data) {
+            setRooms(roomsResponse.data);
+          }
+        } else {
+          showToast(response.message || 'Failed to delete office', 'error');
+        }
       } catch (error) {
         console.error('Error deleting office:', error);
-        showToast('Failed to delete office', 'error');
+        showToast(error.message || 'Failed to delete office', 'error');
       }
       setShowConfirmDialog(false);
     });
@@ -170,7 +214,14 @@ export default function PrivateOffice() {
 
   const handleApprove = async (id) => {
     try {
-      await updateDoc(doc(db, 'schedules', id), { status: 'active' });
+      const response = await api.put(`/api/schedules/${id}`, { status: 'active' });
+      if (response.success) {
+        // Refresh schedules
+        const schedulesResponse = await api.get('/api/schedules');
+        if (schedulesResponse.success && schedulesResponse.data) {
+          setSchedules(schedulesResponse.data);
+        }
+      }
     } catch (error) {
       console.error('Error approving request:', error);
     }
@@ -178,7 +229,14 @@ export default function PrivateOffice() {
 
   const handleReject = async (id) => {
     try {
-      await updateDoc(doc(db, 'schedules', id), { status: 'rejected' });
+      const response = await api.put(`/api/schedules/${id}`, { status: 'rejected' });
+      if (response.success) {
+        // Refresh schedules
+        const schedulesResponse = await api.get('/api/schedules');
+        if (schedulesResponse.success && schedulesResponse.data) {
+          setSchedules(schedulesResponse.data);
+        }
+      }
     } catch (error) {
       console.error('Error rejecting request:', error);
     }

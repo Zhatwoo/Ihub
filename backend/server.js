@@ -3,6 +3,15 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import morgan from 'morgan';
 import { config } from './config/index.js';
+import { initFirebase } from './config/firebase.js';
+import authRoutes from './routes/auth.js';
+import accountsRoutes from './routes/accounts.js';
+import roomsRoutes from './routes/rooms.js';
+import schedulesRoutes from './routes/schedules.js';
+import virtualOfficeRoutes from './routes/virtualOffice.js';
+import deskAssignmentsRoutes from './routes/deskAssignments.js';
+import floorsRoutes from './routes/floors.js';
+import uploadRoutes from './routes/upload.js';
 
 // Load environment variables
 dotenv.config();
@@ -21,14 +30,20 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Routes
-import accountsRoutes from './routes/accounts.js';
-import roomsRoutes from './routes/rooms.js';
-import schedulesRoutes from './routes/schedules.js';
-import virtualOfficeRoutes from './routes/virtualOffice.js';
-import deskAssignmentsRoutes from './routes/deskAssignments.js';
-import floorsRoutes from './routes/floors.js';
-import uploadRoutes from './routes/upload.js';
+// Initialize Firebase Admin SDK
+// Check Firebase API key configuration
+if (!config.firebase?.apiKey) {
+  console.warn('⚠️  Firebase API key not found in environment variables');
+  console.warn('   Add to backend/.env: NEXT_PUBLIC_FIREBASE_API_KEY=your-api-key');
+  console.warn('   Authentication endpoints may not work until this is configured.');
+} else {
+  console.log('✅ Firebase API key configured');
+}
+
+initFirebase().catch(err => {
+  console.error('⚠️  Firebase Admin SDK initialization failed:', err.message);
+  console.error('   Some features may not work. Check your Firebase configuration.');
+});
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -44,8 +59,9 @@ app.get('/api', (req, res) => {
   res.json({ 
     message: 'Inspire Hub Backend API',
     version: '1.0.0',
-    endpoints: {
+      endpoints: {
       health: '/health',
+      auth: '/api/auth',
       accounts: '/api/accounts',
       rooms: '/api/rooms',
       schedules: '/api/schedules',
@@ -58,6 +74,7 @@ app.get('/api', (req, res) => {
 });
 
 // Mount routes
+app.use('/api/auth', authRoutes);
 app.use('/api/accounts', accountsRoutes);
 app.use('/api/rooms', roomsRoutes);
 app.use('/api/schedules', schedulesRoutes);

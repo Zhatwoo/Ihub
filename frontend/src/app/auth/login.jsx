@@ -2,10 +2,8 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase';
-import { collection, doc, getDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
+import { api } from '@/lib/api';
 
 export default function LoginModal({ isOpen, onClose, onSwitchToSignUp }) {
   const router = useRouter();
@@ -22,64 +20,40 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignUp }) {
     setLoading(true);
 
     try {
-      if (!auth) {
-        throw new Error('Firebase authentication is not initialized. Please check your environment variables.');
-      }
+      // Call backend login API
+      const response = await api.post('/api/auth/login', {
+        email: formData.email,
+        password: formData.password,
+      });
 
-      const userCredential = await signInWithEmailAndPassword(auth, formData.email, formData.password);
-      
-      // Check user role and redirect accordingly
-      let redirectPath = '/client/home'; // Default to client home
-      
-      if (db) {
-        try {
-          // Check in /accounts/client/users/{userId} first (for clients)
-          const clientDoc = await getDoc(doc(collection(db, 'accounts', 'client', 'users'), userCredential.user.uid));
-          if (clientDoc.exists()) {
-            const userData = clientDoc.data();
-            // Redirect based on role: admin -> /admin, client -> /client/home
-            if (userData.role === 'admin') {
-              redirectPath = '/admin';
-            } else {
-              redirectPath = '/client/home';
-            }
-          } else {
-            // Check in /accounts/admin/users/{userId} for admin users
-            const adminDoc = await getDoc(doc(collection(db, 'accounts', 'admin', 'users'), userCredential.user.uid));
-            if (adminDoc.exists()) {
-              redirectPath = '/admin';
-            }
-            // If neither exists, default to client home
-          }
-        } catch (error) {
-          console.error('Error fetching user role:', error);
-          // If error, default to client home
+      if (response.success && response.data) {
+        // Store tokens in localStorage or sessionStorage
+        if (response.data.idToken) {
+          localStorage.setItem('idToken', response.data.idToken);
+          localStorage.setItem('refreshToken', response.data.refreshToken);
+          localStorage.setItem('user', JSON.stringify({
+            uid: response.data.uid,
+            email: response.data.email,
+            role: response.data.role,
+          }));
         }
+
+        // Success - close modal and redirect based on role
+        onClose();
+        router.push(response.data.redirectPath || '/client/home');
+      } else {
+        setError(response.message || 'Login failed. Please try again.');
       }
-      
-      // Success - close modal and redirect based on role
-      onClose();
-      router.push(redirectPath);
     } catch (error) {
       console.error('Login error:', error);
       
-      // Handle specific Firebase errors
+      // Handle API errors
       let errorMessage = 'An error occurred during login. Please try again.';
       
-      if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email address.';
-      } else if (error.code === 'auth/user-disabled') {
-        errorMessage = 'This account has been disabled.';
-      } else if (error.code === 'auth/user-not-found') {
-        errorMessage = 'No account found with this email.';
-      } else if (error.code === 'auth/wrong-password') {
-        errorMessage = 'Incorrect password.';
-      } else if (error.code === 'auth/invalid-credential') {
-        errorMessage = 'Invalid email or password.';
-      } else if (error.code === 'auth/too-many-requests') {
-        errorMessage = 'Too many failed attempts. Please try again later.';
-      } else if (error.message) {
+      if (error.message) {
         errorMessage = error.message;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
       }
       
       setError(errorMessage);

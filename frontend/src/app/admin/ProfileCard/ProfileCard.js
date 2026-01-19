@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { auth, db } from '@/lib/firebase';
-import { doc, getDoc } from 'firebase/firestore';
+import { api } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
 export default function ProfileCard({ onClick }) {
@@ -12,23 +11,25 @@ export default function ProfileCard({ onClick }) {
 
   useEffect(() => {
     const fetchAdminData = async () => {
-      if (!auth || !db) {
-        setLoading(false);
-        return;
-      }
-      
       try {
-        const user = auth.currentUser;
-        if (!user) {
+        // Get user from localStorage
+        const userStr = localStorage.getItem('user');
+        if (!userStr) {
           setLoading(false);
           return;
         }
 
-        const adminDocRef = doc(db, 'accounts', 'admin', 'users', user.uid);
-        const adminDoc = await getDoc(adminDocRef);
+        const user = JSON.parse(userStr);
+        if (!user?.uid) {
+          setLoading(false);
+          return;
+        }
+
+        // Fetch admin data from backend
+        const response = await api.get(`/api/accounts/admin/users/${user.uid}`);
         
-        if (adminDoc.exists()) {
-          setAdminData(adminDoc.data());
+        if (response.success && response.data) {
+          setAdminData(response.data);
         }
       } catch (error) {
         console.error('Error fetching admin data:', error);
@@ -37,20 +38,7 @@ export default function ProfileCard({ onClick }) {
       }
     };
 
-    if (auth) {
-      const unsubscribe = auth.onAuthStateChanged((user) => {
-        if (user) {
-          fetchAdminData();
-        } else {
-          setAdminData(null);
-          setLoading(false);
-        }
-      });
-
-      return () => unsubscribe();
-    } else {
-      setLoading(false);
-    }
+    fetchAdminData();
   }, []);
 
   const firstName = adminData?.firstName || 'Admin';

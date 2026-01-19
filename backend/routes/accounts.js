@@ -1,92 +1,47 @@
 import express from 'express';
+import {
+  getAllClientUsers,
+  getClientUser,
+  getAdminUser,
+  createAdminUser,
+  updateAdminUser,
+  getAllDeskRequests,
+  getUserDeskRequest,
+  updateDeskRequest,
+  deleteDeskRequest
+} from '../controllers/accountsController.js';
+// import { authenticate, isAdmin } from '../middlewares/auth.js';
+
 const router = express.Router();
 
-// TODO: Import controllers and middleware when ready to connect
-// import { authenticate } from '../middleware/auth.js';
-// import {
-//   getClientUser,
-//   createClientUser,
-//   updateClientUser,
-//   deleteClientUser,
-//   getAdminUser,
-//   createAdminUser,
-//   updateAdminUser,
-//   deleteAdminUser
-// } from '../controllers/accountsController.js';
-
 // Client users routes
+// GET /api/accounts/client/users - Get all client users
+router.get('/client/users', getAllClientUsers);
+
 // GET /api/accounts/client/users/:userId
-router.get('/client/users/:userId', async (req, res) => {
-  // TODO: Implement getClientUser
-  res.json({ message: 'Get client user - Not implemented yet' });
-});
-
-// POST /api/accounts/client/users/:userId
-router.post('/client/users/:userId', async (req, res) => {
-  // TODO: Implement createClientUser
-  res.json({ message: 'Create client user - Not implemented yet' });
-});
-
-// PUT /api/accounts/client/users/:userId
-router.put('/client/users/:userId', async (req, res) => {
-  // TODO: Implement updateClientUser
-  res.json({ message: 'Update client user - Not implemented yet' });
-});
-
-// DELETE /api/accounts/client/users/:userId
-router.delete('/client/users/:userId', async (req, res) => {
-  // TODO: Implement deleteClientUser
-  res.json({ message: 'Delete client user - Not implemented yet' });
-});
+router.get('/client/users/:userId', getClientUser);
 
 // Admin users routes
 // GET /api/accounts/admin/users/:userId
-router.get('/admin/users/:userId', async (req, res) => {
-  // TODO: Implement getAdminUser
-  res.json({ message: 'Get admin user - Not implemented yet' });
-});
+router.get('/admin/users/:userId', getAdminUser);
 
-// POST /api/accounts/admin/users/:userId
-router.post('/admin/users/:userId', async (req, res) => {
-  // TODO: Implement createAdminUser
-  res.json({ message: 'Create admin user - Not implemented yet' });
-});
+// POST /api/accounts/admin/users - Create admin user
+router.post('/admin/users', createAdminUser); // Add authenticate, isAdmin middleware later
 
 // PUT /api/accounts/admin/users/:userId
-router.put('/admin/users/:userId', async (req, res) => {
-  // TODO: Implement updateAdminUser
-  res.json({ message: 'Update admin user - Not implemented yet' });
-});
+router.put('/admin/users/:userId', updateAdminUser); // Add authenticate middleware later
 
-// DELETE /api/accounts/admin/users/:userId
-router.delete('/admin/users/:userId', async (req, res) => {
-  // TODO: Implement deleteAdminUser
-  res.json({ message: 'Delete admin user - Not implemented yet' });
-});
+// Desk requests routes
+// GET /api/accounts/desk-requests - Get all desk requests
+router.get('/desk-requests', getAllDeskRequests);
 
-// Client requests routes (subcollection)
-// GET /api/accounts/client/users/:userId/request/:requestType
-router.get('/client/users/:userId/request/:requestType', async (req, res) => {
-  // TODO: Implement getRequest
-  res.json({ message: 'Get request - Not implemented yet' });
-});
+// GET /api/accounts/client/users/:userId/request/desk - Get user desk request
+router.get('/client/users/:userId/request/desk', getUserDeskRequest);
 
-// POST /api/accounts/client/users/:userId/request/:requestType
-router.post('/client/users/:userId/request/:requestType', async (req, res) => {
-  // TODO: Implement createRequest
-  res.json({ message: 'Create request - Not implemented yet' });
-});
+// PUT /api/accounts/client/users/:userId/request/desk - Update desk request
+router.put('/client/users/:userId/request/desk', updateDeskRequest);
 
-// PUT /api/accounts/client/users/:userId/request/:requestType
-router.put('/client/users/:userId/request/:requestType', async (req, res) => {
-  // TODO: Implement updateRequest
-  res.json({ message: 'Update request - Not implemented yet' });
-});
-
-// DELETE /api/accounts/client/users/:userId/request/:requestType
-router.delete('/client/users/:userId/request/:requestType', async (req, res) => {
-  // TODO: Implement deleteRequest
-  res.json({ message: 'Delete request - Not implemented yet' });
-});
+// DELETE /api/accounts/client/users/:userId/request/desk - Delete desk request
+router.delete('/client/users/:userId/request/desk', deleteDeskRequest);
 
 export default router;

@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { db } from '@/lib/firebase';
-import { collection, addDoc, onSnapshot, deleteDoc, doc } from 'firebase/firestore';
+import { api } from '@/lib/api';
 
 export default function VirtualOffice() {
   const [clients, setClients] = useState([]);
@@ -33,13 +32,24 @@ export default function VirtualOffice() {
     setMounted(true);
   }, []);
 
-  // Fetch clients from Firebase
+  // Fetch clients from backend
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'virtual-office-clients'), (snapshot) => {
-      const clientsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setClients(clientsData);
-    });
-    return () => unsubscribe();
+    const fetchClients = async () => {
+      try {
+        const response = await api.get('/api/virtual-office');
+        if (response.success && response.data) {
+          setClients(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching clients:', error);
+      }
+    };
+
+    fetchClients();
+    
+    // Poll for updates every 30 seconds
+    const interval = setInterval(fetchClients, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const handleChange = (e) => {
@@ -56,15 +66,26 @@ export default function VirtualOffice() {
         email: formData.email.trim(),
         position: formData.position.trim(),
         phoneNumber: formData.phoneNumber.trim(),
-        dateStart: formData.dateStart,
-        createdAt: new Date().toISOString()
+        dateStart: formData.dateStart
       };
-      await addDoc(collection(db, 'virtual-office-clients'), clientData);
-      resetForm();
-      setShowFormModal(false);
+      
+      const response = await api.post('/api/virtual-office', clientData);
+      
+      if (response.success) {
+        resetForm();
+        setShowFormModal(false);
+        showToast('Client added successfully!', 'success');
+        // Refresh clients list
+        const clientsResponse = await api.get('/api/virtual-office');
+        if (clientsResponse.success && clientsResponse.data) {
+          setClients(clientsResponse.data);
+        }
+      } else {
+        showToast(response.message || 'Failed to save client. Please try again.', 'error');
+      }
     } catch (error) {
       console.error('Error saving client:', error);
-      showToast('Failed to save client. Please try again.', 'error');
+      showToast(error.message || 'Failed to save client. Please try again.', 'error');
     } finally {
       setLoading(false);
     }
@@ -97,11 +118,21 @@ export default function VirtualOffice() {
     setDeleteClientId(clientId);
     setConfirmAction(() => async () => {
       try {
-        await deleteDoc(doc(db, 'virtual-office-clients', clientId));
-        showToast('Client deleted successfully!', 'success');
+        const response = await api.delete(`/api/virtual-office/${clientId}`);
+        
+        if (response.success) {
+          showToast('Client deleted successfully!', 'success');
+          // Refresh clients list
+          const clientsResponse = await api.get('/api/virtual-office');
+          if (clientsResponse.success && clientsResponse.data) {
+            setClients(clientsResponse.data);
+          }
+        } else {
+          showToast(response.message || 'Failed to delete client. Please try again.', 'error');
+        }
       } catch (error) {
         console.error('Error deleting client:', error);
-        showToast('Failed to delete client. Please try again.', 'error');
+        showToast(error.message || 'Failed to delete client. Please try again.', 'error');
       }
       setShowConfirmDialog(false);
       setDeleteClientId(null);

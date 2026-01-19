@@ -2,9 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase';
-import { collection, doc, setDoc } from 'firebase/firestore';
+import { api } from '@/lib/api';
 import { motion } from 'framer-motion';
 
 export default function AdminRegisterPage() {
@@ -40,53 +38,31 @@ export default function AdminRegisterPage() {
     setLoading(true);
 
     try {
-      if (!auth) {
-        throw new Error('Firebase authentication is not initialized. Please check your environment variables.');
-      }
-
-      if (!db) {
-        throw new Error('Firebase Firestore is not initialized. Please check your environment variables.');
-      }
-
-      // Create admin account
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        formData.email,
-        formData.password
-      );
-
-      // Save admin data to Firestore at /accounts/admin/{userId}
-      // All admin registrations are saved to /accounts/admin path
-      const adminDoc = {
+      // Call backend API to create admin user
+      const response = await api.post('/api/accounts/admin/users', {
+        email: formData.email,
+        password: formData.password,
         firstName: formData.firstName,
         lastName: formData.lastName,
-        email: formData.email,
-        createdAt: new Date().toISOString(),
-        role: 'admin', // All registrations here are admin
-      };
+        role: 'admin'
+      });
 
-      // Save to /accounts/admin/users/{userId}
-      // Structure: accounts (collection) > admin (document) > users (subcollection) > {userId} (document)
-      await setDoc(doc(collection(db, 'accounts', 'admin', 'users'), userCredential.user.uid), adminDoc);
-
-      // Success - redirect to admin dashboard
-      router.push('/admin');
+      if (response.success) {
+        // Success - redirect to admin dashboard
+        router.push('/admin');
+      } else {
+        setError(response.message || 'Registration failed. Please try again.');
+      }
     } catch (error) {
       console.error('Admin registration error:', error);
       
-      // Handle specific Firebase errors
+      // Handle API errors
       let errorMessage = 'An error occurred during registration. Please try again.';
       
-      if (error.code === 'auth/email-already-in-use') {
-        errorMessage = 'This email is already registered. Please use a different email or log in.';
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email address.';
-      } else if (error.code === 'auth/operation-not-allowed') {
-        errorMessage = 'Email/password accounts are not enabled. Please contact support.';
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = 'Password is too weak. Please choose a stronger password.';
-      } else if (error.message) {
+      if (error.message) {
         errorMessage = error.message;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
       }
       
       setError(errorMessage);

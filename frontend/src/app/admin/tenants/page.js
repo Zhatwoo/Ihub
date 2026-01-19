@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { db } from '@/lib/firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { api } from '@/lib/api';
 
 export default function Tenants() {
   const [privateOfficeTenants, setPrivateOfficeTenants] = useState([]);
@@ -10,74 +9,81 @@ export default function Tenants() {
   const [dedicatedDeskTenants, setDedicatedDeskTenants] = useState([]);
   const [selectedFilter, setSelectedFilter] = useState(null);
 
-  // Fetch Private Office tenants from schedules collection (active reservations)
+  // Fetch all tenant data from backend
   useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'schedules'), (snapshot) => {
-      const schedulesData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      // Filter for active tenants (status: active, upcoming, or ongoing)
-      const activeTenants = schedulesData
-        .filter(s => s.status === 'active' || s.status === 'upcoming' || s.status === 'ongoing')
-        .map(s => ({
-          id: s.id,
-          type: 'private-office',
-          name: s.clientName,
-          email: s.email,
-          phone: s.contactNumber,
-          office: s.room,
-          startDate: s.startDate,
-          status: s.status === 'upcoming' || s.status === 'ongoing' ? 'active' : s.status,
-          createdAt: s.createdAt
-        }));
-      setPrivateOfficeTenants(activeTenants);
-    });
-    return () => unsubscribe();
-  }, []);
+    const fetchTenants = async () => {
+      try {
+        // Fetch all data in parallel
+        const [schedulesResponse, virtualOfficeResponse, deskAssignmentsResponse] = await Promise.all([
+          api.get('/api/schedules'),
+          api.get('/api/virtual-office'),
+          api.get('/api/desk-assignments')
+        ]);
 
-  // Fetch Virtual Office tenants from virtual-office-clients collection
-  useEffect(() => {
-    const unsubscribe = onSnapshot(collection(db, 'virtual-office-clients'), (snapshot) => {
-      const clientsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      // Filter out inquiries, only show confirmed tenants (status is not 'inquiry')
-      const confirmedTenants = clientsData
-        .filter(c => c.status !== 'inquiry')
-        .map(c => ({
-          id: c.id,
-          type: 'virtual-office',
-          name: c.fullName,
-          email: c.email,
-          phone: c.phoneNumber,
-          company: c.company,
-          position: c.position,
-          startDate: c.dateStart || c.preferredStartDate,
-          status: c.status || 'active',
-          createdAt: c.createdAt
-        }));
-      setVirtualOfficeTenants(confirmedTenants);
-    });
-    return () => unsubscribe();
-  }, []);
+        // Process Private Office tenants
+        if (schedulesResponse.success && schedulesResponse.data) {
+          const activeTenants = schedulesResponse.data
+            .filter(s => s.status === 'active' || s.status === 'upcoming' || s.status === 'ongoing')
+            .map(s => ({
+              id: s.id,
+              type: 'private-office',
+              name: s.clientName,
+              email: s.email,
+              phone: s.contactNumber,
+              office: s.room,
+              startDate: s.startDate,
+              status: s.status === 'upcoming' || s.status === 'ongoing' ? 'active' : s.status,
+              createdAt: s.createdAt
+            }));
+          setPrivateOfficeTenants(activeTenants);
+        }
 
-  // Fetch Dedicated Desk tenants from desk-assignments collection
-  useEffect(() => {
-    if (!db) return;
-    const unsubscribe = onSnapshot(collection(db, 'desk-assignments'), (snapshot) => {
-      const assignmentsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const deskTenants = assignmentsData.map(assignment => ({
-        id: assignment.id,
-        type: 'dedicated-desk',
-        desk: assignment.desk,
-        name: assignment.name,
-        email: assignment.email,
-        phone: assignment.contactNumber,
-        occupantType: assignment.type,
-        company: assignment.company || null,
-        startDate: assignment.assignedAt,
-        status: 'active',
-        createdAt: assignment.assignedAt || assignment.createdAt
-      }));
-      setDedicatedDeskTenants(deskTenants);
-    });
-    return () => unsubscribe();
+        // Process Virtual Office tenants
+        if (virtualOfficeResponse.success && virtualOfficeResponse.data) {
+          const confirmedTenants = virtualOfficeResponse.data
+            .filter(c => c.status !== 'inquiry')
+            .map(c => ({
+              id: c.id,
+              type: 'virtual-office',
+              name: c.fullName,
+              email: c.email,
+              phone: c.phoneNumber,
+              company: c.company,
+              position: c.position,
+              startDate: c.dateStart || c.preferredStartDate,
+              status: c.status || 'active',
+              createdAt: c.createdAt
+            }));
+          setVirtualOfficeTenants(confirmedTenants);
+        }
+
+        // Process Dedicated Desk tenants
+        if (deskAssignmentsResponse.success && deskAssignmentsResponse.data) {
+          const deskTenants = deskAssignmentsResponse.data.map(assignment => ({
+            id: assignment.id,
+            type: 'dedicated-desk',
+            desk: assignment.desk,
+            name: assignment.name,
+            email: assignment.email,
+            phone: assignment.contactNumber,
+            occupantType: assignment.type,
+            company: assignment.company || null,
+            startDate: assignment.assignedAt,
+            status: 'active',
+            createdAt: assignment.assignedAt || assignment.createdAt
+          }));
+          setDedicatedDeskTenants(deskTenants);
+        }
+      } catch (error) {
+        console.error('Error fetching tenants:', error);
+      }
+    };
+
+    fetchTenants();
+    
+    // Poll for updates every 30 seconds
+    const interval = setInterval(fetchTenants, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   // Combine all tenants
