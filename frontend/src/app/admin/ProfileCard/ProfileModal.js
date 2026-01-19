@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { auth, db } from '@/lib/firebase';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { api } from '@/lib/api';
 
 export default function ProfileModal({ isOpen, onClose }) {
   const [adminData, setAdminData] = useState(null);
@@ -22,24 +21,30 @@ export default function ProfileModal({ isOpen, onClose }) {
   }, [isOpen]);
 
   const fetchAdminData = async () => {
-    if (!auth || !db) return;
-    
     setLoading(true);
     setError('');
     
     try {
-      const user = auth.currentUser;
-      if (!user) {
+      // Get user from localStorage
+      const userStr = localStorage.getItem('user');
+      if (!userStr) {
         setError('User not authenticated');
         setLoading(false);
         return;
       }
 
-      const adminDocRef = doc(db, 'accounts', 'admin', 'users', user.uid);
-      const adminDoc = await getDoc(adminDocRef);
+      const user = JSON.parse(userStr);
+      if (!user?.uid) {
+        setError('User not authenticated');
+        setLoading(false);
+        return;
+      }
+
+      // Fetch admin data from backend
+      const response = await api.get(`/api/accounts/admin/users/${user.uid}`);
       
-      if (adminDoc.exists()) {
-        const data = adminDoc.data();
+      if (response.success && response.data) {
+        const data = response.data;
         setAdminData(data);
         setFormData({
           firstName: data.firstName || '',
@@ -66,31 +71,39 @@ export default function ProfileModal({ isOpen, onClose }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!auth || !db) return;
 
     setSaving(true);
     setError('');
 
     try {
-      const user = auth.currentUser;
-      if (!user) {
+      // Get user from localStorage
+      const userStr = localStorage.getItem('user');
+      if (!userStr) {
         throw new Error('User not authenticated');
       }
 
-      const adminDocRef = doc(db, 'accounts', 'admin', 'users', user.uid);
-      await updateDoc(adminDocRef, {
+      const user = JSON.parse(userStr);
+      if (!user?.uid) {
+        throw new Error('User not authenticated');
+      }
+
+      // Update admin data via backend API
+      const response = await api.put(`/api/accounts/admin/users/${user.uid}`, {
         firstName: formData.firstName.trim(),
         lastName: formData.lastName.trim(),
         email: formData.email.trim(),
-        updatedAt: new Date().toISOString(),
       });
 
-      // Refresh admin data
-      await fetchAdminData();
-      onClose();
+      if (response.success) {
+        // Refresh admin data
+        await fetchAdminData();
+        onClose();
+      } else {
+        setError(response.message || 'Failed to update profile. Please try again.');
+      }
     } catch (error) {
       console.error('Error updating admin data:', error);
-      setError('Failed to update profile. Please try again.');
+      setError(error.message || 'Failed to update profile. Please try again.');
     } finally {
       setSaving(false);
     }

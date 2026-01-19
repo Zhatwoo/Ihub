@@ -26,13 +26,17 @@ export default function Bookings() {
 
   // Get current user and user info
   useEffect(() => {
-    if (!auth || !db) return;
+    if (!auth || !db) {
+      console.warn('⚠️  Firebase Auth or Firestore not initialized');
+      setLoading(false);
+      return;
+    }
     
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       
       // Fetch user info from Firestore
-      if (user) {
+      if (user && db) {
         try {
           // Try path: accounts/client/users/{userId}/info/details
           const userInfoRef = doc(db, 'accounts', 'client', 'users', user.uid, 'info', 'details');
@@ -125,6 +129,12 @@ export default function Bookings() {
     };
 
     // Fetch from desk-assignments collection
+    if (!db) {
+      console.error('❌ Firestore not initialized');
+      setLoading(false);
+      return;
+    }
+    
     const deskAssignmentsRef = collection(db, 'desk-assignments');
     const unsubscribeDesk = onSnapshot(deskAssignmentsRef, (snapshot) => {
       deskLoaded = true;
@@ -179,6 +189,11 @@ export default function Bookings() {
     });
 
     // Fetch from virtual-office-clients collection
+    if (!db) {
+      console.error('❌ Firestore not initialized');
+      return;
+    }
+    
     const virtualOfficeRef = collection(db, 'virtual-office-clients');
     const unsubscribeVirtualOffice = onSnapshot(virtualOfficeRef, (snapshot) => {
       virtualOfficeLoaded = true;
@@ -235,6 +250,11 @@ export default function Bookings() {
   // Fetch rooms to get rental fee information
   useEffect(() => {
     if (!db) return;
+    
+    if (!db) {
+      console.error('❌ Firestore not initialized');
+      return;
+    }
     
     const unsubscribe = onSnapshot(collection(db, 'rooms'), (snapshot) => {
       const roomsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));

@@ -5,16 +5,41 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
+// Log API URL in development (only once)
+if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+  console.log('🔗 API Client configured:', API_URL);
+}
+
+/**
+ * Get auth token from localStorage
+ */
+function getAuthToken() {
+  if (typeof window !== 'undefined') {
+    return localStorage.getItem('idToken');
+  }
+  return null;
+}
+
 /**
  * Handle API response and errors
  */
 async function handleResponse(response) {
   if (!response.ok) {
-    const error = await response.json().catch(() => ({
-      error: 'Network error',
-      message: response.statusText
-    }));
-    throw new Error(error.message || error.error || 'Request failed');
+    let error;
+    try {
+      error = await response.json();
+    } catch {
+      error = {
+        error: 'Network error',
+        message: response.statusText || 'Request failed'
+      };
+    }
+    
+    // Throw error with proper message
+    const errorMessage = error.message || error.error || 'Request failed';
+    const apiError = new Error(errorMessage);
+    apiError.response = { data: error, status: response.status };
+    throw apiError;
   }
   return response.json();
 }
@@ -30,15 +55,25 @@ export const api = {
    * @returns {Promise} JSON response
    */
   get: async (endpoint, options = {}) => {
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-      },
-      ...options
-    });
-    return handleResponse(response);
+    const token = getAuthToken();
+    try {
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+          ...options.headers
+        },
+        ...options
+      });
+      return handleResponse(response);
+    } catch (error) {
+      // Handle network errors (backend not running, CORS, etc.)
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        throw new Error(`Cannot connect to backend server at ${API_URL}. Please make sure the backend is running on port 5000.`);
+      }
+      throw error;
+    }
   },
 
   /**
@@ -49,16 +84,26 @@ export const api = {
    * @returns {Promise} JSON response
    */
   post: async (endpoint, data, options = {}) => {
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-      },
-      body: JSON.stringify(data),
-      ...options
-    });
-    return handleResponse(response);
+    const token = getAuthToken();
+    try {
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+          ...options.headers
+        },
+        body: JSON.stringify(data),
+        ...options
+      });
+      return handleResponse(response);
+    } catch (error) {
+      // Handle network errors (backend not running, CORS, etc.)
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        throw new Error(`Cannot connect to backend server at ${API_URL}. Please make sure the backend is running on port 5000.`);
+      }
+      throw error;
+    }
   },
 
   /**
@@ -69,16 +114,25 @@ export const api = {
    * @returns {Promise} JSON response
    */
   put: async (endpoint, data, options = {}) => {
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-      },
-      body: JSON.stringify(data),
-      ...options
-    });
-    return handleResponse(response);
+    const token = getAuthToken();
+    try {
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+          ...options.headers
+        },
+        body: JSON.stringify(data),
+        ...options
+      });
+      return handleResponse(response);
+    } catch (error) {
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        throw new Error(`Cannot connect to backend server at ${API_URL}. Please make sure the backend is running on port 5000.`);
+      }
+      throw error;
+    }
   },
 
   /**
@@ -89,16 +143,25 @@ export const api = {
    * @returns {Promise} JSON response
    */
   patch: async (endpoint, data, options = {}) => {
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-      },
-      body: JSON.stringify(data),
-      ...options
-    });
-    return handleResponse(response);
+    const token = getAuthToken();
+    try {
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+          ...options.headers
+        },
+        body: JSON.stringify(data),
+        ...options
+      });
+      return handleResponse(response);
+    } catch (error) {
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        throw new Error(`Cannot connect to backend server at ${API_URL}. Please make sure the backend is running on port 5000.`);
+      }
+      throw error;
+    }
   },
 
   /**
@@ -108,15 +171,24 @@ export const api = {
    * @returns {Promise} JSON response
    */
   delete: async (endpoint, options = {}) => {
-    const response = await fetch(`${API_URL}${endpoint}`, {
-      method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers
-      },
-      ...options
-    });
-    return handleResponse(response);
+    const token = getAuthToken();
+    try {
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+          ...options.headers
+        },
+        ...options
+      });
+      return handleResponse(response);
+    } catch (error) {
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        throw new Error(`Cannot connect to backend server at ${API_URL}. Please make sure the backend is running on port 5000.`);
+      }
+      throw error;
+    }
   },
 
   /**

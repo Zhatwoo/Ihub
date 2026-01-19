@@ -3,8 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { api } from '@/lib/api';
 import ProfileCard from './ProfileCard/ProfileCard';
 import ProfileModal from './ProfileCard/ProfileModal';
 
@@ -47,14 +46,19 @@ export default function AdminLayout({ children }) {
 
   const handleLogout = async () => {
     try {
-      if (auth) {
-        await signOut(auth);
-      }
+      // Clear localStorage tokens
+      localStorage.removeItem('idToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+      
       // Redirect to landing page after logout
       router.push('/');
     } catch (error) {
       console.error('Logout error:', error);
-      // Even if there's an error, redirect to landing page
+      // Even if there's an error, clear storage and redirect
+      localStorage.removeItem('idToken');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
       router.push('/');
     }
   };
