@@ -1,39 +1,47 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { db } from '@/lib/firebase';
-import { collection, onSnapshot } from 'firebase/firestore';
+import { api } from '@/lib/api';
 
-// Custom hook to fetch private offices from Firebase
+// Custom hook to fetch private offices from backend API
 export function usePrivateOffices() {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!db) {
-      setLoading(false);
-      return;
-    }
+    const fetchRooms = async () => {
+      try {
+        // Fetch all rooms - backend ensures all admin-created rooms are visible to all clients
+        const response = await api.get('/api/rooms');
+        if (response.success && response.data) {
+          // Map all rooms - no client-specific filtering needed
+          const roomsData = response.data.map(room => ({
+            id: room.id,
+            name: room.name || 'Private Office',
+            title: room.name || 'Private Office',
+            description: room.inclusions || 'Modern, well-equipped private office designed for productivity and comfort.',
+            image: room.image || '/rooms/default.png',
+            rating: 4.95, // Default rating
+            badge: 'Guest favorite',
+            rentFee: room.rentFee || 0,
+            currency: room.currency || 'PHP',
+            rentFeePeriod: room.rentFeePeriod || 'per hour',
+            inclusions: room.inclusions || ''
+          }));
+          setRooms(roomsData);
+        }
+      } catch (error) {
+        console.error('Error fetching rooms:', error);
+        setRooms([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    const unsubscribe = onSnapshot(collection(db, 'rooms'), (snapshot) => {
-      const roomsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        name: doc.data().name || 'Private Office',
-        title: doc.data().name || 'Private Office',
-        description: doc.data().inclusions || 'Modern, well-equipped private office designed for productivity and comfort.',
-        image: doc.data().image || '/rooms/default.png',
-        rating: 4.95, // Default rating
-        badge: 'Guest favorite',
-        rentFee: doc.data().rentFee || 0,
-        currency: doc.data().currency || 'PHP',
-        rentFeePeriod: doc.data().rentFeePeriod || 'per hour',
-        inclusions: doc.data().inclusions || ''
-      }));
-      setRooms(roomsData);
-      setLoading(false);
-    });
-
-    return () => unsubscribe();
+    fetchRooms();
+    // Poll for updates every 30 seconds
+    const interval = setInterval(fetchRooms, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   return { rooms, loading };

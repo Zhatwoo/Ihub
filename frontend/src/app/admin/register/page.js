@@ -149,14 +149,14 @@ export default function AdminRegisterPage() {
           {/* Email Field */}
           <div>
             <label
-              htmlFor="email"
+              htmlFor="register-email"
               className="block text-slate-800 font-semibold mb-2 text-sm"
             >
               Email
             </label>
             <input
               type="email"
-              id="email"
+              id="register-email"
               name="email"
               value={formData.email}
               onChange={handleChange}

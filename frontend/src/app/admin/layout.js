@@ -6,6 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import ProfileCard from './ProfileCard/ProfileCard';
 import ProfileModal from './ProfileCard/ProfileModal';
+import AdminAuthGuard from '@/components/AdminAuthGuard';
 
 // Modern desk SVG icon component
 const DeskIcon = ({ className }) => (
@@ -46,24 +47,29 @@ export default function AdminLayout({ children }) {
 
   const handleLogout = async () => {
     try {
-      // Clear localStorage tokens
-      localStorage.removeItem('idToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
+      // Clear localStorage tokens (only in browser)
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('idToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+      }
       
       // Redirect to landing page after logout
       router.push('/');
     } catch (error) {
       console.error('Logout error:', error);
       // Even if there's an error, clear storage and redirect
-      localStorage.removeItem('idToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('idToken');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+      }
       router.push('/');
     }
   };
 
   return (
+    <AdminAuthGuard>
     <div className="flex min-h-screen bg-slate-50">
       {/* Mobile overlay */}
       {!isRegisterPage && sidebarOpen && (
@@ -164,5 +170,6 @@ export default function AdminLayout({ children }) {
       {/* Profile Modal */}
       <ProfileModal isOpen={showProfileModal} onClose={() => setShowProfileModal(false)} />
     </div>
+    </AdminAuthGuard>
   );
 }

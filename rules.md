@@ -1,5 +1,19 @@
 rules_version = '2';
 
+// ============================================
+// IMPORTANT: BACKEND API ARCHITECTURE
+// ============================================
+// Note: The application uses a backend API (Express.js) with Firebase Admin SDK
+// instead of direct client-side Firestore access. The frontend communicates with
+// the backend API which then interacts with Firestore using Admin SDK privileges.
+// 
+// These Firestore security rules serve as a secondary layer of protection and
+// are primarily enforced for direct Firestore access (if any remains in the codebase).
+// The primary authorization logic is handled in the backend controllers.
+//
+// Data Flow: Frontend -> Backend API -> Firebase Admin SDK -> Firestore
+// ============================================
+
 service cloud.firestore {
   match /databases/{database}/documents {
     

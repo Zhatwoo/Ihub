@@ -108,14 +108,14 @@ export default function LoginModal({ isOpen, onClose, onSwitchToSignUp }) {
                 {/* Email Field */}
                 <div>
                   <label
-                    htmlFor="email"
+                    htmlFor="login-email"
                     className="block text-[#0F766E] font-semibold mb-2"
                   >
                     Email:
                   </label>
                   <input
                     type="email"
-                    id="email"
+                    id="login-email"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
