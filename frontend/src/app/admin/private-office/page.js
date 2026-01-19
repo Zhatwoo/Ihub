@@ -28,6 +28,21 @@ export default function PrivateOffice() {
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
+  const [confirmDialogData, setConfirmDialogData] = useState({ type: '', title: '', message: '' });
+  const [showEditTenantModal, setShowEditTenantModal] = useState(false);
+  const [editingTenant, setEditingTenant] = useState(null);
+  const [tenantFormData, setTenantFormData] = useState({
+    clientName: '',
+    email: '',
+    contactNumber: '',
+    room: '',
+    startDate: '',
+    endDate: '',
+    startTime: '',
+    endTime: '',
+    notes: '',
+    status: 'approved'
+  });
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
@@ -76,23 +91,29 @@ export default function PrivateOffice() {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch schedules from backend
+  // Fetch schedules from backend with real-time updates
   useEffect(() => {
     const fetchSchedules = async () => {
       try {
         const response = await api.get('/api/schedules');
         if (response.success && response.data) {
-          setSchedules(response.data);
+          // Filter for private room bookings only
+          const privateOfficeBookings = response.data.filter(
+            schedule => schedule.requestType === 'privateroom' || 
+                       (!schedule.requestType && schedule.room && schedule.roomId) // Backwards compatibility
+          );
+          setSchedules(privateOfficeBookings);
         }
       } catch (error) {
         console.error('Error fetching schedules:', error);
       }
     };
 
+    // Initial fetch
     fetchSchedules();
     
-    // Poll for updates every 30 seconds
-    const interval = setInterval(fetchSchedules, 30000);
+    // Real-time polling: Update every 2 seconds for instant reflection
+    const interval = setInterval(fetchSchedules, 2000);
     return () => clearInterval(interval);
   }, []);
 
@@ -182,8 +203,14 @@ export default function PrivateOffice() {
 
   const handleDelete = async () => {
     if (!selectedRoom) return;
+    setConfirmDialogData({
+      type: 'office',
+      title: 'Delete Office',
+      message: `Are you sure you want to delete "${selectedRoom.name}"? This will permanently remove the office and all associated data. This action cannot be undone.`
+    });
     setConfirmAction(() => async () => {
       try {
+        setLoading(true);
         const response = await api.delete(`/api/rooms/${selectedRoom.id}`);
         
         if (response.success) {
@@ -201,8 +228,12 @@ export default function PrivateOffice() {
       } catch (error) {
         console.error('Error deleting office:', error);
         showToast(error.message || 'Failed to delete office', 'error');
+      } finally {
+        setLoading(false);
+        setShowConfirmDialog(false);
+        setConfirmAction(null);
+        setConfirmDialogData({ type: '', title: '', message: '' });
       }
-      setShowConfirmDialog(false);
     });
     setShowConfirmDialog(true);
   };
@@ -212,43 +243,225 @@ export default function PrivateOffice() {
   const openViewModal = (room) => { setSelectedRoom(room); setShowViewModal(true); };
   const closeViewModal = () => { setShowViewModal(false); setSelectedRoom(null); };
 
-  const handleApprove = async (id) => {
+  const handleApprove = async (request) => {
+    if (!confirm(`Are you sure you want to approve the booking request from ${request.clientName} for ${request.room}?`)) {
+      return;
+    }
+
     try {
-      const response = await api.put(`/api/schedules/${id}`, { status: 'active' });
+      const response = await api.put(`/api/schedules/${request.id}`, { 
+        status: 'approved',
+        approvedAt: new Date().toISOString(),
+        approvedBy: 'admin'
+      });
+      
       if (response.success) {
-        // Refresh schedules
-        const schedulesResponse = await api.get('/api/schedules');
-        if (schedulesResponse.success && schedulesResponse.data) {
-          setSchedules(schedulesResponse.data);
-        }
+        // Immediately remove from UI (optimistic update)
+        setSchedules(prevSchedules => prevSchedules.filter(s => s.id !== request.id));
+        
+        // Show success message
+        showToast(`Booking request from ${request.clientName} has been approved!`, 'success');
+        
+        // Refresh schedules for consistency
+        setTimeout(async () => {
+          try {
+            const schedulesResponse = await api.get('/api/schedules');
+            if (schedulesResponse.success && schedulesResponse.data) {
+              const privateOfficeBookings = schedulesResponse.data.filter(
+                schedule => schedule.requestType === 'privateroom' || 
+                           (!schedule.requestType && schedule.room && schedule.roomId)
+              );
+              setSchedules(privateOfficeBookings);
+            }
+          } catch (error) {
+            console.error('Error refreshing schedules:', error);
+          }
+        }, 500);
+      } else {
+        showToast(response.message || 'Failed to approve request', 'error');
       }
     } catch (error) {
       console.error('Error approving request:', error);
+      showToast(error.message || 'Failed to approve request. Please try again.', 'error');
     }
   };
 
-  const handleReject = async (id) => {
+  // Edit tenant booking
+  const openEditTenantModal = (tenant) => {
+    setEditingTenant(tenant);
+    setTenantFormData({
+      clientName: tenant.clientName || '',
+      email: tenant.email || '',
+      contactNumber: tenant.contactNumber || '',
+      room: tenant.room || '',
+      startDate: tenant.startDate ? tenant.startDate.split('T')[0] : '',
+      endDate: tenant.endDate ? tenant.endDate.split('T')[0] : '',
+      startTime: tenant.startTime || '',
+      endTime: tenant.endTime || '',
+      notes: tenant.notes || '',
+      status: tenant.status || 'approved'
+    });
+    setShowEditTenantModal(true);
+  };
+
+  const closeEditTenantModal = () => {
+    setShowEditTenantModal(false);
+    setEditingTenant(null);
+    setTenantFormData({
+      clientName: '',
+      email: '',
+      contactNumber: '',
+      room: '',
+      startDate: '',
+      endDate: '',
+      startTime: '',
+      endTime: '',
+      notes: '',
+      status: 'approved'
+    });
+  };
+
+  const handleUpdateTenant = async () => {
+    if (!editingTenant) return;
+
     try {
-      const response = await api.put(`/api/schedules/${id}`, { status: 'rejected' });
+      setLoading(true);
+      const updateData = {
+        ...tenantFormData,
+        updatedAt: new Date().toISOString()
+      };
+
+      const response = await api.put(`/api/schedules/${editingTenant.id}`, updateData);
+      
       if (response.success) {
+        showToast(`Tenant booking for ${tenantFormData.clientName} has been updated!`, 'success');
+        closeEditTenantModal();
+        
         // Refresh schedules
-        const schedulesResponse = await api.get('/api/schedules');
-        if (schedulesResponse.success && schedulesResponse.data) {
-          setSchedules(schedulesResponse.data);
+        setTimeout(async () => {
+          try {
+            const schedulesResponse = await api.get('/api/schedules');
+            if (schedulesResponse.success && schedulesResponse.data) {
+              const privateOfficeBookings = schedulesResponse.data.filter(
+                schedule => schedule.requestType === 'privateroom' || 
+                           (!schedule.requestType && schedule.room && schedule.roomId)
+              );
+              setSchedules(privateOfficeBookings);
+            }
+          } catch (error) {
+            console.error('Error refreshing schedules:', error);
+          }
+        }, 500);
+      } else {
+        showToast(response.message || 'Failed to update tenant booking', 'error');
+      }
+    } catch (error) {
+      console.error('Error updating tenant:', error);
+      showToast(error.message || 'Failed to update tenant booking. Please try again.', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Delete tenant booking
+  const handleDeleteTenant = (tenant) => {
+    setConfirmDialogData({
+      type: 'tenant',
+      title: 'Delete Tenant Booking',
+      message: `Are you sure you want to delete the booking for ${tenant.clientName}? This will permanently remove their private office reservation. This action cannot be undone.`
+    });
+    setConfirmAction(async () => {
+      try {
+        setLoading(true);
+        const response = await api.delete(`/api/schedules/${tenant.id}`);
+        
+        if (response.success) {
+          // Immediately remove from UI (optimistic update)
+          setSchedules(prevSchedules => prevSchedules.filter(s => s.id !== tenant.id));
+          showToast(`Tenant booking for ${tenant.clientName} has been deleted!`, 'success');
+          
+          // Refresh schedules for consistency
+          setTimeout(async () => {
+            try {
+              const schedulesResponse = await api.get('/api/schedules');
+              if (schedulesResponse.success && schedulesResponse.data) {
+                const privateOfficeBookings = schedulesResponse.data.filter(
+                  schedule => schedule.requestType === 'privateroom' || 
+                             (!schedule.requestType && schedule.room && schedule.roomId)
+                );
+                setSchedules(privateOfficeBookings);
+              }
+            } catch (error) {
+              console.error('Error refreshing schedules:', error);
+            }
+          }, 500);
+        } else {
+          showToast(response.message || 'Failed to delete tenant booking', 'error');
         }
+      } catch (error) {
+        console.error('Error deleting tenant:', error);
+        showToast(error.message || 'Failed to delete tenant booking. Please try again.', 'error');
+      } finally {
+        setLoading(false);
+        setShowConfirmDialog(false);
+        setConfirmAction(null);
+        setConfirmDialogData({ type: '', title: '', message: '' });
+      }
+    });
+    setShowConfirmDialog(true);
+  };
+
+  const handleReject = async (request) => {
+    if (!confirm(`Are you sure you want to reject the booking request from ${request.clientName} for ${request.room}?`)) {
+      return;
+    }
+
+    try {
+      const response = await api.put(`/api/schedules/${request.id}`, { 
+        status: 'rejected',
+        rejectedAt: new Date().toISOString(),
+        rejectedBy: 'admin'
+      });
+      
+      if (response.success) {
+        // Immediately remove from UI (optimistic update)
+        setSchedules(prevSchedules => prevSchedules.filter(s => s.id !== request.id));
+        
+        // Show success message
+        showToast(`Booking request from ${request.clientName} has been rejected.`, 'success');
+        
+        // Refresh schedules for consistency
+        setTimeout(async () => {
+          try {
+            const schedulesResponse = await api.get('/api/schedules');
+            if (schedulesResponse.success && schedulesResponse.data) {
+              const privateOfficeBookings = schedulesResponse.data.filter(
+                schedule => schedule.requestType === 'privateroom' || 
+                           (!schedule.requestType && schedule.room && schedule.roomId)
+              );
+              setSchedules(privateOfficeBookings);
+            }
+          } catch (error) {
+            console.error('Error refreshing schedules:', error);
+          }
+        }, 500);
+      } else {
+        showToast(response.message || 'Failed to reject request', 'error');
       }
     } catch (error) {
       console.error('Error rejecting request:', error);
+      showToast(error.message || 'Failed to reject request. Please try again.', 'error');
     }
   };
 
   const filteredRooms = rooms.filter(room => room.name.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const getSchedulesByStatus = (status) => {
+    // All schedules are already filtered to private office bookings only
     if (status === 'total') return schedules;
     if (status === 'active') {
       // Active includes both upcoming and ongoing
-      return schedules.filter(s => s.status === 'upcoming' || s.status === 'ongoing' || s.status === 'active');
+      return schedules.filter(s => s.status === 'upcoming' || s.status === 'ongoing' || s.status === 'active' || s.status === 'approved');
     }
     return schedules.filter(s => s.status === status);
   };
@@ -305,9 +518,9 @@ export default function PrivateOffice() {
       <h1 className="text-slate-800 text-2xl sm:text-3xl font-bold mb-3 sm:mb-4 animate-slideInLeft">Private Office</h1>
       
       <div className="flex flex-wrap gap-1 mb-4 sm:mb-6 border-b-2 border-gray-200">
-        {['rooms', 'requests', 'schedule'].map(tab => (
+        {['rooms', 'requests', 'tenants', 'schedule'].map(tab => (
           <button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 sm:px-6 py-2.5 sm:py-3.5 text-xs sm:text-sm font-medium transition-all border-b-[3px] -mb-0.5 whitespace-nowrap ${activeTab === tab ? 'text-slate-800 border-teal-600' : 'text-gray-500 border-transparent hover:text-slate-800 hover:bg-slate-800/5'}`}>
-            {tab === 'rooms' ? 'Private Offices' : tab === 'requests' ? 'Request List' : 'Schedule'}
+            {tab === 'rooms' ? 'Private Offices' : tab === 'requests' ? 'Request List' : tab === 'tenants' ? 'Tenants' : 'Schedule'}
           </button>
         ))}
       </div>
@@ -351,10 +564,12 @@ export default function PrivateOffice() {
                 <h2 className="text-slate-800 text-lg sm:text-xl font-bold">Pending Requests</h2>
                 <p className="text-gray-500 text-xs sm:text-sm mt-0.5">Review and manage reservation requests</p>
               </div>
-              <span className="px-3 sm:px-4 py-1.5 sm:py-2 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-lg text-xs sm:text-sm font-semibold whitespace-nowrap">{schedules.filter(s => s.status === 'pending').length} pending</span>
+              <span className="px-3 sm:px-4 py-1.5 sm:py-2 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-lg text-xs sm:text-sm font-semibold whitespace-nowrap">
+                {schedules.filter(s => s.status === 'pending' && (s.requestType === 'privateroom' || (!s.requestType && s.room && s.roomId))).length} pending
+              </span>
             </div>
             
-            {schedules.filter(s => s.status === 'pending').length === 0 ? (
+            {schedules.filter(s => s.status === 'pending' && (s.requestType === 'privateroom' || (!s.requestType && s.room && s.roomId))).length === 0 ? (
               <div className="text-center py-12 sm:py-16 bg-gray-50 rounded-xl border border-gray-200">
                 <div className="w-12 h-12 sm:w-16 sm:h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4">
                   <svg className="w-6 h-6 sm:w-8 sm:h-8 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -362,7 +577,7 @@ export default function PrivateOffice() {
                   </svg>
                 </div>
                 <p className="text-slate-800 font-semibold text-base sm:text-lg">No Pending Requests</p>
-                <p className="text-gray-500 text-xs sm:text-sm mt-1">All reservation requests have been processed</p>
+                <p className="text-gray-500 text-xs sm:text-sm mt-1">All private office reservation requests have been processed</p>
               </div>
             ) : (
               <div className="overflow-x-auto rounded-xl border border-gray-200">
@@ -380,7 +595,7 @@ export default function PrivateOffice() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {schedules.filter(s => s.status === 'pending').map((request) => (
+                    {schedules.filter(s => s.status === 'pending' && (s.requestType === 'privateroom' || (!s.requestType && s.room && s.roomId))).map((request) => (
                       <tr key={request.id} className="bg-gray-50 hover:bg-gray-100 transition-colors">
                         <td className="px-3 sm:px-4 py-3 sm:py-4">
                           <p className="text-slate-800 font-semibold text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none" title={request.clientName}>{request.clientName}</p>
@@ -404,13 +619,167 @@ export default function PrivateOffice() {
                         </td>
                         <td className="px-3 sm:px-4 py-3 sm:py-4">
                           <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap">
-                            <button onClick={() => handleApprove(request.id)} className="px-2 sm:px-3 py-1 sm:py-1.5 bg-green-600 text-white rounded-lg text-[10px] xs:text-xs font-semibold hover:bg-green-700 transition-colors whitespace-nowrap">Approve</button>
-                            <button onClick={() => handleReject(request.id)} className="px-2 sm:px-3 py-1 sm:py-1.5 bg-red-600 text-white rounded-lg text-[10px] xs:text-xs font-semibold hover:bg-red-700 transition-colors whitespace-nowrap">Reject</button>
+                            <button 
+                              onClick={() => handleApprove(request)} 
+                              className="px-2 sm:px-3 py-1 sm:py-1.5 bg-green-600 text-white rounded-lg text-[10px] xs:text-xs font-semibold hover:bg-green-700 transition-colors whitespace-nowrap flex items-center gap-1"
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                              </svg>
+                              Approve
+                            </button>
+                            <button 
+                              onClick={() => handleReject(request)} 
+                              className="px-2 sm:px-3 py-1 sm:py-1.5 bg-red-600 text-white rounded-lg text-[10px] xs:text-xs font-semibold hover:bg-red-700 transition-colors whitespace-nowrap flex items-center gap-1"
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                              Reject
+                            </button>
                           </div>
                         </td>
                       </tr>
                     ))}
                   </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {activeTab === 'tenants' && (
+          <div className="flex flex-col gap-4 sm:gap-5 lg:gap-6 animate-fadeIn">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-gray-200 gap-3 sm:gap-0">
+              <div>
+                <h2 className="text-slate-800 text-lg sm:text-xl font-bold">Private Office Tenants</h2>
+                <p className="text-gray-500 text-xs sm:text-sm mt-0.5">View all active tenants with private office bookings</p>
+              </div>
+              <span className="px-3 sm:px-4 py-1.5 sm:py-2 bg-teal-50 text-teal-700 border border-teal-200 rounded-lg text-xs sm:text-sm font-semibold whitespace-nowrap">
+                {schedules.filter(s => (s.status === 'approved' || s.status === 'active' || s.status === 'ongoing' || s.status === 'upcoming') && (s.requestType === 'privateroom' || (!s.requestType && s.room && s.roomId))).length} active tenants
+              </span>
+            </div>
+
+            {schedules.filter(s => (s.status === 'approved' || s.status === 'active' || s.status === 'ongoing' || s.status === 'upcoming') && (s.requestType === 'privateroom' || (!s.requestType && s.room && s.roomId))).length === 0 ? (
+              <div className="text-center py-12 sm:py-16 bg-gray-50 rounded-xl border border-gray-200">
+                <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                  </svg>
+                </div>
+                <p className="text-slate-800 font-semibold text-base sm:text-lg">No Active Tenants</p>
+                <p className="text-gray-500 text-xs sm:text-sm mt-1">No tenants have active private office bookings yet</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-xl border border-gray-200">
+                <div className="min-w-full inline-block align-middle">
+                  <table className="w-full min-w-[900px]">
+                    <thead className="bg-gradient-to-r from-slate-800 to-slate-700 text-white">
+                      <tr>
+                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-[10px] xs:text-xs font-semibold uppercase tracking-wide">Tenant Name</th>
+                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-[10px] xs:text-xs font-semibold uppercase tracking-wide">Email</th>
+                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-[10px] xs:text-xs font-semibold uppercase tracking-wide">Contact</th>
+                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-[10px] xs:text-xs font-semibold uppercase tracking-wide">Office</th>
+                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-[10px] xs:text-xs font-semibold uppercase tracking-wide">Start Date</th>
+                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-[10px] xs:text-xs font-semibold uppercase tracking-wide">End Date</th>
+                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-left text-[10px] xs:text-xs font-semibold uppercase tracking-wide">Time</th>
+                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-center text-[10px] xs:text-xs font-semibold uppercase tracking-wide">Status</th>
+                        <th className="px-3 sm:px-4 py-2 sm:py-3 text-center text-[10px] xs:text-xs font-semibold uppercase tracking-wide">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {schedules
+                        .filter(s => (s.status === 'approved' || s.status === 'active' || s.status === 'ongoing' || s.status === 'upcoming') && (s.requestType === 'privateroom' || (!s.requestType && s.room && s.roomId)))
+                        .map((tenant) => (
+                          <tr key={tenant.id} className="bg-white hover:bg-gray-50 transition-colors">
+                            <td className="px-3 sm:px-4 py-3 sm:py-4">
+                              <p className="text-slate-800 font-semibold text-xs sm:text-sm truncate max-w-[150px]" title={tenant.clientName}>
+                                {tenant.clientName}
+                              </p>
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 sm:py-4">
+                              <p className="text-gray-600 text-xs sm:text-sm truncate max-w-[180px]" title={tenant.email || 'N/A'}>
+                                {tenant.email || 'N/A'}
+                              </p>
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 sm:py-4">
+                              <p className="text-gray-600 text-xs sm:text-sm truncate max-w-[120px]" title={tenant.contactNumber || 'N/A'}>
+                                {tenant.contactNumber || 'N/A'}
+                              </p>
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 sm:py-4">
+                              <p className="text-slate-800 font-medium text-xs sm:text-sm truncate max-w-[120px]" title={tenant.room}>
+                                {tenant.room}
+                              </p>
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 sm:py-4">
+                              <p className="text-slate-800 font-medium text-xs sm:text-sm whitespace-nowrap">
+                                {tenant.startDate ? new Date(tenant.startDate).toLocaleDateString('en-US', { 
+                                  year: 'numeric', 
+                                  month: 'short', 
+                                  day: 'numeric' 
+                                }) : 'N/A'}
+                              </p>
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 sm:py-4">
+                              <p className="text-gray-600 text-xs sm:text-sm whitespace-nowrap">
+                                {tenant.endDate ? new Date(tenant.endDate).toLocaleDateString('en-US', { 
+                                  year: 'numeric', 
+                                  month: 'short', 
+                                  day: 'numeric' 
+                                }) : 'Ongoing'}
+                              </p>
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 sm:py-4">
+                              <p className="text-gray-600 text-xs sm:text-sm whitespace-nowrap">
+                                {tenant.startTime && tenant.endTime 
+                                  ? `${tenant.startTime} - ${tenant.endTime}`
+                                  : tenant.startTime 
+                                  ? `${tenant.startTime} onwards`
+                                  : 'All day'}
+                              </p>
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 sm:py-4">
+                              <div className="flex justify-center">
+                                <span className={`px-2 sm:px-3 py-1 rounded-full text-[10px] xs:text-xs font-semibold capitalize ${
+                                  tenant.status === 'active' || tenant.status === 'ongoing' || tenant.status === 'approved'
+                                    ? 'bg-teal-100 text-teal-700'
+                                    : tenant.status === 'upcoming'
+                                    ? 'bg-blue-100 text-blue-700'
+                                    : 'bg-gray-100 text-gray-700'
+                                }`}>
+                                  {tenant.status || 'active'}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="px-3 sm:px-4 py-3 sm:py-4">
+                              <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap">
+                                <button
+                                  onClick={() => openEditTenantModal(tenant)}
+                                  className="px-2 sm:px-3 py-1 sm:py-1.5 bg-blue-600 text-white rounded-lg text-[10px] xs:text-xs font-semibold hover:bg-blue-700 transition-colors whitespace-nowrap flex items-center gap-1"
+                                  title="Edit tenant booking"
+                                >
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteTenant(tenant)}
+                                  className="px-2 sm:px-3 py-1 sm:py-1.5 bg-red-600 text-white rounded-lg text-[10px] xs:text-xs font-semibold hover:bg-red-700 transition-colors whitespace-nowrap flex items-center gap-1"
+                                  title="Delete tenant booking"
+                                >
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                  Delete
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                    </tbody>
                   </table>
                 </div>
               </div>
@@ -624,6 +993,165 @@ export default function PrivateOffice() {
       )}
 
       {/* Toast Notification */}
+      {/* Edit Tenant Modal */}
+      {showEditTenantModal && editingTenant && mounted && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] animate-[fadeIn_0.2s_ease] p-4" onClick={closeEditTenantModal}>
+          <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 lg:p-7 w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl animate-[slideUp_0.3s_ease]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center mb-4 sm:mb-6 pb-3 sm:pb-4 border-b-2 border-gray-100">
+              <h2 className="text-slate-800 text-lg sm:text-xl font-bold">Edit Tenant Booking</h2>
+              <button onClick={closeEditTenantModal} className="w-8 h-8 sm:w-9 sm:h-9 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 text-lg sm:text-xl hover:bg-gray-200 hover:text-slate-800 transition-all">×</button>
+            </div>
+            
+            <div className="space-y-4 sm:space-y-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Tenant Name *</label>
+                  <input
+                    type="text"
+                    value={tenantFormData.clientName}
+                    onChange={(e) => setTenantFormData({ ...tenantFormData, clientName: e.target.value })}
+                    placeholder="Enter tenant name"
+                    required
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Email *</label>
+                  <input
+                    type="email"
+                    value={tenantFormData.email}
+                    onChange={(e) => setTenantFormData({ ...tenantFormData, email: e.target.value })}
+                    placeholder="Enter email address"
+                    required
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Contact Number *</label>
+                <input
+                  type="tel"
+                  value={tenantFormData.contactNumber}
+                  onChange={(e) => setTenantFormData({ ...tenantFormData, contactNumber: e.target.value })}
+                  placeholder="Enter contact number"
+                  required
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Office *</label>
+                <select
+                  value={tenantFormData.room}
+                  onChange={(e) => setTenantFormData({ ...tenantFormData, room: e.target.value })}
+                  required
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all"
+                >
+                  <option value="">Select office</option>
+                  {rooms.map(room => (
+                    <option key={room.id} value={room.name}>{room.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Start Date *</label>
+                  <input
+                    type="date"
+                    value={tenantFormData.startDate}
+                    onChange={(e) => setTenantFormData({ ...tenantFormData, startDate: e.target.value })}
+                    required
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">End Date</label>
+                  <input
+                    type="date"
+                    value={tenantFormData.endDate}
+                    onChange={(e) => setTenantFormData({ ...tenantFormData, endDate: e.target.value })}
+                    min={tenantFormData.startDate}
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Start Time</label>
+                  <input
+                    type="time"
+                    value={tenantFormData.startTime}
+                    onChange={(e) => setTenantFormData({ ...tenantFormData, startTime: e.target.value })}
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">End Time</label>
+                  <input
+                    type="time"
+                    value={tenantFormData.endTime}
+                    onChange={(e) => setTenantFormData({ ...tenantFormData, endTime: e.target.value })}
+                    min={tenantFormData.startTime}
+                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Status</label>
+                <select
+                  value={tenantFormData.status}
+                  onChange={(e) => setTenantFormData({ ...tenantFormData, status: e.target.value })}
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all"
+                >
+                  <option value="approved">Approved</option>
+                  <option value="active">Active</option>
+                  <option value="ongoing">Ongoing</option>
+                  <option value="upcoming">Upcoming</option>
+                  <option value="completed">Completed</option>
+                  <option value="cancelled">Cancelled</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Notes</label>
+                <textarea
+                  value={tenantFormData.notes}
+                  onChange={(e) => setTenantFormData({ ...tenantFormData, notes: e.target.value })}
+                  placeholder="Additional notes..."
+                  rows="3"
+                  className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all resize-none"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t border-gray-200">
+                <button
+                  type="button"
+                  onClick={closeEditTenantModal}
+                  className="flex-1 px-4 py-2.5 sm:py-3 bg-gray-100 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-200 transition-all"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleUpdateTenant}
+                  disabled={loading}
+                  className="flex-1 px-4 py-2.5 sm:py-3 bg-teal-600 text-white rounded-xl text-sm font-semibold hover:bg-teal-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {loading ? 'Updating...' : 'Update Booking'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {toast.show && mounted && createPortal(
         <div className="fixed top-6 right-6 z-[10000] animate-[slideInRight_0.3s_ease]">
           <div className={`px-5 py-4 rounded-xl shadow-2xl flex items-center gap-3 min-w-[300px] max-w-md ${
@@ -645,22 +1173,68 @@ export default function PrivateOffice() {
 
       {/* Confirmation Dialog */}
       {showConfirmDialog && mounted && createPortal(
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10001] animate-[fadeIn_0.2s_ease] p-4" onClick={() => { setShowConfirmDialog(false); setConfirmAction(null); }}>
-          <div className="bg-white rounded-xl sm:rounded-2xl p-6 sm:p-8 w-full max-w-md shadow-2xl animate-[slideUp_0.3s_ease]" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div 
+          className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10001] animate-[fadeIn_0.2s_ease] p-4" 
+          onClick={() => { 
+            setShowConfirmDialog(false); 
+            setConfirmAction(null);
+            setConfirmDialogData({ type: '', title: '', message: '' });
+          }}
+        >
+          <div 
+            className="bg-white rounded-xl sm:rounded-2xl p-5 sm:p-6 lg:p-7 w-full max-w-md shadow-2xl animate-[slideUp_0.3s_ease]" 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="text-center mb-5 sm:mb-6">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 sm:w-10 sm:h-10 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
-              <div className="flex-1">
-                <h3 className="text-lg sm:text-xl font-bold text-slate-800 mb-1">Delete Office</h3>
-                <p className="text-sm text-gray-600">Are you sure you want to delete this office? This action cannot be undone.</p>
-              </div>
+              <h3 className="text-slate-800 text-lg sm:text-xl font-bold mb-2">
+                {confirmDialogData.title || 'Confirm Deletion'}
+              </h3>
+              <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
+                {confirmDialogData.message || 'Are you sure you want to proceed? This action cannot be undone.'}
+              </p>
             </div>
             <div className="flex gap-3">
-              <button onClick={() => { setShowConfirmDialog(false); setConfirmAction(null); }} className="flex-1 px-4 py-2.5 sm:py-3 bg-gray-200 text-slate-800 font-medium rounded-xl hover:bg-gray-300 transition-colors">Cancel</button>
-              <button onClick={() => { if (confirmAction) confirmAction(); }} className="flex-1 px-4 py-2.5 sm:py-3 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition-colors">Delete</button>
+              <button 
+                onClick={() => { 
+                  setShowConfirmDialog(false); 
+                  setConfirmAction(null);
+                  setConfirmDialogData({ type: '', title: '', message: '' });
+                }} 
+                className="flex-1 px-4 py-2.5 sm:py-3 bg-gray-100 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-200 transition-all"
+              >
+                Cancel
+              </button>
+              <button 
+                onClick={() => { 
+                  if (confirmAction) {
+                    confirmAction();
+                  }
+                }} 
+                disabled={loading}
+                className="flex-1 px-4 py-2.5 sm:py-3 bg-red-600 text-white rounded-xl text-sm font-semibold hover:bg-red-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {loading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Delete
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>,

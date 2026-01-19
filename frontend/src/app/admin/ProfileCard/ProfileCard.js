@@ -26,13 +26,26 @@ export default function ProfileCard({ onClick }) {
         }
 
         // Fetch admin data from backend
-        const response = await api.get(`/api/accounts/admin/users/${user.uid}`);
-        
-        if (response.success && response.data) {
-          setAdminData(response.data);
+        try {
+          const response = await api.get(`/api/accounts/admin/users/${user.uid}`);
+          
+          if (response.success && response.data) {
+            setAdminData(response.data);
+          }
+        } catch (error) {
+          // Handle 404 (admin user not found) gracefully - this is expected for new admins
+          // Admin may be authenticated but not yet have a document in accounts/admin/users
+          if (error.response?.status === 404) {
+            // Admin user not found in accounts collection - use basic info from localStorage
+            // This is fine, the ProfileCard will use default values
+            setAdminData(null);
+          } else {
+            // Log other errors but don't break the UI
+            console.error('Error fetching admin data:', error);
+          }
         }
       } catch (error) {
-        console.error('Error fetching admin data:', error);
+        console.error('Error parsing user data:', error);
       } finally {
         setLoading(false);
       }
@@ -41,7 +54,28 @@ export default function ProfileCard({ onClick }) {
     fetchAdminData();
   }, []);
 
-  const firstName = adminData?.firstName || 'Admin';
+  // Get user info from localStorage as fallback
+  const getUserInfo = () => {
+    try {
+      const userStr = localStorage.getItem('user');
+      if (userStr) {
+        const user = JSON.parse(userStr);
+        return {
+          email: user.email || '',
+          displayName: user.displayName || ''
+        };
+      }
+    } catch (error) {
+      console.error('Error parsing user from localStorage:', error);
+    }
+    return { email: '', displayName: '' };
+  };
+
+  const userInfo = getUserInfo();
+  const firstName = adminData?.firstName || 
+                    userInfo.displayName?.split(' ')[0] || 
+                    userInfo.email?.split('@')[0] || 
+                    'Admin';
   const profilePicture = adminData?.profilePicture || null;
 
   if (loading) {

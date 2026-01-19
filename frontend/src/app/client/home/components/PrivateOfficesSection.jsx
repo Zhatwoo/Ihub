@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { League_Spartan } from 'next/font/google';
 import { usePrivateOffices } from './privateOffices';
 
@@ -29,10 +30,19 @@ const getCurrencySymbol = (currency) => {
 };
 
 export default function PrivateOfficesSection() {
+  const router = useRouter();
   const carouselRef = useRef(null);
   const { rooms, loading } = usePrivateOffices();
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleBookNow = () => {
+    if (selectedRoom) {
+      // Navigate to private offices page where booking functionality is available
+      router.push('/client/private-offices');
+      closeModal();
+    }
+  };
 
   const scrollCarousel = (direction) => {
     const carousel = carouselRef.current;
@@ -142,21 +152,37 @@ export default function PrivateOfficesSection() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
-              <div>
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10 shrink-0">
+              <div className="flex-1">
                 <h2 className={`${leagueSpartan.className} text-2xl font-bold text-slate-800`}>
                   {selectedRoom.title || selectedRoom.name}
                 </h2>
               </div>
-              <button
-                onClick={closeModal}
-                className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-                aria-label="Close modal"
-              >
-                <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+              <div className="flex items-center gap-3">
+                {/* Book Now Button in Header - Always Visible */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleBookNow();
+                  }}
+                  className="px-5 py-2.5 bg-linear-to-r from-teal-600 to-teal-700 text-white rounded-xl font-bold text-sm shadow-lg shadow-teal-600/50 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-teal-600/60 transition-all duration-300 flex items-center justify-center gap-2 active:scale-95"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Book Now</span>
+                </button>
+                <button
+                  onClick={closeModal}
+                  className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors shrink-0"
+                  aria-label="Close modal"
+                >
+                  <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             {/* Modal Content */}
@@ -201,6 +227,50 @@ export default function PrivateOfficesSection() {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Book Now Section - Fixed at Bottom - Always Visible */}
+            <div className="sticky bottom-0 bg-white border-t-2 border-gray-200 p-6 shrink-0">
+              {/* Prominent Booking CTA Box */}
+              <div className="bg-gradient-to-br from-teal-50 to-teal-100 border-2 border-teal-300 rounded-xl p-6 mb-4 shadow-lg">
+                <div className="text-center mb-5">
+                  <p className="text-gray-700 text-base font-medium mb-3">Ready to book this private office?</p>
+                  <div className="bg-white rounded-lg p-3 inline-block mb-3">
+                    <p className="text-gray-600 text-xs mb-1">Rental Fee</p>
+                    <p className="text-teal-700 font-bold text-2xl">
+                      {getCurrencySymbol(selectedRoom.currency || 'PHP')}
+                      {selectedRoom.rentFee?.toLocaleString() || '0'} {selectedRoom.rentFeePeriod || 'per hour'}
+                    </p>
+                  </div>
+                </div>
+                
+                {/* Primary Book Now Button - Large and Prominent */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleBookNow();
+                  }}
+                  className="w-full py-5 px-6 bg-linear-to-r from-teal-600 to-teal-700 text-white rounded-xl font-bold text-xl shadow-xl shadow-teal-600/50 hover:-translate-y-1 hover:shadow-2xl hover:shadow-teal-600/60 transition-all duration-300 flex items-center justify-center gap-3 active:scale-95"
+                >
+                  <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Book "{selectedRoom.title || selectedRoom.name}" Now</span>
+                </button>
+                <p className="text-center text-gray-600 text-xs mt-3">
+                  Click to go to the booking page and submit your reservation request
+                </p>
+              </div>
+
+              {/* Secondary Close button */}
+              <button
+                type="button"
+                onClick={closeModal}
+                className="w-full px-6 py-2.5 bg-gray-100 text-gray-600 rounded-xl font-semibold hover:bg-gray-200 transition-all text-sm"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

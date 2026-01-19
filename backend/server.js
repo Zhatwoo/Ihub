@@ -12,6 +12,7 @@ import virtualOfficeRoutes from './routes/virtualOffice.js';
 import deskAssignmentsRoutes from './routes/deskAssignments.js';
 import floorsRoutes from './routes/floors.js';
 import uploadRoutes from './routes/upload.js';
+import emailRoutes from './routes/emails.js';
 
 // Load environment variables
 dotenv.config();
@@ -68,7 +69,8 @@ app.get('/api', (req, res) => {
       virtualOffice: '/api/virtual-office',
       deskAssignments: '/api/desk-assignments',
       floors: '/api/floors',
-      upload: '/api/upload'
+      upload: '/api/upload',
+      emails: '/api/emails'
     }
   });
 });
@@ -82,6 +84,10 @@ app.use('/api/virtual-office', virtualOfficeRoutes);
 app.use('/api/desk-assignments', deskAssignmentsRoutes);
 app.use('/api/floors', floorsRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/emails', emailRoutes);
+
+// Log mounted routes
+console.log('📧 Email routes mounted at /api/emails');
 
 // 404 handler
 app.use((req, res) => {

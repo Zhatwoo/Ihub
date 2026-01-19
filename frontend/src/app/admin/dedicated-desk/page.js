@@ -30,7 +30,7 @@ export default function DedicatedDesk() {
     return () => clearTimeout(timer);
   }, []);
   
-  // Fetch desk assignments from backend
+  // Fetch desk assignments from backend with real-time updates
   useEffect(() => {
     const fetchAssignments = async () => {
       try {
@@ -47,10 +47,11 @@ export default function DedicatedDesk() {
       }
     };
 
+    // Initial fetch
     fetchAssignments();
     
-    // Poll for updates every 30 seconds
-    const interval = setInterval(fetchAssignments, 30000);
+    // Real-time polling: Update every 2 seconds for instant reflection
+    const interval = setInterval(fetchAssignments, 2000);
     return () => clearInterval(interval);
   }, []);
 
@@ -85,6 +86,8 @@ export default function DedicatedDesk() {
           const isDeskIdNA = deskId && String(deskId).trim().toUpperCase() === 'N/A';
           const isDeskRequest = requestData.requestType !== 'privateroom' && 
                                  (!requestData.requestType || requestData.requestType === 'desk');
+          // Show pending and rejected requests (hide only approved ones)
+          // Rejected requests are kept visible so admins can delete them
           const isNotApproved = requestData.status !== 'approved';
           
           if (!isDeskIdNA && hasDeskId && hasSection && hasLocation && isDeskRequest && isNotApproved) {
@@ -128,15 +131,21 @@ export default function DedicatedDesk() {
     }
   };
 
-  // Fetch all user requests from backend
+  // Fetch all user requests from backend with real-time updates
   useEffect(() => {
-    if (activeTab !== 'requests') return;
+    if (activeTab !== 'requests') {
+      setLoadingRequests(false);
+      return;
+    }
     
     const fetchRequests = async () => {
-      setLoadingRequests(true);
+      // Only show loading on initial fetch
+      if (requests.length === 0) {
+        setLoadingRequests(true);
+      }
       try {
-        const requests = await fetchAllRequests();
-        setRequests(requests);
+        const requestsData = await fetchAllRequests();
+        setRequests(requestsData);
       } catch (error) {
         console.error('Error fetching requests:', error);
       } finally {
@@ -144,7 +153,12 @@ export default function DedicatedDesk() {
       }
     };
     
+    // Initial fetch
     fetchRequests();
+    
+    // Real-time polling: Update every 2 seconds when requests tab is active
+    const interval = setInterval(fetchRequests, 2000);
+    return () => clearInterval(interval);
   }, [activeTab]);
   
   // Zoom handlers
@@ -167,10 +181,12 @@ export default function DedicatedDesk() {
       alert('Error: Desk ID is missing from the request.');
       return;
     }
+
+    if (!confirm(`Are you sure you want to approve the desk request for ${request.userInfo?.firstName || ''} ${request.userInfo?.lastName || ''}? Desk ${request.deskId} will be assigned.`)) {
+      return;
+    }
     
     try {
-      // Update request status via backend (need to implement this endpoint)
-      // For now, create/update desk assignment directly
       const deskTag = request.deskId;
       
       const fullName = `${request.userInfo?.firstName || ''} ${request.userInfo?.lastName || ''}`.trim();
@@ -188,18 +204,42 @@ export default function DedicatedDesk() {
       const assignmentResponse = await api.post('/api/desk-assignments', assignmentData);
       
       if (assignmentResponse.success) {
-        // Refresh requests and assignments
-        const requests = await fetchAllRequests();
-        setRequests(requests);
-        
-        // Refresh assignments
-        const assignmentsResponse = await api.get('/api/desk-assignments');
-        if (assignmentsResponse.success && assignmentsResponse.data) {
-          const assignments = {};
-          assignmentsResponse.data.forEach((assignment) => {
-            assignments[assignment.id] = assignment;
+        // Update request status to 'approved' via backend
+        try {
+          await api.put(`/api/accounts/client/users/${request.userId}/request/desk`, {
+            ...request, // Preserve existing request data
+            status: 'approved',
+            approvedAt: new Date().toISOString(),
+            approvedBy: 'admin', // You can enhance this to use actual admin user ID
           });
-          setDeskAssignments(assignments);
+        } catch (updateError) {
+          console.error('Error updating request status:', updateError);
+          // Continue even if status update fails, assignment was created successfully
+        }
+        
+        // Immediately remove the request from the UI (optimistic update)
+        setRequests(prevRequests => prevRequests.filter(r => !(r.id === request.id && r.userId === request.userId)));
+        
+        // Immediately refresh assignments for real-time update
+        try {
+          const assignmentsResponse = await api.get('/api/desk-assignments');
+          if (assignmentsResponse.success && assignmentsResponse.data) {
+            const assignments = {};
+            assignmentsResponse.data.forEach((assignment) => {
+              assignments[assignment.id] = assignment;
+            });
+            setDeskAssignments(assignments);
+          }
+        } catch (error) {
+          console.error('Error refreshing assignments:', error);
+        }
+        
+        // Immediately refresh requests for real-time update
+        try {
+          const requestsData = await fetchAllRequests();
+          setRequests(requestsData);
+        } catch (error) {
+          console.error('Error refreshing requests:', error);
         }
         
         alert(`Request approved successfully! Desk ${deskTag} has been assigned to ${fullName}.`);
@@ -214,19 +254,33 @@ export default function DedicatedDesk() {
 
   // Handle reject request
   const handleRejectRequest = async (request) => {
-    if (!confirm(`Are you sure you want to reject the desk request for ${request.userInfo?.firstName} ${request.userInfo?.lastName}?`)) {
+    if (!confirm(`Are you sure you want to reject the desk request for ${request.userInfo?.firstName || ''} ${request.userInfo?.lastName || ''}?`)) {
       return;
     }
     
     try {
       const response = await api.put(`/api/accounts/client/users/${request.userId}/request/desk`, {
+        ...request, // Preserve existing request data
         status: 'rejected',
         rejectedAt: new Date().toISOString()
       });
       
       if (response.success) {
-        const requests = await fetchAllRequests();
-        setRequests(requests);
+        // Update the request status in the UI (don't remove rejected requests - they stay visible for deletion)
+        setRequests(prevRequests => prevRequests.map(r => 
+          (r.id === request.id && r.userId === request.userId) 
+            ? { ...r, status: 'rejected' }
+            : r
+        ));
+        
+        // Immediately refresh requests for real-time update
+        try {
+          const requestsData = await fetchAllRequests();
+          setRequests(requestsData);
+        } catch (error) {
+          console.error('Error refreshing requests:', error);
+        }
+        
         alert('Request rejected successfully!');
       } else {
         alert(response.message || 'Failed to reject request. Please try again.');
@@ -247,8 +301,17 @@ export default function DedicatedDesk() {
       const response = await api.delete(`/api/accounts/client/users/${request.userId}/request/desk`);
       
       if (response.success) {
-        const requests = await fetchAllRequests();
-        setRequests(requests);
+        // Immediately remove from UI (optimistic update)
+        setRequests(prevRequests => prevRequests.filter(r => !(r.id === request.id && r.userId === request.userId)));
+        
+        // Immediately refresh requests for real-time update
+        try {
+          const requestsData = await fetchAllRequests();
+          setRequests(requestsData);
+        } catch (error) {
+          console.error('Error refreshing requests:', error);
+        }
+        
         alert('Request deleted successfully!');
       } else {
         alert(response.message || 'Failed to delete request. Please try again.');
@@ -272,6 +335,13 @@ export default function DedicatedDesk() {
         if (!response.success) {
           throw new Error(response.message || 'Failed to delete assignment');
         }
+        
+        // Immediately remove from UI (optimistic update)
+        setDeskAssignments(prevAssignments => {
+          const updated = { ...prevAssignments };
+          delete updated[deskTag];
+          return updated;
+        });
       } else {
         // Create or update assignment
         const assignmentPayload = {
@@ -295,8 +365,10 @@ export default function DedicatedDesk() {
         if (!response.success) {
           throw new Error(response.message || 'Failed to save assignment');
         }
-        
-        // Refresh assignments
+      }
+      
+      // Immediately refresh assignments for real-time update
+      try {
         const assignmentsResponse = await api.get('/api/desk-assignments');
         if (assignmentsResponse.success && assignmentsResponse.data) {
           const assignments = {};
@@ -305,6 +377,8 @@ export default function DedicatedDesk() {
           });
           setDeskAssignments(assignments);
         }
+      } catch (error) {
+        console.error('Error refreshing assignments:', error);
       }
     } catch (error) {
       console.error("Error saving desk assignment:", error);

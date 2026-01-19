@@ -1,3 +1,4 @@
+import React from 'react';
 import {
   Html,
   Head,
@@ -11,26 +12,33 @@ import {
   Column,
 } from '@react-email/components';
 
-export default function ContactEmail({ name, email, phone, subject, message }) {
+export default function InquiryEmail({ 
+  fullName, 
+  email, 
+  phoneNumber, 
+  company, 
+  position, 
+  preferredStartDate 
+}) {
   return (
     <Html>
       <Head />
       <Body style={main}>
         <Container style={container}>
           <Section style={header}>
-            <Heading style={h1}>New Contact Form Submission</Heading>
+            <Heading style={h1}>New Virtual Office Inquiry</Heading>
             <Text style={subtitle}>
-              You have received a new message from the contact form
+              You have received a new virtual office inquiry
             </Text>
           </Section>
 
           <Section style={content}>
             <Row>
               <Column>
-                <Text style={label}>Name:</Text>
+                <Text style={label}>Full Name:</Text>
               </Column>
               <Column>
-                <Text style={value}>{name}</Text>
+                <Text style={value}>{fullName}</Text>
               </Column>
             </Row>
             <Hr style={divider} />
@@ -47,32 +55,47 @@ export default function ContactEmail({ name, email, phone, subject, message }) {
             
             <Row>
               <Column>
-                <Text style={label}>Phone:</Text>
+                <Text style={label}>Phone Number:</Text>
               </Column>
               <Column>
-                <Text style={value}>{phone || 'Not provided'}</Text>
+                <Text style={value}>{phoneNumber}</Text>
               </Column>
             </Row>
             <Hr style={divider} />
             
             <Row>
               <Column>
-                <Text style={label}>Subject:</Text>
+                <Text style={label}>Company:</Text>
               </Column>
               <Column>
-                <Text style={value}>{subject}</Text>
+                <Text style={value}>{company || 'N/A'}</Text>
+              </Column>
+            </Row>
+            <Hr style={divider} />
+            
+            <Row>
+              <Column>
+                <Text style={label}>Position:</Text>
+              </Column>
+              <Column>
+                <Text style={value}>{position || 'N/A'}</Text>
+              </Column>
+            </Row>
+            <Hr style={divider} />
+            
+            <Row>
+              <Column>
+                <Text style={label}>Preferred Start Date:</Text>
+              </Column>
+              <Column>
+                <Text style={value}>{preferredStartDate || 'Not specified'}</Text>
               </Column>
             </Row>
           </Section>
 
-          <Section style={messageSection}>
-            <Heading style={h2}>Message:</Heading>
-            <Text style={messageText}>{message}</Text>
-          </Section>
-
           <Section style={footer}>
             <Text style={footerText}>
-              This message was submitted through the Inspire Hub contact form.
+              This inquiry was submitted through the Inspire Hub website.
             </Text>
           </Section>
         </Container>
@@ -136,28 +159,6 @@ const value = {
 const divider = {
   borderColor: '#e5e7eb',
   margin: '12px 0',
-};
-
-const messageSection = {
-  padding: '20px 24px',
-  backgroundColor: '#f9fafb',
-  borderRadius: '8px',
-  margin: '0 24px',
-};
-
-const h2 = {
-  color: '#0F766E',
-  fontSize: '18px',
-  fontWeight: '600',
-  margin: '0 0 12px',
-};
-
-const messageText = {
-  color: '#374151',
-  fontSize: '14px',
-  lineHeight: '1.6',
-  margin: '0',
-  whiteSpace: 'pre-wrap',
 };
 
 const footer = {

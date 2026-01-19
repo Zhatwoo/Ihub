@@ -174,14 +174,14 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
                 {/* Email Field */}
                 <div>
                   <label
-                    htmlFor="email"
+                    htmlFor="signin-email"
                     className="block text-black font-semibold mb-2"
                   >
                     Email
                   </label>
                     <input
                       type="email"
-                      id="email"
+                      id="signin-email"
                       name="email"
                       value={formData.email}
                       onChange={handleChange}

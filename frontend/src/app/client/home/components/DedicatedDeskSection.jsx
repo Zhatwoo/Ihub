@@ -4,9 +4,7 @@ import { useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
 import { League_Spartan } from 'next/font/google';
 import { availableSpaces } from './DidicatedDesk';
-import { db, auth } from '@/lib/firebase';
-import { collection, onSnapshot, doc, setDoc, getDoc } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
+import { api } from '@/lib/api';
 import Part1 from '@/app/admin/dedicated-desk/components/parts/Part1';
 import Part2 from '@/app/admin/dedicated-desk/components/parts/Part2';
 import Part3 from '@/app/admin/dedicated-desk/components/parts/Part3';
@@ -51,45 +49,77 @@ export default function DedicatedDeskSection() {
     return () => window.removeEventListener('resize', updateScale);
   }, []);
 
-  // Get current user
+  // Get current user from localStorage and fetch user info from backend
   useEffect(() => {
-    if (!auth) return;
-    
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
-      
-      // Fetch user info from Firestore
-      if (user && db) {
-        try {
-          const userDocRef = doc(collection(db, 'accounts', 'client', 'users'), user.uid);
-          const userDoc = await getDoc(userDocRef);
-          if (userDoc.exists()) {
-            setUserInfo(userDoc.data());
+    const fetchUserData = async () => {
+      try {
+        // Get user info from localStorage (set during login)
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          setCurrentUser({ uid: user.uid, email: user.email });
+          
+          // Fetch user details from backend API
+          try {
+            const response = await api.get(`/api/accounts/client/users/${user.uid}`);
+            if (response.success && response.data) {
+              setUserInfo(response.data);
+            }
+          } catch (error) {
+            // Handle 404 (user not found) gracefully - this is expected for new users
+            // User may be authenticated but not yet have a document in accounts/client/users
+            if (error.response?.status === 404) {
+              // User not found in accounts collection - use basic info from localStorage
+              setUserInfo({ email: user.email });
+            } else {
+              // Log other errors but still fallback to basic info
+              console.error('Error fetching user info:', error);
+              setUserInfo({ email: user.email });
+            }
           }
-        } catch (error) {
-          console.error('Error fetching user info:', error);
+        } else {
+          setCurrentUser(null);
+          setUserInfo(null);
         }
-      } else {
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+        setCurrentUser(null);
         setUserInfo(null);
       }
-    });
+    };
 
-    return () => unsubscribe();
+    fetchUserData();
+    
+    // Listen for storage changes (e.g., logout in another tab)
+    const handleStorageChange = () => {
+      fetchUserData();
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Fetch desk assignments from Firebase
+  // Fetch desk assignments from backend API
   useEffect(() => {
-    if (!db) return;
-    
-    const unsubscribe = onSnapshot(collection(db, 'desk-assignments'), (snapshot) => {
-      const assignments = {};
-      snapshot.forEach((doc) => {
-        assignments[doc.id] = doc.data();
-      });
-      setDeskAssignments(assignments);
-    });
+    const fetchDeskAssignments = async () => {
+      try {
+        const response = await api.get('/api/desk-assignments');
+        if (response.success && response.data) {
+          const assignments = {};
+          response.data.forEach((assignment) => {
+            assignments[assignment.id] = assignment;
+          });
+          setDeskAssignments(assignments);
+        }
+      } catch (error) {
+        console.error('Error fetching desk assignments:', error);
+        setDeskAssignments({});
+      }
+    };
 
-    return () => unsubscribe();
+    fetchDeskAssignments();
+    // Poll for updates every 30 seconds
+    const interval = setInterval(fetchDeskAssignments, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const scrollCarousel = (direction) => {
@@ -124,6 +154,7 @@ export default function DedicatedDeskSection() {
     setSelectedDesk(null);
   };
 
+  // Submit desk request to backend API (which saves to Firestore database)
   const handleRequestDesk = async () => {
     if (!selectedDesk) {
       alert('Please select a desk first');
@@ -132,11 +163,6 @@ export default function DedicatedDeskSection() {
 
     if (!currentUser) {
       alert('Please log in to request a desk');
-      return;
-    }
-
-    if (!db) {
-      alert('Database connection error. Please try again later.');
       return;
     }
 
@@ -163,21 +189,35 @@ export default function DedicatedDeskSection() {
         updatedAt: new Date().toISOString(),
       };
 
-      // Save to /accounts/client/users/{userId}/request/desk
-      const requestDocRef = doc(
-        collection(db, 'accounts', 'client', 'users', currentUser.uid, 'request'),
-        'desk'
-      );
-
-      await setDoc(requestDocRef, requestData, { merge: true });
-
-      alert(`Desk request for ${selectedDesk} has been submitted successfully!`);
+      // Save to backend API: PUT /api/accounts/client/users/:userId/request/desk
+      // Backend controller saves to Firestore at /accounts/client/users/{userId}/request/desk
+      // Backend will create user document if it doesn't exist
+      const response = await api.put(`/api/accounts/client/users/${currentUser.uid}/request/desk`, requestData);
       
-      // Close modal after successful submission
-      closeModal();
+      if (response.success) {
+        alert(`Desk request for ${selectedDesk} has been submitted successfully!`);
+        // Close modal after successful submission
+        closeModal();
+        // Reset selected desk for next request
+        setSelectedDesk(null);
+      } else {
+        alert(response.message || 'Failed to submit desk request. Please try again.');
+      }
     } catch (error) {
       console.error('Error saving desk request:', error);
-      alert('Failed to submit desk request. Please try again.');
+      
+      // Provide more specific error messages
+      let errorMessage = 'Failed to submit desk request. Please try again.';
+      
+      if (error.response?.status === 404) {
+        errorMessage = 'User account not found. Please try logging out and logging back in.';
+      } else if (error.response?.status === 503) {
+        errorMessage = 'Service temporarily unavailable. Please try again later.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      alert(errorMessage);
     } finally {
       setIsSubmitting(false);
     }

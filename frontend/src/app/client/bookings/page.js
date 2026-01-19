@@ -1,9 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { db, auth } from '@/lib/firebase';
-import { collection, doc, onSnapshot, query, where, getDocs, getDoc } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
+import { api } from '@/lib/api';
 import { League_Spartan, Roboto } from 'next/font/google';
 import { motion } from 'framer-motion';
 
@@ -23,42 +21,56 @@ export default function Bookings() {
   const [currentUser, setCurrentUser] = useState(null);
   const [userInfo, setUserInfo] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [deletingBookingId, setDeletingBookingId] = useState(null);
 
-  // Get current user and user info
+  // Get current user from localStorage and fetch user info from backend
   useEffect(() => {
-    if (!auth || !db) {
-      console.warn('⚠️  Firebase Auth or Firestore not initialized');
-      setLoading(false);
-      return;
-    }
-    
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
-      
-      // Fetch user info from Firestore
-      if (user && db) {
-        try {
-          // Try path: accounts/client/users/{userId}/info/details
-          const userInfoRef = doc(db, 'accounts', 'client', 'users', user.uid, 'info', 'details');
-          const directSnap = await getDoc(userInfoRef);
-          if (directSnap.exists()) {
-            setUserInfo(directSnap.data());
-          } else {
-            // Try collection path
-            const infoCollectionRef = collection(db, 'accounts', 'client', 'users', user.uid, 'info');
-            const infoSnap = await getDocs(infoCollectionRef);
-            if (!infoSnap.empty) {
-              setUserInfo(infoSnap.docs[0].data());
+    const fetchUserData = async () => {
+      try {
+        // Get user info from localStorage (set during login)
+        const userStr = localStorage.getItem('user');
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          setCurrentUser({ uid: user.uid, email: user.email });
+          
+          // Fetch user details from backend API
+          try {
+            const response = await api.get(`/api/accounts/client/users/${user.uid}`);
+            if (response.success && response.data) {
+              setUserInfo(response.data);
+            }
+          } catch (error) {
+            // Handle 404 (user not found) gracefully - this is expected for new users
+            if (error.response?.status === 404) {
+              // User not found in accounts collection - use basic info from localStorage
+              setUserInfo({ email: user.email });
+            } else {
+              console.error('Error fetching user info:', error);
+              setUserInfo({ email: user.email });
             }
           }
-        } catch (error) {
-          console.error('Error fetching user info:', error);
+        } else {
+          setCurrentUser(null);
+          setUserInfo(null);
+          setLoading(false);
         }
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+        setCurrentUser(null);
+        setUserInfo(null);
+        setLoading(false);
       }
-    });
+    };
 
-    return () => unsubscribe();
-  }, [db]);
+    fetchUserData();
+    
+    // Listen for storage changes (e.g., logout in another tab)
+    const handleStorageChange = () => {
+      fetchUserData();
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   // Currency symbol helper
   const getCurrencySymbol = (currency) => {
@@ -69,37 +81,130 @@ export default function Bookings() {
     return symbols[currency] || '₱';
   };
 
-  // Fetch bookings from desk-assignments and virtual-office-clients collections
-  useEffect(() => {
-    if (!db || !currentUser) {
-      if (!currentUser) {
-        setLoading(false);
-      }
-      return;
-    }
+  // Refetch bookings function - can be called after mutations
+  const refetchBookings = async () => {
+    if (!currentUser) return;
 
-    setLoading(true);
     const userId = currentUser.uid;
     const userEmail = currentUser.email?.toLowerCase() || '';
     
-    // Get user's full name from userInfo or construct from firstName/lastName
     const userFullName = userInfo 
       ? `${userInfo.firstName || ''} ${userInfo.lastName || ''}`.trim().toLowerCase()
       : '';
     const userFirstName = userInfo?.firstName?.toLowerCase() || '';
     const userLastName = userInfo?.lastName?.toLowerCase() || '';
     
-    let deskBookings = [];
-    let virtualOfficeBookings = [];
-    let deskLoaded = false;
-    let virtualOfficeLoaded = false;
+    try {
+      // Fetch desk assignments
+      const deskAssignmentsResponse = await api.get('/api/desk-assignments');
+      const deskBookings = [];
+      
+      if (deskAssignmentsResponse.success && deskAssignmentsResponse.data) {
+        deskAssignmentsResponse.data.forEach((assignmentData) => {
+          const deskId = assignmentData.id;
+          const assignmentEmail = assignmentData.email?.toLowerCase() || '';
+          const assignmentName = assignmentData.name?.toLowerCase() || '';
+          
+          const emailMatch = userEmail && assignmentEmail && assignmentEmail === userEmail;
+          const nameMatch = userFullName && assignmentName && assignmentName === userFullName;
+          const firstNameMatch = userFirstName && assignmentName && assignmentName.includes(userFirstName);
+          const lastNameMatch = userLastName && assignmentName && assignmentName.includes(userLastName);
+          
+          const isUserAssignment = emailMatch || nameMatch || (firstNameMatch && lastNameMatch);
+          
+          if (isUserAssignment) {
+            const finalDeskId = assignmentData.desk || deskId;
+            
+            const booking = {
+              ...assignmentData,
+              id: finalDeskId,
+              type: 'desk',
+              deskId: finalDeskId,
+              desk: finalDeskId,
+              room: assignmentData.section || assignmentData.location || 'Dedicated Desk',
+              section: assignmentData.section || finalDeskId.substring(0, 1),
+              location: assignmentData.location || 'Alliance Global Tower',
+              clientName: assignmentData.name || 'User',
+              email: assignmentData.email || '',
+              contactNumber: assignmentData.contactNumber || '',
+              company: assignmentData.company || '',
+              startDate: assignmentData.assignedAt || assignmentData.createdAt || assignmentData.updatedAt,
+              createdAt: assignmentData.assignedAt || assignmentData.createdAt,
+              status: 'approved',
+            };
+            deskBookings.push(booking);
+          }
+        });
+      }
 
-    const updateBookings = () => {
-      if (!deskLoaded || !virtualOfficeLoaded) return;
+      // Fetch virtual office clients
+      const virtualOfficeResponse = await api.get('/api/virtual-office');
+      const virtualOfficeBookings = [];
+      
+      if (virtualOfficeResponse.success && virtualOfficeResponse.data) {
+        virtualOfficeResponse.data.forEach((clientData) => {
+          const clientId = clientData.id;
+          const clientEmail = clientData.email?.toLowerCase() || '';
+          const clientFullName = clientData.fullName?.toLowerCase() || '';
+          
+          const emailMatch = userEmail && clientEmail && clientEmail === userEmail;
+          const nameMatch = userFullName && clientFullName && clientFullName === userFullName;
+          const firstNameMatch = userFirstName && clientFullName && clientFullName.includes(userFirstName);
+          const lastNameMatch = userLastName && clientFullName && clientFullName.includes(userLastName);
+          
+          const isUserClient = emailMatch || nameMatch || (firstNameMatch && lastNameMatch);
+          
+          if (isUserClient) {
+            const booking = {
+              id: clientId,
+              type: 'virtual-office',
+              room: 'Virtual Office',
+              clientName: clientData.fullName || 'User',
+              email: clientData.email || '',
+              contactNumber: clientData.phoneNumber || '',
+              company: clientData.company || '',
+              position: clientData.position || '',
+              startDate: clientData.dateStart || clientData.createdAt,
+              createdAt: clientData.createdAt,
+              status: 'active',
+              ...clientData,
+            };
+            virtualOfficeBookings.push(booking);
+          }
+        });
+      }
 
-      const allBookings = [...deskBookings, ...virtualOfficeBookings];
+      // Fetch schedules/bookings
+      const schedulesResponse = await api.get(`/api/schedules/user/${userId}`);
+      const scheduleBookings = [];
+      
+      if (schedulesResponse.success && schedulesResponse.data) {
+        schedulesResponse.data.forEach((scheduleData) => {
+          const booking = {
+            id: scheduleData.id,
+            type: 'privateroom',
+            room: scheduleData.room || 'Private Room',
+            roomId: scheduleData.roomId || '',
+            clientName: scheduleData.clientName || 'User',
+            email: scheduleData.email || '',
+            contactNumber: scheduleData.contactNumber || '',
+            startDate: scheduleData.startDate,
+            endDate: scheduleData.endDate,
+            startTime: scheduleData.startTime,
+            endTime: scheduleData.endTime,
+            createdAt: scheduleData.createdAt,
+            status: scheduleData.status || 'pending',
+            notes: scheduleData.notes || '',
+            ...scheduleData,
+          };
+          scheduleBookings.push(booking);
+        });
+      }
 
-      // Remove duplicates based on document ID
+      // Combine all bookings
+      const allBookings = [...deskBookings, ...virtualOfficeBookings, ...scheduleBookings];
+
+      // Remove duplicates
       const uniqueBookings = allBookings.reduce((acc, booking) => {
         const existing = acc.find(b => b.id === booking.id && b.type === booking.type);
         if (!existing) {
@@ -115,153 +220,200 @@ export default function Bookings() {
         return dateB - dateA;
       });
       
-      // Debug logs (can be removed in production)
-      if (process.env.NODE_ENV === 'development') {
-        console.log('\n=== FINAL BOOKINGS SUMMARY ===');
-        console.log(`Desk bookings: ${deskBookings.length}`);
-        console.log(`Virtual office bookings: ${virtualOfficeBookings.length}`);
-        console.log(`Total unique bookings: ${sortedBookings.length}`);
-        console.log('=== END SUMMARY ===\n');
-      }
-      
       setBookings(sortedBookings);
-      setLoading(false);
-    };
+    } catch (error) {
+      console.error('Error refetching bookings:', error);
+    }
+  };
 
-    // Fetch from desk-assignments collection
-    if (!db) {
-      console.error('❌ Firestore not initialized');
+  // Fetch bookings from backend API (desk-assignments, virtual-office-clients, and schedules)
+  useEffect(() => {
+    if (!currentUser) {
       setLoading(false);
       return;
     }
-    
-    const deskAssignmentsRef = collection(db, 'desk-assignments');
-    const unsubscribeDesk = onSnapshot(deskAssignmentsRef, (snapshot) => {
-      deskLoaded = true;
-      deskBookings = [];
 
-      snapshot.docs.forEach((docSnapshot) => {
-        const assignmentData = docSnapshot.data();
-        const deskId = docSnapshot.id;
+    const fetchBookings = async () => {
+      setLoading(true);
+      const userId = currentUser.uid;
+      const userEmail = currentUser.email?.toLowerCase() || '';
+      
+      // Get user's full name from userInfo or construct from firstName/lastName
+      const userFullName = userInfo 
+        ? `${userInfo.firstName || ''} ${userInfo.lastName || ''}`.trim().toLowerCase()
+        : '';
+      const userFirstName = userInfo?.firstName?.toLowerCase() || '';
+      const userLastName = userInfo?.lastName?.toLowerCase() || '';
+      
+      try {
+        // Fetch desk assignments from backend API
+        const deskAssignmentsResponse = await api.get('/api/desk-assignments');
+        const deskBookings = [];
         
-        // Get email and name from assignment data
-        const assignmentEmail = assignmentData.email?.toLowerCase() || '';
-        const assignmentName = assignmentData.name?.toLowerCase() || '';
-        
-        // Check if this assignment belongs to current user
-        const emailMatch = userEmail && assignmentEmail && assignmentEmail === userEmail;
-        const nameMatch = userFullName && assignmentName && assignmentName === userFullName;
-        const firstNameMatch = userFirstName && assignmentName && assignmentName.includes(userFirstName);
-        const lastNameMatch = userLastName && assignmentName && assignmentName.includes(userLastName);
-        
-        const isUserAssignment = emailMatch || nameMatch || (firstNameMatch && lastNameMatch);
-        
-        if (isUserAssignment) {
-          // Get desk ID from document ID or assignmentData.desk field
-          const finalDeskId = assignmentData.desk || deskId;
-          
-          const booking = {
-            ...assignmentData, // Spread first to get all assignment data
-            id: finalDeskId, // Use finalDeskId as id
-            type: 'desk', // Ensure type is 'desk'
-            deskId: finalDeskId, // Ensure deskId is set with finalDeskId
-            desk: finalDeskId, // Also set desk field for compatibility
-            room: assignmentData.section || assignmentData.location || 'Dedicated Desk',
-            section: assignmentData.section || finalDeskId.substring(0, 1), // Extract section from desk ID (e.g., "B23" -> "B")
-            location: assignmentData.location || 'Alliance Global Tower',
-            clientName: assignmentData.name || 'User',
-            email: assignmentData.email || '',
-            contactNumber: assignmentData.contactNumber || '',
-            company: assignmentData.company || '',
-            startDate: assignmentData.assignedAt || assignmentData.createdAt || assignmentData.updatedAt,
-            createdAt: assignmentData.assignedAt || assignmentData.createdAt,
-            status: 'approved', // Desk assignments are already approved
-          };
-          deskBookings.push(booking);
+        if (deskAssignmentsResponse.success && deskAssignmentsResponse.data) {
+          deskAssignmentsResponse.data.forEach((assignmentData) => {
+            const deskId = assignmentData.id;
+            
+            // Get email and name from assignment data
+            const assignmentEmail = assignmentData.email?.toLowerCase() || '';
+            const assignmentName = assignmentData.name?.toLowerCase() || '';
+            
+            // Check if this assignment belongs to current user
+            const emailMatch = userEmail && assignmentEmail && assignmentEmail === userEmail;
+            const nameMatch = userFullName && assignmentName && assignmentName === userFullName;
+            const firstNameMatch = userFirstName && assignmentName && assignmentName.includes(userFirstName);
+            const lastNameMatch = userLastName && assignmentName && assignmentName.includes(userLastName);
+            
+            const isUserAssignment = emailMatch || nameMatch || (firstNameMatch && lastNameMatch);
+            
+            if (isUserAssignment) {
+              // Get desk ID from document ID or assignmentData.desk field
+              const finalDeskId = assignmentData.desk || deskId;
+              
+              const booking = {
+                ...assignmentData, // Spread first to get all assignment data
+                id: finalDeskId, // Use finalDeskId as id
+                type: 'desk', // Ensure type is 'desk'
+                deskId: finalDeskId, // Ensure deskId is set with finalDeskId
+                desk: finalDeskId, // Also set desk field for compatibility
+                room: assignmentData.section || assignmentData.location || 'Dedicated Desk',
+                section: assignmentData.section || finalDeskId.substring(0, 1), // Extract section from desk ID (e.g., "B23" -> "B")
+                location: assignmentData.location || 'Alliance Global Tower',
+                clientName: assignmentData.name || 'User',
+                email: assignmentData.email || '',
+                contactNumber: assignmentData.contactNumber || '',
+                company: assignmentData.company || '',
+                startDate: assignmentData.assignedAt || assignmentData.createdAt || assignmentData.updatedAt,
+                createdAt: assignmentData.assignedAt || assignmentData.createdAt,
+                status: 'approved', // Desk assignments are already approved
+              };
+              deskBookings.push(booking);
+            }
+          });
         }
-      });
 
-      updateBookings();
-    }, (error) => {
-      console.error('Error fetching desk-assignments:', error);
-      deskLoaded = true;
-      updateBookings();
-    });
-
-    // Fetch from virtual-office-clients collection
-    if (!db) {
-      console.error('❌ Firestore not initialized');
-      return;
-    }
-    
-    const virtualOfficeRef = collection(db, 'virtual-office-clients');
-    const unsubscribeVirtualOffice = onSnapshot(virtualOfficeRef, (snapshot) => {
-      virtualOfficeLoaded = true;
-      virtualOfficeBookings = [];
-
-      snapshot.docs.forEach((docSnapshot) => {
-        const clientData = docSnapshot.data();
-        const clientId = docSnapshot.id;
+        // Fetch virtual office clients from backend API
+        const virtualOfficeResponse = await api.get('/api/virtual-office');
+        const virtualOfficeBookings = [];
         
-        // Get email and name from client data
-        const clientEmail = clientData.email?.toLowerCase() || '';
-        const clientFullName = clientData.fullName?.toLowerCase() || '';
-        
-        // Check if this client belongs to current user
-        const emailMatch = userEmail && clientEmail && clientEmail === userEmail;
-        const nameMatch = userFullName && clientFullName && clientFullName === userFullName;
-        const firstNameMatch = userFirstName && clientFullName && clientFullName.includes(userFirstName);
-        const lastNameMatch = userLastName && clientFullName && clientFullName.includes(userLastName);
-        
-        const isUserClient = emailMatch || nameMatch || (firstNameMatch && lastNameMatch);
-        
-        if (isUserClient) {
-          const booking = {
-            id: clientId,
-            type: 'virtual-office',
-            room: 'Virtual Office',
-            clientName: clientData.fullName || 'User',
-            email: clientData.email || '',
-            contactNumber: clientData.phoneNumber || '',
-            company: clientData.company || '',
-            position: clientData.position || '',
-            startDate: clientData.dateStart || clientData.createdAt,
-            createdAt: clientData.createdAt,
-            status: 'active', // Virtual office clients are active
-            ...clientData,
-          };
-          virtualOfficeBookings.push(booking);
+        if (virtualOfficeResponse.success && virtualOfficeResponse.data) {
+          virtualOfficeResponse.data.forEach((clientData) => {
+            const clientId = clientData.id;
+            
+            // Get email and name from client data
+            const clientEmail = clientData.email?.toLowerCase() || '';
+            const clientFullName = clientData.fullName?.toLowerCase() || '';
+            
+            // Check if this client belongs to current user
+            const emailMatch = userEmail && clientEmail && clientEmail === userEmail;
+            const nameMatch = userFullName && clientFullName && clientFullName === userFullName;
+            const firstNameMatch = userFirstName && clientFullName && clientFullName.includes(userFirstName);
+            const lastNameMatch = userLastName && clientFullName && clientFullName.includes(userLastName);
+            
+            const isUserClient = emailMatch || nameMatch || (firstNameMatch && lastNameMatch);
+            
+            if (isUserClient) {
+              const booking = {
+                id: clientId,
+                type: 'virtual-office',
+                room: 'Virtual Office',
+                clientName: clientData.fullName || 'User',
+                email: clientData.email || '',
+                contactNumber: clientData.phoneNumber || '',
+                company: clientData.company || '',
+                position: clientData.position || '',
+                startDate: clientData.dateStart || clientData.createdAt,
+                createdAt: clientData.createdAt,
+                status: 'active', // Virtual office clients are active
+                ...clientData,
+              };
+              virtualOfficeBookings.push(booking);
+            }
+          });
         }
-      });
 
-      updateBookings();
-    }, (error) => {
-      console.error('Error fetching virtual-office-clients:', error);
-      virtualOfficeLoaded = true;
-      updateBookings();
-    });
+        // Fetch schedules/bookings from backend API
+        const schedulesResponse = await api.get(`/api/schedules/user/${userId}`);
+        const scheduleBookings = [];
+        
+        if (schedulesResponse.success && schedulesResponse.data) {
+          schedulesResponse.data.forEach((scheduleData) => {
+            const booking = {
+              id: scheduleData.id,
+              type: 'privateroom',
+              room: scheduleData.room || 'Private Room',
+              roomId: scheduleData.roomId || '',
+              clientName: scheduleData.clientName || 'User',
+              email: scheduleData.email || '',
+              contactNumber: scheduleData.contactNumber || '',
+              startDate: scheduleData.startDate,
+              endDate: scheduleData.endDate,
+              startTime: scheduleData.startTime,
+              endTime: scheduleData.endTime,
+              createdAt: scheduleData.createdAt,
+              status: scheduleData.status || 'pending',
+              notes: scheduleData.notes || '',
+              ...scheduleData,
+            };
+            scheduleBookings.push(booking);
+          });
+        }
 
-    return () => {
-      unsubscribeDesk();
-      unsubscribeVirtualOffice();
+        // Combine all bookings
+        const allBookings = [...deskBookings, ...virtualOfficeBookings, ...scheduleBookings];
+
+        // Remove duplicates based on document ID
+        const uniqueBookings = allBookings.reduce((acc, booking) => {
+          const existing = acc.find(b => b.id === booking.id && b.type === booking.type);
+          if (!existing) {
+            acc.push(booking);
+          }
+          return acc;
+        }, []);
+
+        // Sort by date (newest first)
+        const sortedBookings = uniqueBookings.sort((a, b) => {
+          const dateA = new Date(a.startDate || a.assignedAt || a.createdAt || a.dateStart || 0);
+          const dateB = new Date(b.startDate || b.assignedAt || b.createdAt || b.dateStart || 0);
+          return dateB - dateA;
+        });
+        
+        setBookings(sortedBookings);
+      } catch (error) {
+        console.error('Error fetching bookings:', error);
+        setBookings([]);
+      } finally {
+        setLoading(false);
+      }
     };
+
+    fetchBookings();
+    
+    // Poll for updates every 30 seconds to keep data fresh
+    const interval = setInterval(fetchBookings, 30000);
+    return () => clearInterval(interval);
   }, [currentUser, userInfo]);
 
-  // Fetch rooms to get rental fee information
-  useEffect(() => {
-    if (!db) return;
-    
-    if (!db) {
-      console.error('❌ Firestore not initialized');
-      return;
-    }
-    
-    const unsubscribe = onSnapshot(collection(db, 'rooms'), (snapshot) => {
-      const roomsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      setRooms(roomsData);
-    });
 
-    return () => unsubscribe();
+  // Fetch rooms from backend API to get rental fee information
+  useEffect(() => {
+    const fetchRooms = async () => {
+      try {
+        const response = await api.get('/api/rooms');
+        if (response.success && response.data) {
+          setRooms(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching rooms:', error);
+        setRooms([]);
+      }
+    };
+
+    fetchRooms();
+    
+    // Poll for updates every 30 seconds to keep data fresh
+    const interval = setInterval(fetchRooms, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const getStatusBadge = (status) => {
@@ -299,6 +451,52 @@ export default function Bookings() {
       minute: '2-digit' 
     });
   };
+
+  // Handle cancel/delete booking (only for private room schedules)
+  const handleCancelBooking = async (booking) => {
+    // Only allow canceling private room bookings (schedules)
+    // Desk assignments and virtual office bookings are managed by admin
+    if (booking.type !== 'privateroom') {
+      alert('This booking type cannot be canceled from here. Please contact support.');
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to cancel this booking for ${booking.room}? This action cannot be undone.`)) {
+      return;
+    }
+
+    setDeletingBookingId(booking.id);
+
+    try {
+      // Delete schedule via backend API
+      const response = await api.delete(`/api/schedules/${booking.id}`);
+      
+      if (response.success) {
+        // Refetch bookings to ensure data is fresh
+        await refetchBookings();
+        alert('Booking canceled successfully!');
+      } else {
+        alert(response.message || 'Failed to cancel booking. Please try again.');
+      }
+    } catch (error) {
+      console.error('Error canceling booking:', error);
+      
+      let errorMessage = 'Failed to cancel booking. Please try again.';
+      
+      if (error.response?.status === 404) {
+        errorMessage = 'Booking not found. It may have already been canceled.';
+      } else if (error.response?.status === 403) {
+        errorMessage = 'You do not have permission to cancel this booking.';
+      } else if (error.message) {
+        errorMessage = error.message;
+      }
+      
+      alert(errorMessage);
+    } finally {
+      setDeletingBookingId(null);
+    }
+  };
+
 
   if (loading) {
     return (
@@ -573,6 +771,26 @@ export default function Bookings() {
                       </>
                     )}
                   </div>
+
+                  {/* Action Buttons - Only show for private room bookings that can be canceled */}
+                  {booking.type === 'privateroom' && (
+                    <>
+                      <div className="border-t border-gray-200"></div>
+                      <div className="px-6 pb-6">
+                        <button
+                          onClick={() => handleCancelBooking(booking)}
+                          disabled={deletingBookingId === booking.id}
+                          className={`w-full py-2.5 px-4 rounded-lg text-sm font-semibold transition-all duration-200 ${
+                            deletingBookingId === booking.id
+                              ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                              : 'bg-red-500 text-white hover:bg-red-600 shadow-md hover:shadow-lg'
+                          }`}
+                        >
+                          {deletingBookingId === booking.id ? 'Canceling...' : 'Cancel Booking'}
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </motion.div>
               );
             })}
