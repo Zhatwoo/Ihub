@@ -496,7 +496,6 @@ export default function Tenants() {
           </div>
         )}
       </div>
-      )}
     </div>
   );
 }

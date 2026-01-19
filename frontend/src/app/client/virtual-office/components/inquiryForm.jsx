@@ -149,12 +149,12 @@ export default function InquiryForm() {
                 animate={isFormInView ? { opacity: 1 } : { opacity: 0 }}
                 transition={{ duration: 0.4, delay: 0.6 }}
               >
-                <label htmlFor="email" className="block text-white text-sm sm:text-base md:text-[1.1571875rem] font-medium mb-1 sm:mb-[0.2645rem]">
+                <label htmlFor="inquiry-email" className="block text-white text-sm sm:text-base md:text-[1.1571875rem] font-medium mb-1 sm:mb-[0.2645rem]">
                   Email Address<span className="text-red-400 ml-1 sm:ml-[0.13225rem]">*</span>
                 </label>
                 <input
                   type="email"
-                  id="email"
+                  id="inquiry-email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}

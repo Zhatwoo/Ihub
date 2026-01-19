@@ -202,14 +202,14 @@ export default function LocationCta() {
                 {/* Email Address */}
                 <div>
                   <label
-                    htmlFor="email"
+                    htmlFor="schedule-email"
                     className={`${roboto.className} block text-sm font-medium text-slate-700 mb-2`}
                   >
                     Email address:
                   </label>
                   <input
                     type="email"
-                    id="email"
+                    id="schedule-email"
                     name="email"
                     value={formData.email}
                     onChange={handleChange}

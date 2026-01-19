@@ -268,12 +268,12 @@ function ContactsContent() {
                 animate={isFormInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
                 transition={{ duration: 0.6, delay: 0.4 }}
               >
-                <label htmlFor="email" className={`block ${roboto.className} text-white text-base font-medium mb-2`}>
+                <label htmlFor="contact-email" className={`block ${roboto.className} text-white text-base font-medium mb-2`}>
                   Email Address<span className="text-red-400 ml-1">*</span>
                 </label>
                 <input
                   type="email"
-                  id="email"
+                  id="contact-email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}
