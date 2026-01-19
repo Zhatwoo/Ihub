@@ -5,9 +5,9 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Variables that are required (no defaults)
+// Note: PORT and NODE_ENV have defaults, so they're optional
 const requiredEnvVars = [
-  'PORT',
-  'NODE_ENV',
   // TODO: Add Firebase Admin SDK environment variables when ready
   // 'FIREBASE_PROJECT_ID',
   // 'FIREBASE_PRIVATE_KEY',
@@ -23,7 +23,7 @@ if (missingVars.length > 0) {
 }
 
 export const config = {
-  port: process.env.PORT || 3001,
+  port: process.env.PORT || 5000,
   nodeEnv: process.env.NODE_ENV || 'development',
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000',
   // TODO: Add Firebase config when ready

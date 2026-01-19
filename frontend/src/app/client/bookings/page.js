@@ -39,16 +39,12 @@ export default function Bookings() {
           const directSnap = await getDoc(userInfoRef);
           if (directSnap.exists()) {
             setUserInfo(directSnap.data());
-            console.log('User info fetched:', directSnap.data());
           } else {
             // Try collection path
             const infoCollectionRef = collection(db, 'accounts', 'client', 'users', user.uid, 'info');
             const infoSnap = await getDocs(infoCollectionRef);
             if (!infoSnap.empty) {
               setUserInfo(infoSnap.docs[0].data());
-              console.log('User info fetched from collection:', infoSnap.docs[0].data());
-            } else {
-              console.log('User info not found, will use email from auth');
             }
           }
         } catch (error) {
@@ -115,27 +111,24 @@ export default function Bookings() {
         return dateB - dateA;
       });
       
-      console.log('\n=== FINAL BOOKINGS SUMMARY ===');
-      console.log(`Desk bookings: ${deskBookings.length}`, deskBookings);
-      console.log(`Virtual office bookings: ${virtualOfficeBookings.length}`, virtualOfficeBookings);
-      console.log(`Total unique bookings: ${sortedBookings.length}`, sortedBookings);
-      console.log('=== END SUMMARY ===\n');
+      // Debug logs (can be removed in production)
+      if (process.env.NODE_ENV === 'development') {
+        console.log('\n=== FINAL BOOKINGS SUMMARY ===');
+        console.log(`Desk bookings: ${deskBookings.length}`);
+        console.log(`Virtual office bookings: ${virtualOfficeBookings.length}`);
+        console.log(`Total unique bookings: ${sortedBookings.length}`);
+        console.log('=== END SUMMARY ===\n');
+      }
       
       setBookings(sortedBookings);
       setLoading(false);
     };
 
     // Fetch from desk-assignments collection
-    console.log(`\n🔍 Starting to fetch bookings for user: ${userId} (${userEmail})`);
-    console.log(`User full name: "${userFullName}"`);
-    console.log(`User first name: "${userFirstName}", last name: "${userLastName}"`);
-    
     const deskAssignmentsRef = collection(db, 'desk-assignments');
     const unsubscribeDesk = onSnapshot(deskAssignmentsRef, (snapshot) => {
       deskLoaded = true;
       deskBookings = [];
-
-      console.log(`\n=== Processing ${snapshot.docs.length} desk-assignments documents ===`);
 
       snapshot.docs.forEach((docSnapshot) => {
         const assignmentData = docSnapshot.data();
@@ -175,21 +168,9 @@ export default function Bookings() {
             status: 'approved', // Desk assignments are already approved
           };
           deskBookings.push(booking);
-          console.log(`✓ Desk booking added: ${finalDeskId} - ${assignmentData.name} (${assignmentEmail})`);
-          console.log(`  Booking data:`, { 
-            type: booking.type, 
-            deskId: booking.deskId, 
-            desk: booking.desk,
-            id: booking.id,
-            assignmentDataDesk: assignmentData.desk,
-            documentId: deskId
-          });
-        } else {
-          console.log(`✗ Desk assignment "${deskId}" filtered out - Email: ${assignmentEmail} (${emailMatch ? 'match' : 'no match'}), Name: ${assignmentName} (${nameMatch ? 'match' : 'no match'})`);
         }
       });
 
-      console.log(`Desk bookings found: ${deskBookings.length}`);
       updateBookings();
     }, (error) => {
       console.error('Error fetching desk-assignments:', error);
@@ -202,8 +183,6 @@ export default function Bookings() {
     const unsubscribeVirtualOffice = onSnapshot(virtualOfficeRef, (snapshot) => {
       virtualOfficeLoaded = true;
       virtualOfficeBookings = [];
-
-      console.log(`\n=== Processing ${snapshot.docs.length} virtual-office-clients documents ===`);
 
       snapshot.docs.forEach((docSnapshot) => {
         const clientData = docSnapshot.data();
@@ -237,13 +216,9 @@ export default function Bookings() {
             ...clientData,
           };
           virtualOfficeBookings.push(booking);
-          console.log(`✓ Virtual office booking added: ${clientId} - ${clientData.fullName} (${clientEmail})`);
-        } else {
-          console.log(`✗ Virtual office client "${clientId}" filtered out - Email: ${clientEmail} (${emailMatch ? 'match' : 'no match'}), Name: ${clientFullName} (${nameMatch ? 'match' : 'no match'})`);
         }
       });
 
-      console.log(`Virtual office bookings found: ${virtualOfficeBookings.length}`);
       updateBookings();
     }, (error) => {
       console.error('Error fetching virtual-office-clients:', error);
@@ -373,17 +348,6 @@ export default function Bookings() {
             {bookings.map((booking, index) => {
               const status = getStatusBadge(booking.status);
               const roomData = getRoomData(booking.roomId);
-              
-              // Debug log for desk bookings
-              if (booking.type === 'desk') {
-                console.log(`Rendering desk booking ${index}:`, {
-                  id: booking.id,
-                  deskId: booking.deskId,
-                  type: booking.type,
-                  hasDeskId: !!booking.deskId,
-                  hasId: !!booking.id
-                });
-              }
               
               return (
                 <motion.div

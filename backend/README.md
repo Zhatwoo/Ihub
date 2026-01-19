@@ -23,7 +23,7 @@ Run the server in development mode:
 npm run dev
 ```
 
-The server will start on `http://localhost:3001` (or the PORT specified in `.env`).
+The server will start on `http://localhost:5000` (or the PORT specified in `.env`).
 
 ## API Endpoints
 
