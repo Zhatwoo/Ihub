@@ -106,11 +106,24 @@ export const getUserDeskRequest = async (req, res) => {
       return sendFirestoreError(res);
     }
     
-    const requestDoc = await firestore
+    // Check if user exists first
+    const userRef = firestore
       .collection('accounts')
       .doc('client')
       .collection('users')
-      .doc(userId)
+      .doc(userId);
+    
+    const userDoc = await userRef.get();
+    
+    if (!userDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        error: 'Not Found',
+        message: 'User not found'
+      });
+    }
+    
+    const requestDoc = await userRef
       .collection('request')
       .doc('desk')
       .get();
@@ -316,34 +329,54 @@ export const updateDeskRequest = async (req, res) => {
       return sendFirestoreError(res);
     }
     
-    const requestRef = firestore
+    // Ensure user document exists before creating subcollection
+    const userRef = firestore
       .collection('accounts')
       .doc('client')
       .collection('users')
-      .doc(userId)
+      .doc(userId);
+    
+    const userDoc = await userRef.get();
+    
+    // Create user document if it doesn't exist (with minimal info from request)
+    if (!userDoc.exists) {
+      await userRef.set({
+        email: updateData.requestedBy?.email || updateData.email || '',
+        firstName: updateData.requestedBy?.firstName || '',
+        lastName: updateData.requestedBy?.lastName || '',
+        companyName: updateData.requestedBy?.companyName || '',
+        contact: updateData.requestedBy?.contact || '',
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+    }
+    
+    const requestRef = userRef
       .collection('request')
       .doc('desk');
     
     const requestDoc = await requestRef.get();
 
     if (!requestDoc.exists) {
-      return res.status(404).json({
-        success: false,
-        error: 'Not Found',
-        message: 'Desk request not found'
+      // Create new request if it doesn't exist
+      await requestRef.set({
+        ...updateData,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+    } else {
+      // Update existing request
+      await requestRef.update({
+        ...updateData,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
       });
     }
-
-    await requestRef.update({
-      ...updateData,
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    });
 
     const updatedRequest = await requestRef.get();
 
     res.json({
       success: true,
-      message: 'Desk request updated successfully',
+      message: 'Desk request saved successfully',
       data: {
         id: updatedRequest.id,
         userId,
@@ -355,7 +388,7 @@ export const updateDeskRequest = async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Internal Server Error',
-      message: error.message || 'Failed to update desk request'
+      message: error.message || 'Failed to save desk request'
     });
   }
 };
