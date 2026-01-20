@@ -6,23 +6,23 @@ import {
   updateRoom,
   deleteRoom
 } from '../controllers/roomsController.js';
-// import { authenticate, isAdmin } from '../middlewares/auth.js';
+import { authenticate, isAdmin } from '../middlewares/auth.js';
 
 const router = express.Router();
 
-// GET /api/rooms - Get all rooms
+// GET /api/rooms - Get all rooms (public)
 router.get('/', getAllRooms);
 
-// GET /api/rooms/:roomId - Get room by ID
+// GET /api/rooms/:roomId - Get room by ID (public)
 router.get('/:roomId', getRoomById);
 
 // POST /api/rooms - Create new room (admin only)
-router.post('/', createRoom); // Add authenticate, isAdmin middleware later
+router.post('/', authenticate, isAdmin, createRoom);
 
 // PUT /api/rooms/:roomId - Update room (admin only)
-router.put('/:roomId', updateRoom); // Add authenticate, isAdmin middleware later
+router.put('/:roomId', authenticate, isAdmin, updateRoom);
 
 // DELETE /api/rooms/:roomId - Delete room (admin only)
-router.delete('/:roomId', deleteRoom); // Add authenticate, isAdmin middleware later
+router.delete('/:roomId', authenticate, isAdmin, deleteRoom);
 
 export default router;

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api } from '@/lib/api';
 
 export default function Tenants() {
@@ -12,6 +12,7 @@ export default function Tenants() {
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
   const [loading, setLoading] = useState(true);
+  const tenantsIntervalRef = useRef(null);
 
   // Fetch all tenant data from backend
   useEffect(() => {
@@ -90,25 +91,33 @@ export default function Tenants() {
     
     // Poll for updates every 30 seconds
     // Only poll when tab is visible to reduce unnecessary requests
-    let interval;
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        if (interval) clearInterval(interval);
+        if (tenantsIntervalRef.current) {
+          clearInterval(tenantsIntervalRef.current);
+          tenantsIntervalRef.current = null;
+        }
       } else {
-        fetchTenants(); // Fetch immediately when tab becomes visible
-        interval = setInterval(fetchTenants, 30000);
+        // Only create interval if one doesn't already exist
+        if (!tenantsIntervalRef.current) {
+          fetchTenants(); // Fetch immediately when tab becomes visible
+          tenantsIntervalRef.current = setInterval(fetchTenants, 30000);
+        }
       }
     };
     
-    // Start polling if tab is visible
-    if (!document.hidden) {
-      interval = setInterval(fetchTenants, 30000);
+    // Start polling if tab is visible (only if no interval exists)
+    if (!document.hidden && !tenantsIntervalRef.current) {
+      tenantsIntervalRef.current = setInterval(fetchTenants, 30000);
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
-      if (interval) clearInterval(interval);
+      if (tenantsIntervalRef.current) {
+        clearInterval(tenantsIntervalRef.current);
+        tenantsIntervalRef.current = null;
+      }
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);

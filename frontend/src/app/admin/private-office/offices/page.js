@@ -82,10 +82,9 @@ export default function PrivateOffices() {
     try {
       const formDataUpload = new FormData();
       formDataUpload.append('file', imageFile);
-      const response = await fetch('/api/upload', { method: 'POST', body: formDataUpload });
-      const data = await response.json();
-      if (data.success) return data.path;
-      throw new Error(data.error);
+      const response = await api.upload('/api/upload', formDataUpload);
+      if (response.success) return response.path;
+      throw new Error(response.error);
     } catch (error) {
       console.error('Upload error:', error);
       showToast('Failed to upload image', 'error');

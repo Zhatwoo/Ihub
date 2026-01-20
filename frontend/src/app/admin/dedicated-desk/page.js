@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { api } from '@/lib/api';
 
 // Import tab components
@@ -23,6 +23,10 @@ export default function DedicatedDesk() {
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [selectedUserInfo, setSelectedUserInfo] = useState(null);
   const [showUserInfoModal, setShowUserInfoModal] = useState(false);
+  
+  // Use refs to track intervals and prevent multiple intervals
+  const assignmentsIntervalRef = useRef(null);
+  const requestsIntervalRef = useRef(null);
   
   // Animation on mount
   useEffect(() => {
@@ -52,25 +56,33 @@ export default function DedicatedDesk() {
     
     // Poll for updates every 30 seconds (reduced from 2 seconds to prevent excessive API calls)
     // Only poll when tab is visible to reduce unnecessary requests
-    let interval;
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        if (interval) clearInterval(interval);
+        if (assignmentsIntervalRef.current) {
+          clearInterval(assignmentsIntervalRef.current);
+          assignmentsIntervalRef.current = null;
+        }
       } else {
-        fetchAssignments(); // Fetch immediately when tab becomes visible
-        interval = setInterval(fetchAssignments, 30000);
+        // Only create interval if one doesn't already exist
+        if (!assignmentsIntervalRef.current) {
+          fetchAssignments(); // Fetch immediately when tab becomes visible
+          assignmentsIntervalRef.current = setInterval(fetchAssignments, 30000);
+        }
       }
     };
     
-    // Start polling if tab is visible
-    if (!document.hidden) {
-      interval = setInterval(fetchAssignments, 30000);
+    // Start polling if tab is visible (only if no interval exists)
+    if (!document.hidden && !assignmentsIntervalRef.current) {
+      assignmentsIntervalRef.current = setInterval(fetchAssignments, 30000);
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
-      if (interval) clearInterval(interval);
+      if (assignmentsIntervalRef.current) {
+        clearInterval(assignmentsIntervalRef.current);
+        assignmentsIntervalRef.current = null;
+      }
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
@@ -173,34 +185,48 @@ export default function DedicatedDesk() {
       }
     };
     
+    // Only poll if requests tab is active
+    if (activeTab !== 'requests') {
+      // Clear interval if tab is not active
+      if (requestsIntervalRef.current) {
+        clearInterval(requestsIntervalRef.current);
+        requestsIntervalRef.current = null;
+      }
+      return;
+    }
+    
     // Initial fetch
     fetchRequests();
     
     // Poll for updates every 30 seconds (reduced from 2 seconds to prevent excessive API calls)
-    // Only poll when tab is visible and this tab is active
-    if (activeTab !== 'requests') {
-      return; // Don't poll if requests tab is not active
-    }
-    
-    let interval;
+    // Only poll when tab is visible to reduce unnecessary requests
     const handleVisibilityChange = () => {
       if (document.hidden || activeTab !== 'requests') {
-        if (interval) clearInterval(interval);
+        if (requestsIntervalRef.current) {
+          clearInterval(requestsIntervalRef.current);
+          requestsIntervalRef.current = null;
+        }
       } else {
-        fetchRequests(); // Fetch immediately when tab becomes visible
-        interval = setInterval(fetchRequests, 30000);
+        // Only create interval if one doesn't already exist
+        if (!requestsIntervalRef.current) {
+          fetchRequests(); // Fetch immediately when tab becomes visible
+          requestsIntervalRef.current = setInterval(fetchRequests, 30000);
+        }
       }
     };
     
-    // Start polling if tab is visible
-    if (!document.hidden) {
-      interval = setInterval(fetchRequests, 30000);
+    // Start polling if tab is visible (only if no interval exists)
+    if (!document.hidden && !requestsIntervalRef.current) {
+      requestsIntervalRef.current = setInterval(fetchRequests, 30000);
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
-      if (interval) clearInterval(interval);
+      if (requestsIntervalRef.current) {
+        clearInterval(requestsIntervalRef.current);
+        requestsIntervalRef.current = null;
+      }
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [activeTab]);
