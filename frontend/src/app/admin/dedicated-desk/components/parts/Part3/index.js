@@ -106,6 +106,53 @@ export default function Part3({ onDeskClick, startX = 0, tagPrefix = "C", deskAs
             className="relative cursor-pointer transition-transform hover:scale-105" 
             style={{ marginLeft: "-24px" }}
             onClick={() => onDeskClick(getTag(32))}
+            onMouseEnter={(e) => {
+              if (deskAssignments[getTag(32)]) {
+                // Create and show tooltip for custom desk
+                const tooltip = document.createElement('div');
+                tooltip.id = 'custom-desk-tooltip';
+                tooltip.className = 'fixed pointer-events-none z-[99999] bg-slate-800 text-white rounded shadow-lg text-center border border-slate-700 whitespace-nowrap';
+                tooltip.style.padding = zoom === 1 ? '10px 16px' : '3px 6px';
+                tooltip.style.minWidth = zoom === 1 ? '80px' : '30px';
+                tooltip.style.maxWidth = zoom === 1 ? '160px' : '60px';
+                tooltip.style.lineHeight = '1';
+                
+                const assignment = deskAssignments[getTag(32)];
+                const occupantName = assignment?.name || '';
+                const occupantType = assignment?.type || 'Employee';
+                
+                if (showPrivateInfo && occupantName) {
+                  tooltip.innerHTML = `
+                    <div class="font-medium" style="font-size: ${zoom === 1 ? '16px' : '9px'}; margin-bottom: 0; line-height: 1">${occupantName}</div>
+                    <div class="px-0.5 py-0 rounded-full inline-block ${occupantType === "Tenant" ? "bg-blue-500/30 text-blue-200" : "bg-red-500/30 text-red-200"}" style="font-size: ${zoom === 1 ? '12px' : '8px'}; line-height: 1; margin-top: 0">
+                      ${occupantType}
+                    </div>
+                  `;
+                } else {
+                  tooltip.innerHTML = `<div class="font-medium" style="font-size: ${zoom === 1 ? '16px' : '9px'}; line-height: 1">Occupied</div>`;
+                }
+                
+                // Position tooltip
+                const rect = e.currentTarget.getBoundingClientRect();
+                const tooltipWidth = 50;
+                const tooltipHeight = 24;
+                tooltip.style.top = `${rect.top - tooltipHeight - 3}px`;
+                tooltip.style.left = `${rect.left + (rect.width / 2) - (tooltipWidth / 2)}px`;
+                
+                // Add arrow
+                const arrow = document.createElement('div');
+                arrow.className = 'absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-slate-800';
+                tooltip.appendChild(arrow);
+                
+                document.body.appendChild(tooltip);
+              }
+            }}
+            onMouseLeave={() => {
+              const tooltip = document.getElementById('custom-desk-tooltip');
+              if (tooltip) {
+                tooltip.remove();
+              }
+            }}
           >
             <div className="relative" style={{ width: "40px", height: "90px" }}>
               <div className="absolute top-1/2 -translate-y-1/2 rounded-sm bg-black" style={{ width: "40px", height: "80px", left: "0px" }}>
@@ -118,8 +165,14 @@ export default function Part3({ onDeskClick, startX = 0, tagPrefix = "C", deskAs
             <div className="absolute rounded-full bg-black" style={{ width: "20px", height: "20px", left: "65px", top: "25px" }} />
             {deskAssignments[getTag(32)] && (
               <div 
-                className={`absolute inset-0 ${deskAssignments[getTag(32)]?.type === "Tenant" ? "bg-blue-500" : "bg-red-500"} rounded-sm z-10 pointer-events-none`}
-                style={{ opacity: 0.35 }}
+                className={`absolute ${deskAssignments[getTag(32)]?.type === "Tenant" ? "bg-blue-500" : "bg-red-500"} rounded-sm z-10 pointer-events-none`}
+                style={{ 
+                  opacity: 0.35,
+                  top: '0px',
+                  left: '0px',
+                  width: '110px',
+                  height: '90px'
+                }}
               />
             )}
           </div>
