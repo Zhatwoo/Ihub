@@ -50,9 +50,29 @@ export default function DedicatedDesk() {
     // Initial fetch
     fetchAssignments();
     
-    // Real-time polling: Update every 2 seconds for instant reflection
-    const interval = setInterval(fetchAssignments, 2000);
-    return () => clearInterval(interval);
+    // Poll for updates every 30 seconds (reduced from 2 seconds to prevent excessive API calls)
+    // Only poll when tab is visible to reduce unnecessary requests
+    let interval;
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (interval) clearInterval(interval);
+      } else {
+        fetchAssignments(); // Fetch immediately when tab becomes visible
+        interval = setInterval(fetchAssignments, 30000);
+      }
+    };
+    
+    // Start polling if tab is visible
+    if (!document.hidden) {
+      interval = setInterval(fetchAssignments, 30000);
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      if (interval) clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   // Helper function to fetch all requests from backend
@@ -156,9 +176,33 @@ export default function DedicatedDesk() {
     // Initial fetch
     fetchRequests();
     
-    // Real-time polling: Update every 2 seconds when requests tab is active
-    const interval = setInterval(fetchRequests, 2000);
-    return () => clearInterval(interval);
+    // Poll for updates every 30 seconds (reduced from 2 seconds to prevent excessive API calls)
+    // Only poll when tab is visible and this tab is active
+    if (activeTab !== 'requests') {
+      return; // Don't poll if requests tab is not active
+    }
+    
+    let interval;
+    const handleVisibilityChange = () => {
+      if (document.hidden || activeTab !== 'requests') {
+        if (interval) clearInterval(interval);
+      } else {
+        fetchRequests(); // Fetch immediately when tab becomes visible
+        interval = setInterval(fetchRequests, 30000);
+      }
+    };
+    
+    // Start polling if tab is visible
+    if (!document.hidden) {
+      interval = setInterval(fetchRequests, 30000);
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      if (interval) clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [activeTab]);
   
   // Zoom handlers
