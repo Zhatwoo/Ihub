@@ -1,24 +1,67 @@
 'use client';
 
-import { useState } from 'react';
-
-const dummyInvoices = [
-  { id: 'INV-001', client: 'John Smith', room: 'Buffet Hall', date: 'Jan 5, 2026', amount: 15000, status: 'Paid' },
-  { id: 'INV-002', client: 'Sarah Johnson', room: 'Fine Dining Room', date: 'Jan 6, 2026', amount: 8500, status: 'Paid' },
-  { id: 'INV-003', client: 'Mike Chen', room: 'Rooftop Lounge', date: 'Jan 7, 2026', amount: 22000, status: 'Pending' },
-  { id: 'INV-004', client: 'Emily Davis', room: 'Private Chef Suite', date: 'Jan 8, 2026', amount: 12000, status: 'Pending' },
-  { id: 'INV-005', client: 'Robert Wilson', room: 'Buffet Hall', date: 'Jan 9, 2026', amount: 18500, status: 'Overdue' },
-  { id: 'INV-006', client: 'Lisa Anderson', room: 'Fine Dining Room', date: 'Jan 10, 2026', amount: 9000, status: 'Paid' },
-];
+import { useState, useEffect } from 'react';
+import { api } from '@/lib/api';
 
 export default function Billing() {
   const [filter, setFilter] = useState('all');
+  const [invoices, setInvoices] = useState([]);
+  const [revenueStats, setRevenueStats] = useState({});
+  const [monthlyRevenue, setMonthlyRevenue] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const totalRevenue = dummyInvoices.filter(i => i.status === 'Paid').reduce((sum, i) => sum + i.amount, 0);
-  const pendingAmount = dummyInvoices.filter(i => i.status === 'Pending').reduce((sum, i) => sum + i.amount, 0);
-  const overdueAmount = dummyInvoices.filter(i => i.status === 'Overdue').reduce((sum, i) => sum + i.amount, 0);
+  // Fetch billing data from backend
+  useEffect(() => {
+    const fetchBillingData = async () => {
+      try {
+        setLoading(true);
+        
+        const response = await api.get('/api/admin/billing/dashboard');
+        
+        if (response.success && response.data) {
+          setRevenueStats(response.data.revenueStats || {});
+          setMonthlyRevenue(response.data.monthlyRevenue || []);
+          setInvoices(response.data.recentInvoices || []);
+        }
+      } catch (error) {
+        console.error('Error fetching billing data:', error);
+        // Set fallback data
+        setRevenueStats({});
+        setMonthlyRevenue([]);
+        setInvoices([]);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const filteredInvoices = filter === 'all' ? dummyInvoices : dummyInvoices.filter(i => i.status === filter);
+    fetchBillingData();
+  }, []);
+
+  const totalRevenue = revenueStats.total || 0;
+  const pendingAmount = revenueStats.pending || 0;
+  const overdueAmount = revenueStats.overdue || 0;
+
+  // Fetch filtered invoices from backend
+  const [filteredInvoices, setFilteredInvoices] = useState([]);
+
+  useEffect(() => {
+    const filterInvoices = async () => {
+      try {
+        const params = new URLSearchParams();
+        if (filter !== 'all') params.append('status', filter);
+
+        const response = await api.get(`/api/admin/billing/invoices?${params.toString()}`);
+        if (response.success && response.data) {
+          setFilteredInvoices(response.data.invoices || []);
+        }
+      } catch (error) {
+        console.error('Error filtering invoices:', error);
+        setFilteredInvoices(invoices);
+      }
+    };
+
+    filterInvoices();
+  }, [filter, invoices]);
 
   const formatCurrency = (amount) => `₱${amount.toLocaleString()}`;
 

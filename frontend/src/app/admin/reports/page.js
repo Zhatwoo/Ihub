@@ -1,30 +1,71 @@
 'use client';
 
-import { useState } from 'react';
-
-const dummyReports = [
-  { id: 1, title: 'Monthly Reservation Summary', type: 'Reservations', date: 'Jan 2026', status: 'Generated' },
-  { id: 2, title: 'Room Utilization Report', type: 'Utilization', date: 'Jan 2026', status: 'Generated' },
-  { id: 3, title: 'Revenue Report Q4 2025', type: 'Financial', date: 'Dec 2025', status: 'Generated' },
-  { id: 4, title: 'Client Activity Report', type: 'Clients', date: 'Jan 2026', status: 'Pending' },
-  { id: 5, title: 'Yearly Overview 2025', type: 'Summary', date: 'Dec 2025', status: 'Generated' },
-];
-
-const monthlyData = [
-  { month: 'Aug', reservations: 45 },
-  { month: 'Sep', reservations: 52 },
-  { month: 'Oct', reservations: 48 },
-  { month: 'Nov', reservations: 61 },
-  { month: 'Dec', reservations: 55 },
-  { month: 'Jan', reservations: 38 },
-];
+import { useState, useEffect } from 'react';
+import { api } from '@/lib/api';
 
 export default function Reports() {
   const [selectedType, setSelectedType] = useState('all');
+  const [reports, setReports] = useState([]);
+  const [monthlyData, setMonthlyData] = useState([]);
+  const [loading, setLoading] = useState(true);
+  
   const types = ['all', 'Reservations', 'Utilization', 'Financial', 'Clients', 'Summary'];
 
-  const filteredReports = selectedType === 'all' ? dummyReports : dummyReports.filter(r => r.type === selectedType);
-  const maxReservations = Math.max(...monthlyData.map(d => d.reservations));
+  // Fetch reports data from backend
+  useEffect(() => {
+    const fetchReportsData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch reservation trends and report history
+        const [trendsResponse, historyResponse] = await Promise.all([
+          api.get('/api/admin/reports/trends'),
+          api.get('/api/admin/reports/history')
+        ]);
+        
+        if (trendsResponse.success && trendsResponse.data) {
+          setMonthlyData(trendsResponse.data.monthlyData || []);
+        }
+        
+        if (historyResponse.success && historyResponse.data) {
+          setReports(historyResponse.data.reports || []);
+        }
+      } catch (error) {
+        console.error('Error fetching reports data:', error);
+        // Set fallback data
+        setReports([]);
+        setMonthlyData([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchReportsData();
+  }, []);
+
+  // Fetch filtered reports from backend
+  const [filteredReports, setFilteredReports] = useState([]);
+
+  useEffect(() => {
+    const filterReports = async () => {
+      try {
+        const params = new URLSearchParams();
+        if (selectedType !== 'all') params.append('type', selectedType);
+
+        const response = await api.get(`/api/admin/reports/history?${params.toString()}`);
+        if (response.success && response.data) {
+          setFilteredReports(response.data.reports || []);
+        }
+      } catch (error) {
+        console.error('Error filtering reports:', error);
+        setFilteredReports(reports);
+      }
+    };
+
+    filterReports();
+  }, [selectedType, reports]);
+
+  const maxReservations = monthlyData.length > 0 ? monthlyData.reduce((max, d) => d.reservations > max ? d.reservations : max, 0) : 1;
 
   return (
     <div className="w-full animate-fadeIn">
@@ -48,15 +89,15 @@ export default function Reports() {
           <div className="space-y-3 sm:space-y-4">
             <div className="p-4 bg-teal-50 rounded-xl">
               <p className="text-teal-700 text-sm font-medium">Total Reports</p>
-              <p className="text-2xl font-bold text-teal-800">{dummyReports.length}</p>
+              <p className="text-2xl font-bold text-teal-800">{reports.length}</p>
             </div>
             <div className="p-4 bg-green-50 rounded-xl">
               <p className="text-green-700 text-sm font-medium">Generated</p>
-              <p className="text-2xl font-bold text-green-800">{dummyReports.filter(r => r.status === 'Generated').length}</p>
+              <p className="text-2xl font-bold text-green-800">{reports.length > 0 ? reports.reduce((count, r) => r.status === 'Generated' ? count + 1 : count, 0) : 0}</p>
             </div>
             <div className="p-4 bg-yellow-50 rounded-xl">
               <p className="text-yellow-700 text-sm font-medium">Pending</p>
-              <p className="text-2xl font-bold text-yellow-800">{dummyReports.filter(r => r.status === 'Pending').length}</p>
+              <p className="text-2xl font-bold text-yellow-800">{reports.length > 0 ? reports.reduce((count, r) => r.status === 'Pending' ? count + 1 : count, 0) : 0}</p>
             </div>
           </div>
         </div>

@@ -1,13 +1,13 @@
 "use client";
 
-import Part1 from "../../components/parts/Part1";
-import Part2 from "../../components/parts/Part2";
-import Part3 from "../../components/parts/Part3";
-import Part4 from "../../components/parts/Part4";
-import Part5 from "../../components/parts/Part5";
-import Part6 from "../../components/parts/Part6";
-import Part7 from "../../components/parts/Part7";
-import Part8 from "../../components/parts/Part8";
+import Part1 from "../../components/parts/Part1/index.js";
+import Part2 from "../../components/parts/Part2/index.js";
+import Part3 from "../../components/parts/Part3/index.js";
+import Part4 from "../../components/parts/Part4/index.js";
+import Part5 from "../../components/parts/Part5/index.js";
+import Part6 from "../../components/parts/Part6/index.js";
+import Part7 from "../../components/parts/Part7/index.js";
+import Part8 from "../../components/parts/Part8/index.js";
 
 export default function FloorPlanView({ 
   zoom, 

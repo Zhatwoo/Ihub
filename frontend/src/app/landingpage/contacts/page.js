@@ -5,10 +5,10 @@ import { motion, useInView } from 'framer-motion';
 import { League_Spartan, Roboto } from 'next/font/google';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import LandingPageHeader from '../components/header';
-import ClientHeader from '@/app/client/home/components/header';
-import Footer from '../components/footer';
-import ConfirmationModal from '../components/ConfirmationModal';
+import LandingPageHeader from '../components/header.jsx';
+import ClientHeader from '@/app/client/home/components/header.jsx';
+import Footer from '../components/footer.jsx';
+import ConfirmationModal from '../components/ConfirmationModal.jsx';
 import { api } from '@/lib/api';
 
 const leagueSpartan = League_Spartan({
