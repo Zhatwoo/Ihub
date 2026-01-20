@@ -137,10 +137,15 @@ export const getFirestore = () => {
 };
 
 export const getFirebaseStorage = () => {
-  if (!isInitialized) {
-    throw new Error('Firebase Storage not initialized. Call initFirebase() first.');
+  if (!isInitialized || !admin.apps.length) {
+    return null; // Return null instead of throwing, so services can handle gracefully
   }
-  return admin.storage();
+  try {
+    return admin.storage();
+  } catch (error) {
+    console.warn('Firebase Storage not available:', error.message);
+    return null;
+  }
 };
 
 export default { initFirebase, getFirebaseAuth, getFirestore, getFirebaseStorage };

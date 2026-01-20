@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
 import { api } from '@/lib/api';
@@ -43,6 +43,10 @@ export default function PrivateOffice() {
     notes: '',
     status: 'approved'
   });
+  
+  // Use refs to track intervals and prevent multiple intervals
+  const roomsIntervalRef = useRef(null);
+  const schedulesIntervalRef = useRef(null);
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
@@ -86,9 +90,35 @@ export default function PrivateOffice() {
 
     fetchRooms();
     
-    // Poll for updates every 30 seconds
-    const interval = setInterval(fetchRooms, 30000);
-    return () => clearInterval(interval);
+    // Poll for updates every 30 seconds, only when tab is visible
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (roomsIntervalRef.current) {
+          clearInterval(roomsIntervalRef.current);
+          roomsIntervalRef.current = null;
+        }
+      } else {
+        // Only create interval if one doesn't already exist
+        if (!roomsIntervalRef.current) {
+          roomsIntervalRef.current = setInterval(fetchRooms, 30000);
+        }
+      }
+    };
+    
+    // Start polling if tab is visible
+    if (!document.hidden && !roomsIntervalRef.current) {
+      roomsIntervalRef.current = setInterval(fetchRooms, 30000);
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      if (roomsIntervalRef.current) {
+        clearInterval(roomsIntervalRef.current);
+        roomsIntervalRef.current = null;
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   // Fetch schedules from backend with real-time updates
@@ -114,25 +144,33 @@ export default function PrivateOffice() {
     
     // Poll for updates every 30 seconds (reduced from 2 seconds to prevent excessive API calls)
     // Only poll when tab is visible to reduce unnecessary requests
-    let interval;
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        if (interval) clearInterval(interval);
+        if (schedulesIntervalRef.current) {
+          clearInterval(schedulesIntervalRef.current);
+          schedulesIntervalRef.current = null;
+        }
       } else {
-        fetchSchedules(); // Fetch immediately when tab becomes visible
-        interval = setInterval(fetchSchedules, 30000);
+        // Only create interval if one doesn't already exist
+        if (!schedulesIntervalRef.current) {
+          fetchSchedules(); // Fetch immediately when tab becomes visible
+          schedulesIntervalRef.current = setInterval(fetchSchedules, 30000);
+        }
       }
     };
     
-    // Start polling if tab is visible
-    if (!document.hidden) {
-      interval = setInterval(fetchSchedules, 30000);
+    // Start polling if tab is visible (only if no interval exists)
+    if (!document.hidden && !schedulesIntervalRef.current) {
+      schedulesIntervalRef.current = setInterval(fetchSchedules, 30000);
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
-      if (interval) clearInterval(interval);
+      if (schedulesIntervalRef.current) {
+        clearInterval(schedulesIntervalRef.current);
+        schedulesIntervalRef.current = null;
+      }
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
@@ -155,10 +193,9 @@ export default function PrivateOffice() {
     try {
       const formDataUpload = new FormData();
       formDataUpload.append('file', imageFile);
-      const response = await fetch('/api/upload', { method: 'POST', body: formDataUpload });
-      const data = await response.json();
-      if (data.success) return data.path;
-      throw new Error(data.error);
+      const response = await api.upload('/api/upload', formDataUpload);
+      if (response.success) return response.path;
+      throw new Error(response.error);
     } catch (error) {
       console.error('Upload error:', error);
       showToast('Failed to upload image', 'error');

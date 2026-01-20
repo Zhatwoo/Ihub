@@ -6,23 +6,23 @@ import {
   updateDeskAssignment,
   deleteDeskAssignment
 } from '../controllers/deskAssignmentsController.js';
-// import { authenticate, isAdmin } from '../middlewares/auth.js';
+import { authenticate, isAdmin } from '../middlewares/auth.js';
 
 const router = express.Router();
 
-// GET /api/desk-assignments - Get all desk assignments
-router.get('/', getAllDeskAssignments);
+// GET /api/desk-assignments - Get all desk assignments (authenticated)
+router.get('/', authenticate, getAllDeskAssignments);
 
-// GET /api/desk-assignments/:assignmentId - Get desk assignment by ID
-router.get('/:assignmentId', getDeskAssignmentById);
+// GET /api/desk-assignments/:assignmentId - Get desk assignment by ID (authenticated)
+router.get('/:assignmentId', authenticate, getDeskAssignmentById);
 
 // POST /api/desk-assignments - Create new desk assignment (admin only)
-router.post('/', createDeskAssignment); // Add authenticate, isAdmin middleware later
+router.post('/', authenticate, isAdmin, createDeskAssignment);
 
 // PUT /api/desk-assignments/:assignmentId - Update desk assignment (admin only)
-router.put('/:assignmentId', updateDeskAssignment); // Add authenticate, isAdmin middleware later
+router.put('/:assignmentId', authenticate, isAdmin, updateDeskAssignment);
 
 // DELETE /api/desk-assignments/:assignmentId - Delete desk assignment (admin only)
-router.delete('/:assignmentId', deleteDeskAssignment); // Add authenticate, isAdmin middleware later
+router.delete('/:assignmentId', authenticate, isAdmin, deleteDeskAssignment);
 
 export default router;

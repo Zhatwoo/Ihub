@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '@/lib/api';
 
@@ -13,6 +13,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [selectedService, setSelectedService] = useState(null);
   const [mounted, setMounted] = useState(false);
+  const dataIntervalRef = useRef(null);
 
   useEffect(() => {
     setMounted(true);
@@ -72,25 +73,33 @@ export default function AdminDashboard() {
     
     // Poll for updates every 30 seconds
     // Only poll when tab is visible to reduce unnecessary requests
-    let interval;
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        if (interval) clearInterval(interval);
+        if (dataIntervalRef.current) {
+          clearInterval(dataIntervalRef.current);
+          dataIntervalRef.current = null;
+        }
       } else {
-        fetchData(); // Fetch immediately when tab becomes visible
-        interval = setInterval(fetchData, 30000);
+        // Only create interval if one doesn't already exist
+        if (!dataIntervalRef.current) {
+          fetchData(); // Fetch immediately when tab becomes visible
+          dataIntervalRef.current = setInterval(fetchData, 30000);
+        }
       }
     };
     
-    // Start polling if tab is visible
-    if (!document.hidden) {
-      interval = setInterval(fetchData, 30000);
+    // Start polling if tab is visible (only if no interval exists)
+    if (!document.hidden && !dataIntervalRef.current) {
+      dataIntervalRef.current = setInterval(fetchData, 30000);
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
-      if (interval) clearInterval(interval);
+      if (dataIntervalRef.current) {
+        clearInterval(dataIntervalRef.current);
+        dataIntervalRef.current = null;
+      }
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
