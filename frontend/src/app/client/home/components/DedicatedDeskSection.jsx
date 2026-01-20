@@ -13,6 +13,7 @@ import Part5 from '@/app/admin/dedicated-desk/components/parts/Part5';
 import Part6 from '@/app/admin/dedicated-desk/components/parts/Part6';
 import Part7 from '@/app/admin/dedicated-desk/components/parts/Part7';
 import Part8 from '@/app/admin/dedicated-desk/components/parts/Part8';
+import FloorPlanView from '@/app/admin/dedicated-desk/tabs/FloorPlan';
 
 const leagueSpartan = League_Spartan({
   subsets: ['latin'],
@@ -23,6 +24,8 @@ const leagueSpartan = League_Spartan({
 export default function DedicatedDeskSection() {
   const carouselRef = useRef(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [showFullFloorPlan, setShowFullFloorPlan] = useState(false);
+  const [zoom, setZoom] = useState(0.4);
   const [selectedSpace, setSelectedSpace] = useState(null);
   const [selectedDesk, setSelectedDesk] = useState(null);
   const [deskAssignments, setDeskAssignments] = useState({});
@@ -169,7 +172,12 @@ export default function DedicatedDeskSection() {
   };
 
   const handleCardClick = (space) => {
-    if (space.image) { // Only open modal if it has an image (not the "Click to book" card)
+    // Check if this is the "Click to View All Desks" card (id 9 or no image)
+    if (space.id === 9 || !space.image) {
+      // Show full floor plan modal
+      setShowFullFloorPlan(true);
+    } else if (space.image) {
+      // Show section-specific modal
       setSelectedSpace(space);
       setIsModalOpen(true);
     }
@@ -184,6 +192,23 @@ export default function DedicatedDeskSection() {
     setIsModalOpen(false);
     setSelectedSpace(null);
     setSelectedDesk(null);
+  };
+
+  const closeFullFloorPlan = () => {
+    setShowFullFloorPlan(false);
+  };
+
+  // Zoom handlers for full floor plan
+  const handleZoomIn = () => {
+    setZoom(prev => Math.min(prev + 0.1, 2.0));
+  };
+
+  const handleZoomOut = () => {
+    setZoom(prev => Math.max(prev - 0.1, 0.2));
+  };
+
+  const handleResetZoom = () => {
+    setZoom(0.4);
   };
 
   // Submit desk request to backend API (which saves to Firestore database)
@@ -498,6 +523,51 @@ export default function DedicatedDeskSection() {
                   </button>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Full Floor Plan Modal */}
+      {showFullFloorPlan && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={closeFullFloorPlan}
+        >
+          <div 
+            className="bg-white rounded-2xl shadow-2xl max-w-[95vw] w-full max-h-[95vh] overflow-hidden relative flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-white border-b-2 border-gray-200 px-6 py-4 flex items-center justify-between z-10 shrink-0">
+              <div className="flex-1">
+                <h2 className={`${leagueSpartan.className} text-2xl font-bold text-slate-800`}>
+                  Full Floor Plan - All Desks
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">View all available desks across all sections</p>
+              </div>
+              <button
+                onClick={closeFullFloorPlan}
+                className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 hover:text-gray-800 transition-all shrink-0"
+                aria-label="Close modal"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Floor Plan Content */}
+            <div className="flex-1 overflow-hidden">
+              <FloorPlanView
+                zoom={zoom}
+                handleZoomIn={handleZoomIn}
+                handleZoomOut={handleZoomOut}
+                handleResetZoom={handleResetZoom}
+                handleDeskClick={handleDeskClick}
+                deskAssignments={deskAssignments}
+                isLoaded={true}
+              />
             </div>
           </div>
         </div>
