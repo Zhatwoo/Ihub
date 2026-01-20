@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '@/lib/api';
 
@@ -13,6 +13,7 @@ export default function VirtualOffice() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [deleteClientId, setDeleteClientId] = useState(null);
+  const clientsIntervalRef = useRef(null);
   const [formData, setFormData] = useState({
     fullName: '',
     company: '',
@@ -45,11 +46,40 @@ export default function VirtualOffice() {
       }
     };
 
+    // Initial fetch
     fetchClients();
     
     // Poll for updates every 30 seconds
-    const interval = setInterval(fetchClients, 30000);
-    return () => clearInterval(interval);
+    // Only poll when tab is visible to reduce unnecessary requests
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (clientsIntervalRef.current) {
+          clearInterval(clientsIntervalRef.current);
+          clientsIntervalRef.current = null;
+        }
+      } else {
+        // Only create interval if one doesn't already exist
+        if (!clientsIntervalRef.current) {
+          fetchClients(); // Fetch immediately when tab becomes visible
+          clientsIntervalRef.current = setInterval(fetchClients, 30000);
+        }
+      }
+    };
+    
+    // Start polling if tab is visible (only if no interval exists)
+    if (!document.hidden && !clientsIntervalRef.current) {
+      clientsIntervalRef.current = setInterval(fetchClients, 30000);
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      if (clientsIntervalRef.current) {
+        clearInterval(clientsIntervalRef.current);
+        clientsIntervalRef.current = null;
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const handleChange = (e) => {

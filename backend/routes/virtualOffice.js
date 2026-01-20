@@ -4,7 +4,8 @@ import {
   getVirtualOfficeClientById,
   createVirtualOfficeClient,
   updateVirtualOfficeClient,
-  deleteVirtualOfficeClient
+  deleteVirtualOfficeClient,
+  getUserVirtualOfficeClients
 } from '../controllers/virtualOfficeController.js';
 import { authenticate, isAdmin } from '../middlewares/auth.js';
 
@@ -12,6 +13,9 @@ const router = express.Router();
 
 // GET /api/virtual-office - Get all virtual office clients (admin only)
 router.get('/', authenticate, isAdmin, getAllVirtualOfficeClients);
+
+// GET /api/virtual-office/user/:userId - Get virtual office clients for a specific user (authenticated)
+router.get('/user/:userId', authenticate, getUserVirtualOfficeClients);
 
 // GET /api/virtual-office/:clientId - Get virtual office client by ID (admin only)
 router.get('/:clientId', authenticate, isAdmin, getVirtualOfficeClientById);

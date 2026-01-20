@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api } from '@/lib/api';
 import { League_Spartan, Roboto } from 'next/font/google';
 import { motion } from 'framer-motion';
@@ -22,6 +22,10 @@ export default function Bookings() {
   const [userInfo, setUserInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [deletingBookingId, setDeletingBookingId] = useState(null);
+  
+  // Refs to track intervals and prevent duplicate polling
+  const bookingsIntervalRef = useRef(null);
+  const roomsIntervalRef = useRef(null);
 
   // Get current user from localStorage and fetch user info from backend
   useEffect(() => {
@@ -137,40 +141,29 @@ export default function Bookings() {
         });
       }
 
-      // Fetch virtual office clients
-      const virtualOfficeResponse = await api.get('/api/virtual-office');
+      // Fetch virtual office clients for this user
+      const virtualOfficeResponse = await api.get(`/api/virtual-office/user/${userId}`).catch(() => ({ success: false, data: [] }));
       const virtualOfficeBookings = [];
       
       if (virtualOfficeResponse.success && virtualOfficeResponse.data) {
         virtualOfficeResponse.data.forEach((clientData) => {
           const clientId = clientData.id;
-          const clientEmail = clientData.email?.toLowerCase() || '';
-          const clientFullName = clientData.fullName?.toLowerCase() || '';
           
-          const emailMatch = userEmail && clientEmail && clientEmail === userEmail;
-          const nameMatch = userFullName && clientFullName && clientFullName === userFullName;
-          const firstNameMatch = userFirstName && clientFullName && clientFullName.includes(userFirstName);
-          const lastNameMatch = userLastName && clientFullName && clientFullName.includes(userLastName);
-          
-          const isUserClient = emailMatch || nameMatch || (firstNameMatch && lastNameMatch);
-          
-          if (isUserClient) {
-            const booking = {
-              id: clientId,
-              type: 'virtual-office',
-              room: 'Virtual Office',
-              clientName: clientData.fullName || 'User',
-              email: clientData.email || '',
-              contactNumber: clientData.phoneNumber || '',
-              company: clientData.company || '',
-              position: clientData.position || '',
-              startDate: clientData.dateStart || clientData.createdAt,
-              createdAt: clientData.createdAt,
-              status: 'active',
-              ...clientData,
-            };
-            virtualOfficeBookings.push(booking);
-          }
+          const booking = {
+            id: clientId,
+            type: 'virtual-office',
+            room: 'Virtual Office',
+            clientName: clientData.fullName || 'User',
+            email: clientData.email || '',
+            contactNumber: clientData.phoneNumber || '',
+            company: clientData.company || '',
+            position: clientData.position || '',
+            startDate: clientData.dateStart || clientData.createdAt,
+            createdAt: clientData.createdAt,
+            status: 'active',
+            ...clientData,
+          };
+          virtualOfficeBookings.push(booking);
         });
       }
 
@@ -227,23 +220,26 @@ export default function Bookings() {
   };
 
   // Fetch bookings from backend API (desk-assignments, virtual-office-clients, and schedules)
+  // Use stable dependencies (primitive values) instead of object references to prevent refresh loops
+  // Extract stable primitive values from objects for dependency tracking
+  const userId = currentUser?.uid || null;
+  const userEmail = currentUser?.email?.toLowerCase() || '';
+  const userFirstName = userInfo?.firstName?.toLowerCase() || '';
+  const userLastName = userInfo?.lastName?.toLowerCase() || '';
+  
   useEffect(() => {
-    if (!currentUser) {
+    if (!userId) {
       setLoading(false);
       return;
     }
 
     const fetchBookings = async () => {
       setLoading(true);
-      const userId = currentUser.uid;
-      const userEmail = currentUser.email?.toLowerCase() || '';
       
-      // Get user's full name from userInfo or construct from firstName/lastName
+      // Get user's full name from userInfo
       const userFullName = userInfo 
         ? `${userInfo.firstName || ''} ${userInfo.lastName || ''}`.trim().toLowerCase()
         : '';
-      const userFirstName = userInfo?.firstName?.toLowerCase() || '';
-      const userLastName = userInfo?.lastName?.toLowerCase() || '';
       
       try {
         // Fetch desk assignments from backend API
@@ -292,43 +288,29 @@ export default function Bookings() {
           });
         }
 
-        // Fetch virtual office clients from backend API
-        const virtualOfficeResponse = await api.get('/api/virtual-office');
+        // Fetch virtual office clients for this user from backend API
+        const virtualOfficeResponse = await api.get(`/api/virtual-office/user/${userId}`).catch(() => ({ success: false, data: [] }));
         const virtualOfficeBookings = [];
         
         if (virtualOfficeResponse.success && virtualOfficeResponse.data) {
           virtualOfficeResponse.data.forEach((clientData) => {
             const clientId = clientData.id;
             
-            // Get email and name from client data
-            const clientEmail = clientData.email?.toLowerCase() || '';
-            const clientFullName = clientData.fullName?.toLowerCase() || '';
-            
-            // Check if this client belongs to current user
-            const emailMatch = userEmail && clientEmail && clientEmail === userEmail;
-            const nameMatch = userFullName && clientFullName && clientFullName === userFullName;
-            const firstNameMatch = userFirstName && clientFullName && clientFullName.includes(userFirstName);
-            const lastNameMatch = userLastName && clientFullName && clientFullName.includes(userLastName);
-            
-            const isUserClient = emailMatch || nameMatch || (firstNameMatch && lastNameMatch);
-            
-            if (isUserClient) {
-              const booking = {
-                id: clientId,
-                type: 'virtual-office',
-                room: 'Virtual Office',
-                clientName: clientData.fullName || 'User',
-                email: clientData.email || '',
-                contactNumber: clientData.phoneNumber || '',
-                company: clientData.company || '',
-                position: clientData.position || '',
-                startDate: clientData.dateStart || clientData.createdAt,
-                createdAt: clientData.createdAt,
-                status: 'active', // Virtual office clients are active
-                ...clientData,
-              };
-              virtualOfficeBookings.push(booking);
-            }
+            const booking = {
+              id: clientId,
+              type: 'virtual-office',
+              room: 'Virtual Office',
+              clientName: clientData.fullName || 'User',
+              email: clientData.email || '',
+              contactNumber: clientData.phoneNumber || '',
+              company: clientData.company || '',
+              position: clientData.position || '',
+              startDate: clientData.dateStart || clientData.createdAt,
+              createdAt: clientData.createdAt,
+              status: 'active', // Virtual office clients are active
+              ...clientData,
+            };
+            virtualOfficeBookings.push(booking);
           });
         }
 
@@ -387,12 +369,41 @@ export default function Bookings() {
       }
     };
 
+    // Initial fetch
     fetchBookings();
     
-    // Poll for updates every 30 seconds to keep data fresh
-    const interval = setInterval(fetchBookings, 30000);
-    return () => clearInterval(interval);
-  }, [currentUser, userInfo]);
+    // Poll for updates every 30 seconds
+    // Only poll when tab is visible to reduce unnecessary requests
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (bookingsIntervalRef.current) {
+          clearInterval(bookingsIntervalRef.current);
+          bookingsIntervalRef.current = null;
+        }
+      } else {
+        // Only create interval if one doesn't already exist
+        if (!bookingsIntervalRef.current) {
+          fetchBookings(); // Fetch immediately when tab becomes visible
+          bookingsIntervalRef.current = setInterval(fetchBookings, 30000);
+        }
+      }
+    };
+    
+    // Start polling if tab is visible (only if no interval exists)
+    if (!document.hidden && !bookingsIntervalRef.current) {
+      bookingsIntervalRef.current = setInterval(fetchBookings, 30000);
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      if (bookingsIntervalRef.current) {
+        clearInterval(bookingsIntervalRef.current);
+        bookingsIntervalRef.current = null;
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [userId, userEmail, userFirstName, userLastName]); // Use stable primitive dependencies
 
 
   // Fetch rooms from backend API to get rental fee information
@@ -409,11 +420,40 @@ export default function Bookings() {
       }
     };
 
+    // Initial fetch
     fetchRooms();
     
-    // Poll for updates every 30 seconds to keep data fresh
-    const interval = setInterval(fetchRooms, 30000);
-    return () => clearInterval(interval);
+    // Poll for updates every 30 seconds
+    // Only poll when tab is visible to reduce unnecessary requests
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (roomsIntervalRef.current) {
+          clearInterval(roomsIntervalRef.current);
+          roomsIntervalRef.current = null;
+        }
+      } else {
+        // Only create interval if one doesn't already exist
+        if (!roomsIntervalRef.current) {
+          fetchRooms(); // Fetch immediately when tab becomes visible
+          roomsIntervalRef.current = setInterval(fetchRooms, 30000);
+        }
+      }
+    };
+    
+    // Start polling if tab is visible (only if no interval exists)
+    if (!document.hidden && !roomsIntervalRef.current) {
+      roomsIntervalRef.current = setInterval(fetchRooms, 30000);
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      if (roomsIntervalRef.current) {
+        clearInterval(roomsIntervalRef.current);
+        roomsIntervalRef.current = null;
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const getStatusBadge = (status) => {
@@ -472,8 +512,19 @@ export default function Bookings() {
       const response = await api.delete(`/api/schedules/${booking.id}`);
       
       if (response.success) {
-        // Refetch bookings to ensure data is fresh
-        await refetchBookings();
+        // Optimistically remove booking from UI immediately
+        setBookings(prevBookings => prevBookings.filter(b => 
+          !(b.id === booking.id && b.type === booking.type)
+        ));
+        
+        // Refetch bookings to ensure data is fresh and sync with backend
+        try {
+          await refetchBookings();
+        } catch (refetchError) {
+          console.error('Error refetching bookings after cancellation:', refetchError);
+          // Don't show error to user since booking was already removed from UI
+        }
+        
         alert('Booking canceled successfully!');
       } else {
         alert(response.message || 'Failed to cancel booking. Please try again.');
@@ -484,6 +535,10 @@ export default function Bookings() {
       let errorMessage = 'Failed to cancel booking. Please try again.';
       
       if (error.response?.status === 404) {
+        // If booking not found, it might already be deleted - remove from UI
+        setBookings(prevBookings => prevBookings.filter(b => 
+          !(b.id === booking.id && b.type === booking.type)
+        ));
         errorMessage = 'Booking not found. It may have already been canceled.';
       } else if (error.response?.status === 403) {
         errorMessage = 'You do not have permission to cancel this booking.';
