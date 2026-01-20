@@ -99,6 +99,8 @@ export default function DedicatedDeskSection() {
   }, []);
 
   // Fetch desk assignments from backend API
+  const deskAssignmentsIntervalRef = useRef(null);
+  
   useEffect(() => {
     const fetchDeskAssignments = async () => {
       try {
@@ -116,10 +118,40 @@ export default function DedicatedDeskSection() {
       }
     };
 
+    // Initial fetch
     fetchDeskAssignments();
+    
     // Poll for updates every 30 seconds
-    const interval = setInterval(fetchDeskAssignments, 30000);
-    return () => clearInterval(interval);
+    // Only poll when tab is visible to reduce unnecessary requests
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (deskAssignmentsIntervalRef.current) {
+          clearInterval(deskAssignmentsIntervalRef.current);
+          deskAssignmentsIntervalRef.current = null;
+        }
+      } else {
+        // Only create interval if one doesn't already exist
+        if (!deskAssignmentsIntervalRef.current) {
+          fetchDeskAssignments(); // Fetch immediately when tab becomes visible
+          deskAssignmentsIntervalRef.current = setInterval(fetchDeskAssignments, 30000);
+        }
+      }
+    };
+    
+    // Start polling if tab is visible (only if no interval exists)
+    if (!document.hidden && !deskAssignmentsIntervalRef.current) {
+      deskAssignmentsIntervalRef.current = setInterval(fetchDeskAssignments, 30000);
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      if (deskAssignmentsIntervalRef.current) {
+        clearInterval(deskAssignmentsIntervalRef.current);
+        deskAssignmentsIntervalRef.current = null;
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const scrollCarousel = (direction) => {

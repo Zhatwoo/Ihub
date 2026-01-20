@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 
 export default function PrivateOffices() {
+  // Ref to track rooms polling interval
+  const roomsIntervalRef = useRef(null);
   // Currency symbol helper
   const getCurrencySymbol = (currency) => {
     const symbols = {
@@ -116,9 +118,38 @@ export default function PrivateOffices() {
 
     // Initial fetch
     fetchRooms();
-    // Poll for updates every 30 seconds to keep data fresh
-    const interval = setInterval(fetchRooms, 30000);
-    return () => clearInterval(interval);
+    
+    // Poll for updates every 30 seconds
+    // Only poll when tab is visible to reduce unnecessary requests
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (roomsIntervalRef.current) {
+          clearInterval(roomsIntervalRef.current);
+          roomsIntervalRef.current = null;
+        }
+      } else {
+        // Only create interval if one doesn't already exist
+        if (!roomsIntervalRef.current) {
+          fetchRooms(); // Fetch immediately when tab becomes visible
+          roomsIntervalRef.current = setInterval(fetchRooms, 30000);
+        }
+      }
+    };
+    
+    // Start polling if tab is visible (only if no interval exists)
+    if (!document.hidden && !roomsIntervalRef.current) {
+      roomsIntervalRef.current = setInterval(fetchRooms, 30000);
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      if (roomsIntervalRef.current) {
+        clearInterval(roomsIntervalRef.current);
+        roomsIntervalRef.current = null;
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const filteredRooms = rooms.filter(room => 
