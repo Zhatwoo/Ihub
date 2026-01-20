@@ -9,6 +9,15 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
   const dataIntervalRef = useRef(null);
+  
+  // Data State
+  const [privateOfficeStats, setPrivateOfficeStats] = useState({});
+  const [virtualOfficeStats, setVirtualOfficeStats] = useState({});
+  const [dedicatedDeskStats, setDedicatedDeskStats] = useState({});
+  const [rooms, setRooms] = useState([]);
+  const [schedules, setSchedules] = useState([]);
+  const [selectedService, setSelectedService] = useState(null);
+  const [selectedDetailView, setSelectedDetailView] = useState(null);
 
   // Mount state for portals
   useEffect(() => {

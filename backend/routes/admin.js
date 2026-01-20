@@ -1,4 +1,5 @@
 import express from 'express';
+import { authenticate, isAdmin } from '../middlewares/auth.js';
 
 // Import admin controllers
 import { getDashboardStats } from '../controllers/Admin/dashboardController.js';
@@ -30,6 +31,9 @@ import {
 } from '../controllers/Admin/billingController.js';
 
 const router = express.Router();
+
+// Apply authentication and admin middleware to all routes
+router.use(authenticate, isAdmin);
 
 // Dashboard routes
 router.get('/dashboard/stats', getDashboardStats);

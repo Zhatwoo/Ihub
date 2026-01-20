@@ -99,9 +99,12 @@ export default function PrivateOffices() {
         // All rooms created by admin are visible to all clients
         const response = await api.get('/api/rooms');
         if (response.success && response.data) {
-          // Ensure all rooms are displayed (no client-specific filtering)
-          // Backend already filters out deleted/hidden rooms
-          setRooms(response.data);
+          // Filter out occupied rooms - only show Vacant rooms to clients
+          const availableRooms = response.data.filter(room => {
+            // Check if room status is explicitly marked as "Occupied" by admin
+            return room.status !== 'Occupied';
+          });
+          setRooms(availableRooms);
         } else {
           console.error('Failed to fetch rooms:', response.message);
           setRooms([]);

@@ -36,6 +36,10 @@ export function usePrivateOffices() {
           // Filter out occupied rooms and map remaining rooms
           const roomsData = roomsResponse.data
             .filter(room => {
+              // Check if room status is explicitly marked as "Occupied" by admin
+              const isOccupiedByStatus = room.status === 'Occupied';
+              
+              // Check schedule-based occupancy
               const isOccupiedById = occupiedRoomIds.has(room.id);
               const roomNameLower = room.name ? room.name.toLowerCase().trim() : '';
               const isOccupiedByName = roomNameLower && occupiedRoomNames.has(roomNameLower);
@@ -51,7 +55,8 @@ export function usePrivateOffices() {
                 }
               }
               
-              return !isOccupiedById && !isOccupiedByName && !partialNameMatch;
+              // Filter out if occupied by status OR by schedule
+              return !isOccupiedByStatus && !isOccupiedById && !isOccupiedByName && !partialNameMatch;
             })
             .map(room => ({
               id: room.id,
