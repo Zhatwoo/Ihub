@@ -13,43 +13,61 @@ export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
+    let lastScrollY = 0;
+    let ticking = false;
+    
     const handleScroll = () => {
-      const scrollPosition = window.scrollY;
-      setIsScrolled(scrollPosition > 50);
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          const scrollPosition = window.scrollY;
+          // Only update if scroll position changed significantly to prevent unnecessary re-renders
+          if (Math.abs(scrollPosition - lastScrollY) > 5) {
+            setIsScrolled(scrollPosition > 50);
+            lastScrollY = scrollPosition;
+          }
+          ticking = false;
+        });
+        ticking = true;
+      }
     };
 
-    window.addEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    // Set initial state
+    setIsScrolled(window.scrollY > 50);
+    
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   return (
-    <header className={`sticky top-0 left-0 right-0 z-50 bg-white transition-all duration-300 ${isScrolled ? 'shadow-md' : ''}`}>
-      <div className={`max-w-7xl mx-auto px-4 lg:px-6 transition-all duration-300 ${isScrolled ? 'py-2' : 'py-3.5'}`}>
+    <header className={`fixed top-0 left-0 right-0 z-50 bg-white will-change-[box-shadow] transition-shadow duration-300 ease-out ${isScrolled ? 'shadow-md' : 'shadow-none'}`} style={{ transform: 'translateZ(0)', backfaceVisibility: 'hidden', WebkitBackfaceVisibility: 'hidden' }}>
+      <div className={`max-w-7xl mx-auto px-4 lg:px-6 transition-[padding] duration-300 ease-out ${isScrolled ? 'py-2' : 'py-3.5'}`} style={{ transform: 'translateZ(0)' }}>
         <div className="flex items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 transition-all duration-300">
-            <Image
-              src="/Gemini_Generated_Image_6qx9a16qx9a16qx9.png"
-              alt="I-HUB Office Rentals"
-              width={isScrolled ? 50 : 76}
-              height={isScrolled ? 50 : 76}
-              className="h-auto w-auto transition-all duration-300"
-              priority
-            />
-            <span className={`font-semibold text-black transition-all duration-300 ${isScrolled ? 'text-xs' : 'text-sm'}`}>I-HUB</span>
+          <Link href="/" className="flex items-center gap-2">
+            <div className={`transition-[width,height] duration-300 ease-out ${isScrolled ? 'w-[50px] h-[50px]' : 'w-[76px] h-[76px]'}`}>
+              <Image
+                src="/Gemini_Generated_Image_6qx9a16qx9a16qx9.png"
+                alt="I-HUB Office Rentals"
+                width={76}
+                height={76}
+                className="h-full w-full object-contain"
+                priority
+              />
+            </div>
+            <span className={`font-semibold text-black transition-[font-size] duration-300 ease-out ${isScrolled ? 'text-xs' : 'text-sm'}`}>I-HUB</span>
           </Link>
 
           {/* Desktop Navigation Links - Bold Dark Navy */}
-          <nav className={`hidden md:flex items-center transition-all duration-300 ${isScrolled ? 'gap-3' : 'gap-3.5'}`}>
+          <nav className={`hidden md:flex items-center gap-6`}>
             <button
               onClick={() => setIsSignUpOpen(true)}
-              className={`text-slate-800 font-bold hover:text-slate-600 transition-colors ${isScrolled ? 'text-xs' : 'text-sm'}`}
+              className="px-4 py-2 bg-[#0F766E] border-2 border-[#0F766E] text-white font-bold hover:bg-[#0d6b64] hover:border-[#0d6b64] transition-colors duration-200 rounded-lg text-sm"
             >
               Sign up
             </button>
             <button
               onClick={() => setIsLoginOpen(true)}
-              className={`text-slate-800 font-bold hover:text-slate-600 transition-colors ${isScrolled ? 'text-xs' : 'text-sm'}`}
+              className="px-4 py-2 bg-[#0F766E] border-2 border-[#0F766E] text-white font-bold hover:bg-[#0d6b64] hover:border-[#0d6b64] transition-colors duration-200 rounded-lg text-sm"
             >
               Login
             </button>
@@ -80,7 +98,7 @@ export default function Header() {
                   setIsMenuOpen(false);
                   setIsSignUpOpen(true);
                 }}
-                className="text-slate-800 font-bold hover:text-slate-600 transition-colors text-sm text-left py-2"
+                className="px-4 py-2 bg-[#0F766E] border-2 border-[#0F766E] text-white font-bold hover:bg-[#0d6b64] hover:border-[#0d6b64] transition-all duration-200 rounded-lg text-sm text-center"
               >
                 Sign up
               </button>
@@ -89,7 +107,7 @@ export default function Header() {
                   setIsMenuOpen(false);
                   setIsLoginOpen(true);
                 }}
-                className="text-slate-800 font-bold hover:text-slate-600 transition-colors text-sm text-left py-2"
+                className="px-4 py-2 bg-[#0F766E] border-2 border-[#0F766E] text-white font-bold hover:bg-[#0d6b64] hover:border-[#0d6b64] transition-all duration-200 rounded-lg text-sm text-center"
               >
                 Login
               </button>
