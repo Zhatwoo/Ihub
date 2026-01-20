@@ -332,6 +332,11 @@ export default function PrivateOfficesSection() {
     setSelectedRoom(null);
   };
 
+  // Hide entire section if no rooms are available (after loading completes)
+  if (!loading && rooms.length === 0) {
+    return null;
+  }
+
   return (
     <section className="pt-20 pb-8 bg-white">
       <div className="max-w-[90%] mx-auto px-4">
@@ -366,10 +371,6 @@ export default function PrivateOfficesSection() {
             {loading ? (
               <div className="flex items-center justify-center w-full py-12">
                 <p className="text-gray-500">Loading private offices...</p>
-              </div>
-            ) : rooms.length === 0 ? (
-              <div className="flex items-center justify-center w-full py-12">
-                <p className="text-gray-500">No private offices available</p>
               </div>
             ) : (
               rooms.map((feature, index) => (
