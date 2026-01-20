@@ -76,7 +76,7 @@ export default function AvailableRentals() {
         className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8"
       >
         {/* Container */}
-        <div className="h-[400px] sm:h-[500px] lg:h-[600px] rounded-xl sm:rounded-2xl overflow-hidden shadow-[0_10px_20px_#dbdbdb]">
+        <div className="h-[400px] sm:h-[500px] lg:h-[600px] rounded-xl sm:rounded-2xl overflow-hidden">
           {/* Palette Section */}
           <div className="flex h-full w-full">
             {rentalOptions.map((option, index) => (
@@ -120,14 +120,6 @@ export default function AvailableRentals() {
                   </div>
                 </div>
                 
-                {/* Shadow on hover */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  whileHover={{ opacity: 1 }}
-                  transition={{ duration: 0.1 }}
-                  className="absolute inset-0"
-                  style={{ boxShadow: 'rgba(100, 100, 111, 0.2) 0px 7px 29px 0px' }}
-                ></motion.div>
               </motion.div>
             ))}
           </div>

@@ -86,6 +86,81 @@ export const getVirtualOfficeClientById = async (req, res) => {
 };
 
 /**
+ * Get virtual office clients for a specific user (client access)
+ * Allows users to fetch their own virtual office bookings
+ */
+export const getUserVirtualOfficeClients = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const firestore = getFirestore();
+    
+    if (!firestore) {
+      return sendFirestoreError(res);
+    }
+    
+    // Query virtual office clients by userId or email
+    const user = req.user; // From authenticate middleware
+    const userEmail = user?.email?.toLowerCase();
+    const userUid = user?.uid;
+    
+    // Try to fetch by userId field first
+    let clientsQuery = firestore.collection('virtual-office-clients')
+      .where('userId', '==', userId);
+    
+    const snapshot = await clientsQuery.get();
+    let clients = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+    
+    // Also check by email if no results and email is available
+    if (clients.length === 0 && userEmail) {
+      const emailQuery = firestore.collection('virtual-office-clients')
+        .where('email', '==', userEmail);
+      
+      const emailSnapshot = await emailQuery.get();
+      clients = emailSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+    }
+    
+    // Also check by userUid if still no results
+    if (clients.length === 0 && userUid) {
+      const uidQuery = firestore.collection('virtual-office-clients')
+        .where('userId', '==', userUid);
+      
+      const uidSnapshot = await uidQuery.get();
+      clients = uidSnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+    }
+
+    res.json({
+      success: true,
+      data: clients
+    });
+  } catch (error) {
+    console.error('Get user virtual office clients error:', error);
+    
+    if (error.message && error.message.includes('not initialized')) {
+      return res.status(503).json({
+        success: false,
+        error: 'Service Unavailable',
+        message: 'Firestore database is not connected. Please configure Firebase Admin SDK credentials in backend/.env'
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Internal Server Error',
+      message: error.message || 'Failed to fetch virtual office clients'
+    });
+  }
+};
+
+/**
  * Create new virtual office client
  */
 export const createVirtualOfficeClient = async (req, res) => {

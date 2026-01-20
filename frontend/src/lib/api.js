@@ -192,6 +192,36 @@ export const api = {
   },
 
   /**
+   * Upload file - POST request with FormData
+   * @param {string} endpoint - API endpoint
+   * @param {FormData} formData - FormData object containing file
+   * @param {Object} options - Additional fetch options
+   * @returns {Promise} JSON response
+   */
+  upload: async (endpoint, formData, options = {}) => {
+    const token = getAuthToken();
+    try {
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        method: 'POST',
+        headers: {
+          ...(token && { 'Authorization': `Bearer ${token}` }),
+          ...options.headers
+          // Don't set Content-Type - browser will set it with boundary for FormData
+        },
+        body: formData,
+        ...options
+      });
+      return handleResponse(response);
+    } catch (error) {
+      // Handle network errors (backend not running, CORS, etc.)
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        throw new Error(`Cannot connect to backend server at ${API_URL}. Please make sure the backend is running on port 5000.`);
+      }
+      throw error;
+    }
+  },
+
+  /**
    * Health check - Test backend connection
    * @returns {Promise} Health status
    */

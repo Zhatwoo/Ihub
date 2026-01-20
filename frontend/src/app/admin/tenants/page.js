@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { api } from '@/lib/api';
 
 export default function Tenants() {
@@ -12,7 +12,7 @@ export default function Tenants() {
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ privateOffice: 0, virtualOffice: 0, dedicatedDesk: 0, total: 0 });
+  const tenantsIntervalRef = useRef(null);
 
   // Fetch all tenant data from backend
   useEffect(() => {
@@ -46,8 +46,36 @@ export default function Tenants() {
     fetchTenants();
     
     // Poll for updates every 30 seconds
-    const interval = setInterval(fetchTenants, 30000);
-    return () => clearInterval(interval);
+    // Only poll when tab is visible to reduce unnecessary requests
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (tenantsIntervalRef.current) {
+          clearInterval(tenantsIntervalRef.current);
+          tenantsIntervalRef.current = null;
+        }
+      } else {
+        // Only create interval if one doesn't already exist
+        if (!tenantsIntervalRef.current) {
+          fetchTenants(); // Fetch immediately when tab becomes visible
+          tenantsIntervalRef.current = setInterval(fetchTenants, 30000);
+        }
+      }
+    };
+    
+    // Start polling if tab is visible (only if no interval exists)
+    if (!document.hidden && !tenantsIntervalRef.current) {
+      tenantsIntervalRef.current = setInterval(fetchTenants, 30000);
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      if (tenantsIntervalRef.current) {
+        clearInterval(tenantsIntervalRef.current);
+        tenantsIntervalRef.current = null;
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   // Combine all tenants

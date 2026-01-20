@@ -1,7 +1,7 @@
 // Authentication middleware
 // Verifies Firebase ID tokens from Authorization header
 
-import { getFirebaseAuth } from '../config/firebase.js';
+import { getFirebaseAuth, getFirestore } from '../config/firebase.js';
 
 export const authenticate = async (req, res, next) => {
   try {
@@ -35,6 +35,44 @@ export const authenticate = async (req, res, next) => {
         email: decodedToken.email,
         emailVerified: decodedToken.email_verified,
       };
+
+      // Fetch user role from Firestore
+      try {
+        const firestore = getFirestore();
+        if (firestore) {
+          // Check client users first
+          const clientDoc = await firestore
+            .collection('accounts')
+            .doc('client')
+            .collection('users')
+            .doc(decodedToken.uid)
+            .get();
+          
+          if (clientDoc.exists) {
+            const userData = clientDoc.data();
+            req.user.role = userData.role || 'client';
+          } else {
+            // Check admin users
+            const adminDoc = await firestore
+              .collection('accounts')
+              .doc('admin')
+              .collection('users')
+              .doc(decodedToken.uid)
+              .get();
+            
+            if (adminDoc.exists) {
+              req.user.role = 'admin';
+            } else {
+              req.user.role = 'client'; // Default if user not found in either collection
+            }
+          }
+        } else {
+          req.user.role = 'client'; // Default if Firestore not available
+        }
+      } catch (error) {
+        console.warn('Could not fetch user role:', error.message);
+        req.user.role = 'client'; // Default on error
+      }
 
       next();
     } catch (error) {

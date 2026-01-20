@@ -13,16 +13,16 @@ const leagueSpartan = League_Spartan({
 
 export default function Hero() {
   return (
-    <div className="relative min-h-screen bg-white overflow-hidden">
+    <div className="relative min-h-screen bg-white overflow-hidden pt-[104px]">
       {/* Organic Teal Wave Background */}
       <motion.div 
-        className="absolute bottom-[3%] left-0 right-0 w-full h-full pointer-events-none"
+        className="absolute bottom-[-18%] left-0 right-0 w-full h-full pointer-events-none"
         initial={{ y: '100%', opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 1, ease: 'easeOut' }}
       >
         <svg
-          className="absolute bottom-[3%] left-0 w-full h-full"
+          className="absolute bottom-[13%] left-0 w-full h-full"
           viewBox="0 0 1440 800"
           preserveAspectRatio="none"
           fill="none"
@@ -53,7 +53,7 @@ export default function Hero() {
             </p>
             <Link 
               href="/landingpage/contacts" 
-              className="inline-block bg-[#0F766E] hover:bg-[#0d6b64] text-white font-semibold px-6 py-3 sm:px-8 sm:py-4 rounded-[20px] transform scale-x-[1.5] sm:scale-x-[1.7] lg:scale-x-[1.9] scale-y-[1.3] sm:scale-y-[1.5] lg:scale-y-[1.7] mt-4 sm:mt-[10%] lg:mt-[15%] ml-0 sm:ml-[5%] lg:ml-[10%] border-2 sm:border-[3px] border-white transition-colors duration-200 text-sm sm:text-base"
+              className="inline-block bg-[#0F766E] hover:bg-[#0d6b64] text-white font-semibold px-6 py-3 sm:px-8 sm:py-4 rounded-lg border-2 border-white transition-colors duration-200 text-sm sm:text-base"
             >
               Inquire
             </Link>

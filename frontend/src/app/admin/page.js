@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '@/lib/api';
 
@@ -8,17 +8,7 @@ export default function AdminDashboard() {
   // UI State
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
-  const [selectedService, setSelectedService] = useState(null);
-  const [selectedDetailView, setSelectedDetailView] = useState(null);
-
-  // Data from backend (processed stats)
-  const [privateOfficeStats, setPrivateOfficeStats] = useState({});
-  const [virtualOfficeStats, setVirtualOfficeStats] = useState({});
-  const [dedicatedDeskStats, setDedicatedDeskStats] = useState({});
-
-  // Raw data for modals (limited for performance)
-  const [rooms, setRooms] = useState([]);
-  const [schedules, setSchedules] = useState([]);
+  const dataIntervalRef = useRef(null);
 
   // Mount state for portals
   useEffect(() => {
@@ -61,8 +51,38 @@ export default function AdminDashboard() {
     };
 
     fetchData();
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
+    
+    // Poll for updates every 30 seconds
+    // Only poll when tab is visible to reduce unnecessary requests
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (dataIntervalRef.current) {
+          clearInterval(dataIntervalRef.current);
+          dataIntervalRef.current = null;
+        }
+      } else {
+        // Only create interval if one doesn't already exist
+        if (!dataIntervalRef.current) {
+          fetchData(); // Fetch immediately when tab becomes visible
+          dataIntervalRef.current = setInterval(fetchData, 30000);
+        }
+      }
+    };
+    
+    // Start polling if tab is visible (only if no interval exists)
+    if (!document.hidden && !dataIntervalRef.current) {
+      dataIntervalRef.current = setInterval(fetchData, 30000);
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      if (dataIntervalRef.current) {
+        clearInterval(dataIntervalRef.current);
+        dataIntervalRef.current = null;
+      }
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   // Service configuration (UI only)
