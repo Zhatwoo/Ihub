@@ -78,3 +78,5 @@ export default function PrivateOffice() {
   }, [router]);
 
 
+  return null;
+}
