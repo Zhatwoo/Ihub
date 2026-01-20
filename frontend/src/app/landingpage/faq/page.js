@@ -3,8 +3,8 @@
 import { useState, useRef } from 'react';
 import { motion, useInView, AnimatePresence } from 'framer-motion';
 import { League_Spartan, Roboto } from 'next/font/google';
-import Header from '../components/header';
-import Footer from '../components/footer';
+import Header from '../components/header.jsx';
+import Footer from '../components/footer.jsx';
 
 const leagueSpartan = League_Spartan({
   subsets: ['latin'],

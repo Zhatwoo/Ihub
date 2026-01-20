@@ -19,69 +19,25 @@ export default function Tenants() {
     const fetchTenants = async () => {
       try {
         setLoading(true);
-        // Fetch all data in parallel
-        const [schedulesResponse, virtualOfficeResponse, deskAssignmentsResponse] = await Promise.all([
-          api.get('/api/schedules'),
-          api.get('/api/virtual-office'),
-          api.get('/api/desk-assignments')
-        ]);
-
-        // Process Private Office tenants
-        if (schedulesResponse.success && schedulesResponse.data) {
-          const activeTenants = schedulesResponse.data
-            .filter(s => s.status === 'active' || s.status === 'upcoming' || s.status === 'ongoing')
-            .map(s => ({
-              id: s.id,
-              type: 'private-office',
-              name: s.clientName,
-              email: s.email,
-              phone: s.contactNumber,
-              office: s.room,
-              startDate: s.startDate,
-              status: s.status === 'upcoming' || s.status === 'ongoing' ? 'active' : s.status,
-              createdAt: s.createdAt
-            }));
-          setPrivateOfficeTenants(activeTenants);
-        }
-
-        // Process Virtual Office tenants
-        if (virtualOfficeResponse.success && virtualOfficeResponse.data) {
-          const confirmedTenants = virtualOfficeResponse.data
-            .filter(c => c.status !== 'inquiry')
-            .map(c => ({
-              id: c.id,
-              type: 'virtual-office',
-              name: c.fullName,
-              email: c.email,
-              phone: c.phoneNumber,
-              company: c.company,
-              position: c.position,
-              startDate: c.dateStart || c.preferredStartDate,
-              status: c.status || 'active',
-              createdAt: c.createdAt
-            }));
-          setVirtualOfficeTenants(confirmedTenants);
-        }
-
-        // Process Dedicated Desk tenants
-        if (deskAssignmentsResponse.success && deskAssignmentsResponse.data) {
-          const deskTenants = deskAssignmentsResponse.data.map(assignment => ({
-            id: assignment.id,
-            type: 'dedicated-desk',
-            desk: assignment.desk,
-            name: assignment.name,
-            email: assignment.email,
-            phone: assignment.contactNumber,
-            occupantType: assignment.type,
-            company: assignment.company || null,
-            startDate: assignment.assignedAt,
-            status: 'active',
-            createdAt: assignment.assignedAt || assignment.createdAt
-          }));
-          setDedicatedDeskTenants(deskTenants);
+        // Fetch processed tenant data from admin API
+        const response = await api.get('/api/admin/tenants/stats');
+        
+        if (response.success && response.data) {
+          const { stats, tenants } = response.data;
+          
+          // Set processed tenant data from backend
+          setPrivateOfficeTenants(tenants.privateOffice || []);
+          setVirtualOfficeTenants(tenants.virtualOffice || []);
+          setDedicatedDeskTenants(tenants.dedicatedDesk || []);
+          setStats(stats);
         }
       } catch (error) {
         console.error('Error fetching tenants:', error);
+        // Set empty fallbacks
+        setPrivateOfficeTenants([]);
+        setVirtualOfficeTenants([]);
+        setDedicatedDeskTenants([]);
+        setStats({ privateOffice: 0, virtualOffice: 0, dedicatedDesk: 0, total: 0 });
       } finally {
         setLoading(false);
       }
@@ -180,60 +136,35 @@ export default function Tenants() {
     </svg>
   );
 
-  // Filter and sort tenants
-  const getFilteredAndSortedTenants = () => {
-    let tenants = selectedFilter ? getTenantsByType(selectedFilter) : allTenants;
-    
-    // Apply search filter
-    if (searchTerm) {
-      const search = searchTerm.toLowerCase();
-      tenants = tenants.filter(tenant => 
-        (tenant.name && tenant.name.toLowerCase().includes(search)) ||
-        (tenant.email && tenant.email.toLowerCase().includes(search)) ||
-        (tenant.phone && tenant.phone.toLowerCase().includes(search)) ||
-        (tenant.company && tenant.company.toLowerCase().includes(search)) ||
-        (tenant.office && tenant.office.toLowerCase().includes(search)) ||
-        (tenant.desk && tenant.desk.toLowerCase().includes(search))
-      );
+  // Filter and sort tenants using backend API
+  const getFilteredAndSortedTenants = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (selectedFilter) params.append('type', selectedFilter);
+      if (searchTerm) params.append('search', searchTerm);
+      params.append('sortBy', sortBy);
+      params.append('sortOrder', sortOrder);
+
+      const response = await api.get(`/api/admin/tenants/filtered?${params.toString()}`);
+      if (response.success && response.data) {
+        return response.data.tenants || [];
+      }
+    } catch (error) {
+      console.error('Error fetching filtered tenants:', error);
     }
-    
-    // Apply sorting
-    tenants.sort((a, b) => {
-      let aValue, bValue;
-      
-      switch (sortBy) {
-        case 'name':
-          aValue = (a.name || '').toLowerCase();
-          bValue = (b.name || '').toLowerCase();
-          break;
-        case 'date':
-          aValue = new Date(a.startDate || a.createdAt || 0);
-          bValue = new Date(b.startDate || b.createdAt || 0);
-          break;
-        case 'type':
-          aValue = a.type || '';
-          bValue = b.type || '';
-          break;
-        case 'status':
-          aValue = (a.status || '').toLowerCase();
-          bValue = (b.status || '').toLowerCase();
-          break;
-        default:
-          aValue = (a.name || '').toLowerCase();
-          bValue = (b.name || '').toLowerCase();
-      }
-      
-      if (sortOrder === 'asc') {
-        return aValue > bValue ? 1 : aValue < bValue ? -1 : 0;
-      } else {
-        return aValue < bValue ? 1 : aValue > bValue ? -1 : 0;
-      }
-    });
-    
-    return tenants;
+    return [];
   };
 
-  const filteredTenants = getFilteredAndSortedTenants();
+  const [filteredTenants, setFilteredTenants] = useState([]);
+
+  // Update filtered tenants when filters change
+  useEffect(() => {
+    const updateFilteredTenants = async () => {
+      const filtered = await getFilteredAndSortedTenants();
+      setFilteredTenants(filtered);
+    };
+    updateFilteredTenants();
+  }, [selectedFilter, searchTerm, sortBy, sortOrder, allTenants]);
 
   // Get tenant type label
   const getTenantTypeLabel = (type) => {

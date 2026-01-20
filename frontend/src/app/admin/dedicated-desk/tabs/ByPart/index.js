@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import Part1 from "../../components/parts/Part1";
-import Part2 from "../../components/parts/Part2";
-import Part3 from "../../components/parts/Part3";
-import Part4 from "../../components/parts/Part4";
-import Part5 from "../../components/parts/Part5";
-import Part6 from "../../components/parts/Part6";
-import Part7 from "../../components/parts/Part7";
-import Part8 from "../../components/parts/Part8";
+import { useState, useEffect } from "react";
+import { api } from '@/lib/api';
+import Part1 from "../../components/parts/Part1/index.js";
+import Part2 from "../../components/parts/Part2/index.js";
+import Part3 from "../../components/parts/Part3/index.js";
+import Part4 from "../../components/parts/Part4/index.js";
+import Part5 from "../../components/parts/Part5/index.js";
+import Part6 from "../../components/parts/Part6/index.js";
+import Part7 from "../../components/parts/Part7/index.js";
+import Part8 from "../../components/parts/Part8/index.js";
 
 export default function ByPartView({ 
   selectedPart, 
@@ -37,29 +38,31 @@ export default function ByPartView({
   const PartComponent = selectedPartData?.component;
 
   // Get occupants for the selected part
-  const getPartOccupants = () => {
-    if (!selectedPartData) return [];
-    
-    const partOccupants = [];
-    Object.keys(deskAssignments).forEach(deskTag => {
-      if (deskTag.startsWith(selectedPartData.tagPrefix)) {
-        const assignment = deskAssignments[deskTag];
-        partOccupants.push({
-          deskTag,
-          ...assignment
-        });
-      }
-    });
-    
-    // Sort by desk number
-    return partOccupants.sort((a, b) => {
-      const numA = parseInt(a.deskTag.slice(1)) || 0;
-      const numB = parseInt(b.deskTag.slice(1)) || 0;
-      return numA - numB;
-    });
-  };
+  // Get occupants for selected part from backend
+  const [partOccupants, setPartOccupants] = useState([]);
 
-  const partOccupants = getPartOccupants();
+  useEffect(() => {
+    const fetchPartOccupants = async () => {
+      if (!selectedPartData) {
+        setPartOccupants([]);
+        return;
+      }
+      
+      try {
+        const response = await api.get(`/api/admin/dedicated-desk/occupants/${selectedPartData.tagPrefix}`);
+        if (response.success && response.data) {
+          setPartOccupants(response.data.occupants || []);
+        }
+      } catch (error) {
+        console.error('Error fetching part occupants:', error);
+        setPartOccupants([]);
+      }
+    };
+
+    fetchPartOccupants();
+  }, [selectedPartData]);
+
+  const currentPartOccupants = partOccupants;
 
   return (
     <div className="flex gap-4 h-full">
@@ -223,7 +226,7 @@ export default function ByPartView({
           </h3>
           {selectedPartData && (
             <p className="text-sm text-gray-600 mt-1">
-              {partOccupants.length} occupied desk{partOccupants.length !== 1 ? 's' : ''}
+              {currentPartOccupants.length} occupied desk{currentPartOccupants.length !== 1 ? 's' : ''}
             </p>
           )}
         </div>
@@ -239,7 +242,7 @@ export default function ByPartView({
               <p className="text-gray-500 font-medium">No part selected</p>
               <p className="text-gray-400 text-sm mt-1">Select a part to view occupants</p>
             </div>
-          ) : partOccupants.length === 0 ? (
+          ) : currentPartOccupants.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full p-8 text-center">
               <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3">
                 <svg className="w-6 h-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -251,7 +254,7 @@ export default function ByPartView({
             </div>
           ) : (
             <div className="p-4 space-y-3">
-              {partOccupants.map((occupant) => (
+              {currentPartOccupants.map((occupant) => (
                 <div 
                   key={occupant.deskTag}
                   className="bg-gray-50 rounded-lg p-3 border border-gray-200 hover:border-teal-300 hover:bg-teal-50/50 transition-all cursor-pointer"

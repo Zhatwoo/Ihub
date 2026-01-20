@@ -5,6 +5,7 @@ import { api } from '@/lib/api';
 
 export default function Dashboard() {
   const [schedules, setSchedules] = useState([]);
+  const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0 });
   const [selectedFilter, setSelectedFilter] = useState(null);
   const [scheduleSearch, setScheduleSearch] = useState('');
   const [sortBy, setSortBy] = useState('date');
@@ -15,58 +16,61 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchSchedules = async () => {
       try {
-        const response = await api.get('/api/schedules');
+        const response = await api.get('/api/admin/private-office/dashboard');
         if (response.success && response.data) {
-          // Filter for private office requests
-          const privateOfficeRequests = response.data.filter(
-            schedule => schedule.requestType === 'privateroom' || 
-                       (!schedule.requestType && schedule.room && schedule.roomId)
-          );
-          setSchedules(privateOfficeRequests);
+          setSchedules(response.data.schedules || []);
+          setStats(response.data.stats || { total: 0, pending: 0, approved: 0, rejected: 0 });
         }
       } catch (error) {
         console.error('Error fetching schedules:', error);
+        setSchedules([]);
+        setStats({ total: 0, pending: 0, approved: 0, rejected: 0 });
       }
     };
     fetchSchedules();
   }, []);
 
-  const getSchedulesByStatus = (status) => {
-    if (status === 'total') return schedules;
-    if (status === 'active') {
-      // Active includes both upcoming and ongoing
-      return schedules.filter(s => s.status === 'upcoming' || s.status === 'ongoing' || s.status === 'active');
+  // Auto-open Total card on component mount
+  useEffect(() => {
+    setSelectedFilter('total');
+  }, []);
+
+  // Fetch filtered schedules from backend
+  const fetchFilteredSchedules = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (selectedFilter && selectedFilter !== 'total') params.append('status', selectedFilter);
+      if (scheduleSearch) params.append('search', scheduleSearch);
+      if (roomFilter && roomFilter !== 'all') params.append('roomFilter', roomFilter);
+      params.append('sortBy', sortBy);
+      params.append('sortOrder', sortOrder);
+
+      const response = await api.get(`/api/admin/private-office/dashboard?${params.toString()}`);
+      if (response.success && response.data) {
+        setSchedules(response.data.schedules || []);
+        setStats(response.data.stats || { total: 0, pending: 0, approved: 0, rejected: 0 });
+        return response.data.schedules || [];
+      }
+    } catch (error) {
+      console.error('Error fetching filtered schedules:', error);
+      setSchedules([]);
     }
-    return schedules.filter(s => s.status === status);
+    return [];
   };
 
-  const applyFiltersAndSort = (data) => {
-    let result = [...data];
-    if (scheduleSearch) {
-      const search = scheduleSearch.toLowerCase();
-      result = result.filter(s => 
-        s.clientName?.toLowerCase().includes(search) || 
-        s.email?.toLowerCase().includes(search) ||
-        s.contactNumber?.toLowerCase().includes(search) ||
-        s.room?.toLowerCase().includes(search)
-      );
-    }
-    if (roomFilter !== 'all') {
-      result = result.filter(s => s.room === roomFilter);
-    }
-    result.sort((a, b) => {
-      let comparison = 0;
-      if (sortBy === 'date') comparison = new Date(a.startDate || a.createdAt) - new Date(b.startDate || b.createdAt);
-      else if (sortBy === 'client') comparison = (a.clientName || '').localeCompare(b.clientName || '');
-      else if (sortBy === 'room') comparison = (a.room || '').localeCompare(b.room || '');
-      else if (sortBy === 'email') comparison = (a.email || '').localeCompare(b.email || '');
-      return sortOrder === 'asc' ? comparison : -comparison;
-    });
-    return result;
-  };
+  // Update schedules when filters change
+  useEffect(() => {
+    fetchFilteredSchedules();
+  }, [selectedFilter, scheduleSearch, sortBy, sortOrder, roomFilter]);
 
-  const filteredSchedules = selectedFilter ? applyFiltersAndSort(getSchedulesByStatus(selectedFilter)) : [];
-  const uniqueRooms = [...new Set(schedules.map(s => s.room).filter(Boolean))];
+  const filteredSchedules = schedules;
+  // Get unique rooms from backend data
+  const uniqueRooms = schedules.reduce((rooms, s) => {
+    if (s.room && !rooms.includes(s.room)) {
+      rooms.push(s.room);
+    }
+    return rooms;
+  }, []);
 
   const getStatusBadge = (status) => {
     const styles = {
@@ -74,6 +78,7 @@ export default function Dashboard() {
       upcoming: 'bg-teal-100 text-teal-700',
       ongoing: 'bg-teal-100 text-teal-700',
       active: 'bg-teal-100 text-teal-700',
+      approved: 'bg-green-100 text-green-700',
       completed: 'bg-green-100 text-green-700',
       rejected: 'bg-red-100 text-red-700'
     };
@@ -83,7 +88,7 @@ export default function Dashboard() {
   const statCards = [
     { key: 'total', icon: '📊', label: 'Total', color: 'border-l-teal-600', iconBg: 'from-cyan-50 to-cyan-100', ring: 'ring-teal-600 shadow-teal-600/20' },
     { key: 'pending', icon: '⏳', label: 'Pending', color: 'border-l-yellow-500', iconBg: 'from-yellow-100 to-yellow-200', ring: 'ring-yellow-500 shadow-yellow-500/20' },
-    { key: 'active', icon: '▶️', label: 'Active', color: 'border-l-teal-500', iconBg: 'from-teal-100 to-teal-200', ring: 'ring-teal-500 shadow-teal-500/20' },
+    { key: 'approved', icon: '✅', label: 'Approved', color: 'border-l-green-500', iconBg: 'from-green-100 to-green-200', ring: 'ring-green-500 shadow-green-500/20' },
     { key: 'rejected', icon: '❌', label: 'Rejected', color: 'border-l-red-500', iconBg: 'from-red-100 to-red-200', ring: 'ring-red-500 shadow-red-500/20' },
   ];
 
@@ -101,9 +106,7 @@ export default function Dashboard() {
             </div>
             <div className="flex flex-row items-baseline gap-1.5 sm:gap-2 flex-1 min-w-0 overflow-hidden">
               <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800 whitespace-nowrap shrink-0">
-                {card.key === 'total' ? schedules.length : 
-                 card.key === 'active' ? schedules.filter(s => s.status === 'upcoming' || s.status === 'ongoing' || s.status === 'active').length :
-                 schedules.filter(s => s.status === card.key).length}
+                {stats[card.key] || 0}
               </span>
               <span className="text-xs sm:text-sm text-gray-500 font-semibold wrap-break-word leading-tight uppercase tracking-wide flex-1 min-w-0 hyphens-auto">
                 {card.label}
@@ -118,7 +121,7 @@ export default function Dashboard() {
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 mb-4">
             <h3 className="text-slate-800 text-base sm:text-lg font-semibold whitespace-nowrap">
               {selectedFilter === 'total' ? 'All Reservations' : 
-               selectedFilter === 'active' ? 'Active Reservations' :
+               selectedFilter === 'approved' ? 'Approved Reservations' :
                `${selectedFilter.charAt(0).toUpperCase() + selectedFilter.slice(1)} Reservations`}
             </h3>
             <div className="flex flex-wrap gap-2 sm:gap-2.5 items-center w-full sm:w-auto sm:ml-auto">
@@ -196,7 +199,8 @@ export default function Dashboard() {
                         <div className="flex sm:contents justify-between items-start">
                           <div className="sm:hidden text-gray-500 font-semibold mb-1">Status:</div>
                           <span className={`px-2 sm:px-2.5 py-1 rounded-full text-[10px] xs:text-xs font-semibold capitalize text-center ${getStatusBadge(schedule.status)}`}>
-                            {schedule.status === 'upcoming' || schedule.status === 'ongoing' ? 'Active' : schedule.status}
+                            {schedule.status === 'upcoming' || schedule.status === 'ongoing' ? 'Active' : 
+                             schedule.status === 'approved' ? 'Approved' : schedule.status}
                           </span>
                         </div>
                       </div>

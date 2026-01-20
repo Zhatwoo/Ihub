@@ -6,7 +6,7 @@ import admin from 'firebase-admin';
 import { sendFirestoreError } from '../utils/firestoreHelper.js';
 
 /**
- * Get all schedules/bookings
+ * Get all schedules/bookings from /privateOffice/request
  */
 export const getAllSchedules = async (req, res) => {
   try {
@@ -16,7 +16,7 @@ export const getAllSchedules = async (req, res) => {
       return sendFirestoreError(res);
     }
     
-    const schedulesSnapshot = await firestore.collection('schedules').get();
+    const schedulesSnapshot = await firestore.collection('privateOfficeRooms').doc('data').collection('requests').get();
     
     const schedules = schedulesSnapshot.docs.map(doc => ({
       id: doc.id,
@@ -58,7 +58,7 @@ export const getScheduleById = async (req, res) => {
       return sendFirestoreError(res);
     }
     
-    const scheduleDoc = await firestore.collection('schedules').doc(scheduleId).get();
+    const scheduleDoc = await firestore.collection('privateOfficeRooms').doc('data').collection('requests').doc(scheduleId).get();
 
     if (!scheduleDoc.exists) {
       return res.status(404).json({
@@ -254,7 +254,7 @@ export const getUserSchedules = async (req, res) => {
     
     // Query schedules by userId
     const schedulesSnapshot = await firestore
-      .collection('schedules')
+      .collection('privateOfficeRooms').doc('data').collection('requests')
       .where('userId', '==', userId)
       .get();
     
@@ -289,8 +289,9 @@ export const createSchedule = async (req, res) => {
       return sendFirestoreError(res);
     }
     
-    const scheduleRef = await firestore.collection('schedules').add({
+    const scheduleRef = await firestore.collection('privateOfficeRooms').doc('data').collection('requests').add({
       ...scheduleData,
+      status: scheduleData.status || 'pending', // Default to pending
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
@@ -316,7 +317,7 @@ export const createSchedule = async (req, res) => {
 };
 
 /**
- * Update schedule
+ * Update schedule - includes logic for room status updates when approved
  */
 export const updateSchedule = async (req, res) => {
   try {
@@ -328,7 +329,7 @@ export const updateSchedule = async (req, res) => {
       return sendFirestoreError(res);
     }
     
-    const scheduleRef = firestore.collection('schedules').doc(scheduleId);
+    const scheduleRef = firestore.collection('privateOfficeRooms').doc('data').collection('requests').doc(scheduleId);
     const scheduleDoc = await scheduleRef.get();
 
     if (!scheduleDoc.exists) {
@@ -339,6 +340,60 @@ export const updateSchedule = async (req, res) => {
       });
     }
 
+    const currentSchedule = scheduleDoc.data();
+    
+    // Check if request is being approved
+    if (updateData.status === 'approved' && currentSchedule.status !== 'approved') {
+      // Update the room status to "Occupied" and add occupiedBy field
+      if (currentSchedule.roomId && currentSchedule.clientName) {
+        try {
+          const roomRef = firestore.collection('privateOfficeRooms').doc('data').collection('office').doc(currentSchedule.roomId);
+          const roomDoc = await roomRef.get();
+          
+          if (roomDoc.exists) {
+            await roomRef.update({
+              status: 'Occupied',
+              occupiedBy: currentSchedule.clientName,
+              updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            console.log(`Room ${currentSchedule.roomId} status updated to Occupied by ${currentSchedule.clientName}`);
+          }
+        } catch (roomError) {
+          console.error('Error updating room status:', roomError);
+          // Continue with schedule update even if room update fails
+        }
+      }
+    }
+    
+    // Check if request is being rejected or cancelled (free up the room)
+    if ((updateData.status === 'rejected' || updateData.status === 'cancelled') && currentSchedule.status === 'approved') {
+      // Update the room status back to "Vacant" and remove occupiedBy field
+      if (currentSchedule.roomId) {
+        try {
+          const roomRef = firestore.collection('privateOfficeRooms').doc('data').collection('office').doc(currentSchedule.roomId);
+          const roomDoc = await roomRef.get();
+          
+          if (roomDoc.exists) {
+            const updateRoomData = {
+              status: 'Vacant',
+              updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            };
+            
+            // Remove occupiedBy field
+            await roomRef.update({
+              ...updateRoomData,
+              occupiedBy: admin.firestore.FieldValue.delete()
+            });
+            console.log(`Room ${currentSchedule.roomId} status updated to Vacant`);
+          }
+        } catch (roomError) {
+          console.error('Error updating room status:', roomError);
+          // Continue with schedule update even if room update fails
+        }
+      }
+    }
+
+    // Update the schedule
     await scheduleRef.update({
       ...updateData,
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
@@ -379,7 +434,7 @@ export const deleteSchedule = async (req, res) => {
       return sendFirestoreError(res);
     }
     
-    const scheduleRef = firestore.collection('schedules').doc(scheduleId);
+    const scheduleRef = firestore.collection('privateOfficeRooms').doc('data').collection('requests').doc(scheduleId);
     const scheduleDoc = await scheduleRef.get();
 
     if (!scheduleDoc.exists) {

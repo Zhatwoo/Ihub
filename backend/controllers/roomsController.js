@@ -7,7 +7,7 @@ import { sendFirestoreError } from '../utils/firestoreHelper.js';
 
 /**
  * Get all rooms
- * Returns all rooms visible to all clients (no user-specific filtering)
+ * Returns all rooms from privateOfficeRooms collection
  */
 export const getAllRooms = async (req, res) => {
   try {
@@ -17,8 +17,8 @@ export const getAllRooms = async (req, res) => {
       return sendFirestoreError(res);
     }
     
-    // Fetch all rooms from Firestore
-    const roomsSnapshot = await firestore.collection('rooms').get();
+    // Fetch all rooms from privateOfficeRooms collection -> office subcollection
+    const roomsSnapshot = await firestore.collection('privateOfficeRooms').doc('data').collection('office').get();
     
     // Map all rooms - make them visible to all clients
     // Filter out rooms that are explicitly marked as hidden/deleted
@@ -79,7 +79,7 @@ export const getRoomById = async (req, res) => {
       return sendFirestoreError(res);
     }
     
-    const roomDoc = await firestore.collection('rooms').doc(roomId).get();
+    const roomDoc = await firestore.collection('privateOfficeRooms').doc('data').collection('office').doc(roomId).get();
 
     if (!roomDoc.exists) {
       return res.status(404).json({
@@ -118,16 +118,22 @@ export const createRoom = async (req, res) => {
       return sendFirestoreError(res);
     }
     
-    // Ensure room is visible to all clients by default
+    // Ensure room has all required fields with defaults
     const roomDataWithDefaults = {
-      ...roomData,
+      image: roomData.image || '/rooms/default.png', // Image filename
+      name: roomData.name, // Name of office
+      rentFee: roomData.rentFee, // Rent Fee
+      currency: roomData.currency || 'PHP', // Currency
+      rentFeePeriod: roomData.rentFeePeriod || 'per hour', // Rent fee period
+      description: roomData.description || '', // Description
+      inclusions: roomData.inclusions || '', // Inclusions
+      status: 'Vacant', // Default status is Vacant (Vacant or Occupied)
       visible: true, // Make room visible to all clients
-      status: roomData.status || 'active', // Default to active
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     };
     
-    const roomRef = await firestore.collection('rooms').add(roomDataWithDefaults);
+    const roomRef = await firestore.collection('privateOfficeRooms').doc('data').collection('office').add(roomDataWithDefaults);
 
     const newRoom = await roomRef.get();
 
@@ -162,7 +168,7 @@ export const updateRoom = async (req, res) => {
       return sendFirestoreError(res);
     }
     
-    const roomRef = firestore.collection('rooms').doc(roomId);
+    const roomRef = firestore.collection('privateOfficeRooms').doc('data').collection('office').doc(roomId);
     const roomDoc = await roomRef.get();
 
     if (!roomDoc.exists) {
@@ -178,6 +184,8 @@ export const updateRoom = async (req, res) => {
       ...updateData,
       // If visible is not explicitly set to false, keep it true (visible to all clients)
       visible: updateData.visible !== undefined ? updateData.visible : true,
+      // Ensure status is valid (Vacant or Occupied)
+      status: updateData.status && ['Vacant', 'Occupied'].includes(updateData.status) ? updateData.status : roomDoc.data().status,
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     };
     
@@ -215,7 +223,7 @@ export const deleteRoom = async (req, res) => {
       return sendFirestoreError(res);
     }
     
-    const roomRef = firestore.collection('rooms').doc(roomId);
+    const roomRef = firestore.collection('privateOfficeRooms').doc('data').collection('office').doc(roomId);
     const roomDoc = await roomRef.get();
 
     if (!roomDoc.exists) {
