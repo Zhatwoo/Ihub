@@ -112,9 +112,29 @@ export default function PrivateOffice() {
     // Initial fetch
     fetchSchedules();
     
-    // Real-time polling: Update every 2 seconds for instant reflection
-    const interval = setInterval(fetchSchedules, 2000);
-    return () => clearInterval(interval);
+    // Poll for updates every 30 seconds (reduced from 2 seconds to prevent excessive API calls)
+    // Only poll when tab is visible to reduce unnecessary requests
+    let interval;
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (interval) clearInterval(interval);
+      } else {
+        fetchSchedules(); // Fetch immediately when tab becomes visible
+        interval = setInterval(fetchSchedules, 30000);
+      }
+    };
+    
+    // Start polling if tab is visible
+    if (!document.hidden) {
+      interval = setInterval(fetchSchedules, 30000);
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      if (interval) clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });

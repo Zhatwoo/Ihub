@@ -89,8 +89,28 @@ export default function Tenants() {
     fetchTenants();
     
     // Poll for updates every 30 seconds
-    const interval = setInterval(fetchTenants, 30000);
-    return () => clearInterval(interval);
+    // Only poll when tab is visible to reduce unnecessary requests
+    let interval;
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (interval) clearInterval(interval);
+      } else {
+        fetchTenants(); // Fetch immediately when tab becomes visible
+        interval = setInterval(fetchTenants, 30000);
+      }
+    };
+    
+    // Start polling if tab is visible
+    if (!document.hidden) {
+      interval = setInterval(fetchTenants, 30000);
+    }
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      if (interval) clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   // Combine all tenants
