@@ -13,7 +13,7 @@ export default function PrivateOffices() {
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [editingRoom, setEditingRoom] = useState(null);
-  const [formData, setFormData] = useState({ name: '', rentFee: '', currency: 'PHP', rentFeePeriod: 'per hour', description: '', inclusions: '' });
+  const [formData, setFormData] = useState({ name: '', rentFee: '', currency: 'PHP', rentFeePeriod: 'per hour', description: '', inclusions: '', status: 'Vacant' });
   const [searchTerm, setSearchTerm] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -111,6 +111,7 @@ export default function PrivateOffices() {
         rentFeePeriod: formData.rentFeePeriod, 
         description: formData.description, 
         inclusions: formData.inclusions, 
+        status: formData.status || 'Vacant', // Default to Vacant
         image: imagePath 
       };
       
@@ -149,7 +150,7 @@ export default function PrivateOffices() {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', rentFee: '', currency: 'PHP', rentFeePeriod: 'per hour', description: '', inclusions: '' });
+    setFormData({ name: '', rentFee: '', currency: 'PHP', rentFeePeriod: 'per hour', description: '', inclusions: '', status: 'Vacant' });
     setImageFile(null);
     setImagePreview(null);
     setEditingRoom(null);
@@ -165,7 +166,8 @@ export default function PrivateOffices() {
       currency: selectedRoom.currency || 'PHP', 
       rentFeePeriod: selectedRoom.rentFeePeriod || 'per hour', 
       description: selectedRoom.description || '', 
-      inclusions: selectedRoom.inclusions || '' 
+      inclusions: selectedRoom.inclusions || '',
+      status: selectedRoom.status || 'Vacant'
     });
     setImagePreview(selectedRoom.image);
     setShowFormModal(true);
@@ -199,7 +201,7 @@ export default function PrivateOffices() {
 
   const openAddModal = () => { 
     setEditingRoom(null); 
-    setFormData({ name: '', rentFee: '', currency: 'PHP', rentFeePeriod: 'per hour', description: '', inclusions: '' }); 
+    setFormData({ name: '', rentFee: '', currency: 'PHP', rentFeePeriod: 'per hour', description: '', inclusions: '', status: 'Vacant' }); 
     setImageFile(null); 
     setImagePreview(null); 
     setShowFormModal(true); 
@@ -209,7 +211,29 @@ export default function PrivateOffices() {
   const openViewModal = (room) => { setSelectedRoom(room); setShowViewModal(true); };
   const closeViewModal = () => { setShowViewModal(false); setSelectedRoom(null); };
 
-  const filteredRooms = rooms.filter(room => room.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  // Fetch filtered rooms from backend
+  const [filteredRooms, setFilteredRooms] = useState([]);
+
+  useEffect(() => {
+    const filterRooms = async () => {
+      if (!searchTerm) {
+        setFilteredRooms(rooms);
+        return;
+      }
+
+      try {
+        const response = await api.get(`/api/rooms?search=${encodeURIComponent(searchTerm)}`);
+        if (response.success && response.data) {
+          setFilteredRooms(response.data);
+        }
+      } catch (error) {
+        console.error('Error filtering rooms:', error);
+        setFilteredRooms(rooms);
+      }
+    };
+
+    filterRooms();
+  }, [searchTerm, rooms]);
 
   return (
     <div className="flex flex-col gap-4 sm:gap-5 lg:gap-6 animate-fadeIn">
@@ -251,9 +275,21 @@ export default function PrivateOffices() {
               </div>
               <div className="p-4 pt-3">
                 <div className="text-slate-800 font-bold text-lg mb-2">{room.name}</div>
-                <div className="flex items-center gap-1.5 text-gray-500 text-sm">
+                <div className="flex items-center gap-1.5 text-gray-500 text-sm mb-2">
                   <span className="text-teal-600">💰</span>
                   <span>{getCurrencySymbol(room.currency || 'PHP')}{room.rentFee?.toLocaleString() || '0'} {room.rentFeePeriod || 'per hour'}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                    room.status === 'Occupied' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                  }`}>
+                    {room.status || 'Vacant'}
+                  </span>
+                  {room.status === 'Occupied' && room.occupiedBy && (
+                    <span className="text-xs text-gray-500 truncate max-w-[100px]" title={room.occupiedBy}>
+                      {room.occupiedBy}
+                    </span>
+                  )}
                 </div>
               </div>
             </div>
@@ -368,6 +404,18 @@ export default function PrivateOffices() {
                       </select>
                     </div>
                   </div>
+                  <div>
+                    <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Status</label>
+                    <select 
+                      name="status" 
+                      value={formData.status} 
+                      onChange={handleChange} 
+                      className="w-full px-3 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all cursor-pointer"
+                    >
+                      <option value="Vacant">Vacant</option>
+                      <option value="Occupied">Occupied</option>
+                    </select>
+                  </div>
                 </div>
                 {/* Column 2 */}
                 <div className="flex flex-col gap-4 sm:gap-5">
@@ -459,6 +507,24 @@ export default function PrivateOffices() {
                     <div className="w-full px-3 sm:px-4 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50">
                       {selectedRoom.rentFeePeriod || 'per hour'}
                     </div>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-slate-800 mb-2 font-semibold text-sm">Status</label>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-3 py-2 rounded-xl text-sm font-semibold ${
+                      selectedRoom.status === 'Occupied' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+                    }`}>
+                      {selectedRoom.status || 'Vacant'}
+                    </span>
+                    {selectedRoom.status === 'Occupied' && selectedRoom.occupiedBy && (
+                      <div className="flex-1">
+                        <div className="text-xs text-gray-500 mb-1">Occupied by:</div>
+                        <div className="w-full px-3 py-2 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50">
+                          {selectedRoom.occupiedBy}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

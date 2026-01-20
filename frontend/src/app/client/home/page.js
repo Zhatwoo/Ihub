@@ -4,14 +4,14 @@
 // IMPORTS
 // ============================================
 import { useEffect } from 'react';
-import Footer from '@/app/landingpage/components/footer';
-import HeroSection from './components/HeroSection';
-import PrivateOfficesSection from './components/PrivateOfficesSection';
-import DedicatedDeskSection from './components/DedicatedDeskSection';
-import AmenitiesSection from './components/AmenitiesSection';
-import WhyChooseUs from './components/WhyChooseUs';
-import ContentSection from './components/ContentSection';
-import CTASection from './components/CTASection';
+import Footer from '@/app/landingpage/components/footer.jsx';
+import HeroSection from './components/HeroSection.jsx';
+import PrivateOfficesSection from './components/PrivateOfficesSection.jsx';
+import DedicatedDeskSection from './components/DedicatedDeskSection.jsx';
+import AmenitiesSection from './components/AmenitiesSection.jsx';
+import WhyChooseUs from './components/WhyChooseUs.jsx';
+import ContentSection from './components/ContentSection.jsx';
+import CTASection from './components/CTASection.jsx';
 
 // ============================================
 // MAIN COMPONENT

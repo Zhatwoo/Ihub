@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import ProfileCard from './ProfileCard/ProfileCard';
 import ProfileModal from './ProfileCard/ProfileModal';
-import AdminAuthGuard from '@/components/AdminAuthGuard';
+import AdminAuthGuard from '@/components/AdminAuthGuard.jsx';
 
 // Modern desk SVG icon component
 const DeskIcon = ({ className }) => (

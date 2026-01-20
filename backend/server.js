@@ -4,6 +4,8 @@ import dotenv from 'dotenv';
 import morgan from 'morgan';
 import { config } from './config/index.js';
 import { initFirebase } from './config/firebase.js';
+import dashboardRoutes from './routes/dashboard.js';
+import adminRoutes from './routes/admin.js';
 import authRoutes from './routes/auth.js';
 import accountsRoutes from './routes/accounts.js';
 import roomsRoutes from './routes/rooms.js';
@@ -76,6 +78,8 @@ app.get('/api', (req, res) => {
 });
 
 // Mount routes
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/accounts', accountsRoutes);
 app.use('/api/rooms', roomsRoutes);

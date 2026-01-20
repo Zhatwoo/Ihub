@@ -36,12 +36,13 @@ export default function VirtualOffice() {
   useEffect(() => {
     const fetchClients = async () => {
       try {
-        const response = await api.get('/api/virtual-office');
+        const response = await api.get('/api/admin/virtual-office/clients');
         if (response.success && response.data) {
-          setClients(response.data);
+          setClients(response.data.clients || []);
         }
       } catch (error) {
         console.error('Error fetching clients:', error);
+        setClients([]);
       }
     };
 

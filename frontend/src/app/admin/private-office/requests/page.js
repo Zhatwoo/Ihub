@@ -10,17 +10,13 @@ export default function RequestList() {
   useEffect(() => {
     const fetchSchedules = async () => {
       try {
-        const response = await api.get('/api/schedules');
+        const response = await api.get('/api/admin/private-office/requests');
         if (response.success && response.data) {
-          // Filter for private office requests
-          const privateOfficeRequests = response.data.filter(
-            schedule => schedule.requestType === 'privateroom' || 
-                       (!schedule.requestType && schedule.room && schedule.roomId)
-          );
-          setSchedules(privateOfficeRequests);
+          setSchedules(response.data.requests || []);
         }
       } catch (error) {
         console.error('Error fetching schedules:', error);
+        setSchedules([]);
       }
     };
     fetchSchedules();
@@ -28,16 +24,14 @@ export default function RequestList() {
 
   const handleApprove = async (id) => {
     try {
-      const response = await api.put(`/api/schedules/${id}`, { status: 'active' });
+      const response = await api.put(`/api/admin/private-office/requests/${id}/status`, { 
+        status: 'approved' 
+      });
       if (response.success) {
         // Refresh schedules
-        const schedulesResponse = await api.get('/api/schedules');
+        const schedulesResponse = await api.get('/api/admin/private-office/requests');
         if (schedulesResponse.success && schedulesResponse.data) {
-          const privateOfficeRequests = schedulesResponse.data.filter(
-            schedule => schedule.requestType === 'privateroom' || 
-                       (!schedule.requestType && schedule.room && schedule.roomId)
-          );
-          setSchedules(privateOfficeRequests);
+          setSchedules(schedulesResponse.data.requests || []);
         }
       }
     } catch (error) {
@@ -47,16 +41,14 @@ export default function RequestList() {
 
   const handleReject = async (id) => {
     try {
-      const response = await api.put(`/api/schedules/${id}`, { status: 'rejected' });
+      const response = await api.put(`/api/admin/private-office/requests/${id}/status`, { 
+        status: 'rejected' 
+      });
       if (response.success) {
         // Refresh schedules
-        const schedulesResponse = await api.get('/api/schedules');
+        const schedulesResponse = await api.get('/api/admin/private-office/requests');
         if (schedulesResponse.success && schedulesResponse.data) {
-          const privateOfficeRequests = schedulesResponse.data.filter(
-            schedule => schedule.requestType === 'privateroom' || 
-                       (!schedule.requestType && schedule.room && schedule.roomId)
-          );
-          setSchedules(privateOfficeRequests);
+          setSchedules(schedulesResponse.data.requests || []);
         }
       }
     } catch (error) {
@@ -72,11 +64,11 @@ export default function RequestList() {
           <p className="text-gray-500 text-xs sm:text-sm mt-0.5">Review and manage reservation requests</p>
         </div>
         <span className="px-3 sm:px-4 py-1.5 sm:py-2 bg-yellow-50 text-yellow-700 border border-yellow-200 rounded-lg text-xs sm:text-sm font-semibold whitespace-nowrap">
-          {schedules.filter(s => s.status === 'pending').length} pending
+          {schedules.length} pending
         </span>
       </div>
       
-      {schedules.filter(s => s.status === 'pending').length === 0 ? (
+      {schedules.length === 0 ? (
         <div className="text-center py-12 sm:py-16 bg-gray-50 rounded-xl border border-gray-200">
           <div className="w-12 h-12 sm:w-16 sm:h-16 bg-teal-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-6 h-6 sm:w-8 sm:h-8 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -102,7 +94,7 @@ export default function RequestList() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {schedules.filter(s => s.status === 'pending').map((request) => (
+                {schedules.map((request) => (
                   <tr key={request.id} className="bg-gray-50 hover:bg-gray-100 transition-colors">
                     <td className="px-3 sm:px-4 py-3 sm:py-4">
                       <p className="text-slate-800 font-semibold text-xs sm:text-sm truncate max-w-[120px] sm:max-w-none" title={request.clientName}>

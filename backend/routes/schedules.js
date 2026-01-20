@@ -6,7 +6,7 @@ import {
   updateSchedule,
   deleteSchedule,
   getUserSchedules
-} from '../controllers/schedulesController.js';
+} from '../controllers/Admin/schedulesController.js';
 // import { authenticate } from '../middlewares/auth.js';
 
 const router = express.Router();
