@@ -31,8 +31,8 @@ export default function ListView({
                 </td>
               </tr>
             ) : (
-              assignmentsList.map((assignment) => (
-                <tr key={assignment.deskTag} className="bg-gray-50 hover:bg-gray-100 transition-colors">
+              assignmentsList.map((assignment, index) => (
+                <tr key={assignment.id || assignment.deskTag || `assignment-${index}`} className="bg-gray-50 hover:bg-gray-100 transition-colors">
                   <td className="px-4 py-4">
                     <span className="text-slate-800 font-semibold text-sm">{assignment.deskTag}</span>
                   </td>
