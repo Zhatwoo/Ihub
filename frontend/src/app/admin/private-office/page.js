@@ -3,9 +3,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 
 export default function PrivateOffice() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('rooms');
   const [rooms, setRooms] = useState([]);
   const [mounted, setMounted] = useState(false);
