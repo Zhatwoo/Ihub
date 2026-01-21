@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { api } from '@/lib/api';
 
 export default function Tenants() {
   const [privateOfficeTenants, setPrivateOfficeTenants] = useState([]);
   const [virtualOfficeTenants, setVirtualOfficeTenants] = useState([]);
   const [dedicatedDeskTenants, setDedicatedDeskTenants] = useState([]);
+  const [stats, setStats] = useState({ privateOffice: 0, virtualOffice: 0, dedicatedDesk: 0, total: 0 });
   const [selectedFilter, setSelectedFilter] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('name');
@@ -19,7 +20,7 @@ export default function Tenants() {
     const fetchTenants = async () => {
       try {
         setLoading(true);
-        // Fetch processed tenant data from admin API
+        // Fetch processed tenant data from admin API - use cache
         const response = await api.get('/api/admin/tenants/stats');
         
         if (response.success && response.data) {
@@ -45,7 +46,7 @@ export default function Tenants() {
 
     fetchTenants();
     
-    // Poll for updates every 30 seconds
+    // Poll for updates every 60 seconds (reduced from 30 to save quota)
     // Only poll when tab is visible to reduce unnecessary requests
     const handleVisibilityChange = () => {
       if (document.hidden) {
@@ -57,14 +58,34 @@ export default function Tenants() {
         // Only create interval if one doesn't already exist
         if (!tenantsIntervalRef.current) {
           fetchTenants(); // Fetch immediately when tab becomes visible
-          tenantsIntervalRef.current = setInterval(fetchTenants, 30000);
+          tenantsIntervalRef.current = setInterval(() => {
+            api.get('/api/admin/tenants/stats').then(response => {
+              if (response.success && response.data) {
+                const { stats, tenants } = response.data;
+                setPrivateOfficeTenants(tenants.privateOffice || []);
+                setVirtualOfficeTenants(tenants.virtualOffice || []);
+                setDedicatedDeskTenants(tenants.dedicatedDesk || []);
+                setStats(stats);
+              }
+            }).catch(error => console.error('Error polling tenants:', error));
+          }, 60000);
         }
       }
     };
     
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !tenantsIntervalRef.current) {
-      tenantsIntervalRef.current = setInterval(fetchTenants, 30000);
+      tenantsIntervalRef.current = setInterval(() => {
+        api.get('/api/admin/tenants/stats').then(response => {
+          if (response.success && response.data) {
+            const { stats, tenants } = response.data;
+            setPrivateOfficeTenants(tenants.privateOffice || []);
+            setVirtualOfficeTenants(tenants.virtualOffice || []);
+            setDedicatedDeskTenants(tenants.dedicatedDesk || []);
+            setStats(stats);
+          }
+        }).catch(error => console.error('Error polling tenants:', error));
+      }, 60000);
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -78,8 +99,8 @@ export default function Tenants() {
     };
   }, []);
 
-  // Combine all tenants
-  const allTenants = [...privateOfficeTenants, ...virtualOfficeTenants, ...dedicatedDeskTenants];
+  // Combine all tenants - memoized to prevent infinite loops
+  const allTenants = useMemo(() => [...privateOfficeTenants, ...virtualOfficeTenants, ...dedicatedDeskTenants], [privateOfficeTenants, virtualOfficeTenants, dedicatedDeskTenants]);
 
   // Get tenants by type
   const getTenantsByType = (type) => {
@@ -136,35 +157,47 @@ export default function Tenants() {
     </svg>
   );
 
-  // Filter and sort tenants using backend API
-  const getFilteredAndSortedTenants = async () => {
-    try {
-      const params = new URLSearchParams();
-      if (selectedFilter) params.append('type', selectedFilter);
-      if (searchTerm) params.append('search', searchTerm);
-      params.append('sortBy', sortBy);
-      params.append('sortOrder', sortOrder);
+  // Filter and sort tenants CLIENT-SIDE to avoid excessive API calls - memoized
+  const filteredTenants = useMemo(() => {
+    let filtered = [...allTenants];
 
-      const response = await api.get(`/api/admin/tenants/filtered?${params.toString()}`);
-      if (response.success && response.data) {
-        return response.data.tenants || [];
-      }
-    } catch (error) {
-      console.error('Error fetching filtered tenants:', error);
+    // Apply type filter
+    if (selectedFilter) {
+      filtered = filtered.filter(tenant => tenant.type === selectedFilter);
     }
-    return [];
-  };
 
-  const [filteredTenants, setFilteredTenants] = useState([]);
+    // Apply search filter
+    if (searchTerm) {
+      const searchLower = searchTerm.toLowerCase();
+      filtered = filtered.filter(tenant =>
+        (tenant.name && tenant.name.toLowerCase().includes(searchLower)) ||
+        (tenant.email && tenant.email.toLowerCase().includes(searchLower)) ||
+        (tenant.company && tenant.company.toLowerCase().includes(searchLower)) ||
+        (tenant.phone && tenant.phone.toLowerCase().includes(searchLower)) ||
+        (tenant.office && tenant.office.toLowerCase().includes(searchLower)) ||
+        (tenant.desk && tenant.desk.toLowerCase().includes(searchLower))
+      );
+    }
 
-  // Update filtered tenants when filters change
-  useEffect(() => {
-    const updateFilteredTenants = async () => {
-      const filtered = await getFilteredAndSortedTenants();
-      setFilteredTenants(filtered);
-    };
-    updateFilteredTenants();
-  }, [selectedFilter, searchTerm, sortBy, sortOrder, allTenants]);
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let comparison = 0;
+      if (sortBy === 'name') {
+        comparison = (a.name || '').localeCompare(b.name || '');
+      } else if (sortBy === 'email') {
+        comparison = (a.email || '').localeCompare(b.email || '');
+      } else if (sortBy === 'type') {
+        comparison = (a.type || '').localeCompare(b.type || '');
+      } else if (sortBy === 'date') {
+        comparison = new Date(a.startDate || 0) - new Date(b.startDate || 0);
+      } else if (sortBy === 'status') {
+        comparison = (a.status || '').localeCompare(b.status || '');
+      }
+      return sortOrder === 'desc' ? -comparison : comparison;
+    });
+
+    return filtered;
+  }, [allTenants, selectedFilter, searchTerm, sortBy, sortOrder]);
 
   // Get tenant type label
   const getTenantTypeLabel = (type) => {
@@ -196,8 +229,8 @@ export default function Tenants() {
           <div 
             key={card.key} 
             onClick={() => setSelectedFilter(selectedFilter === card.key ? null : card.key)} 
-            className={`bg-white rounded-xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3 border border-gray-200 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-800/10 border-l-[3px] sm:border-l-[4px] ${card.color} ${selectedFilter === card.key ? `ring-2 ${card.ring} -translate-y-0.5 shadow-xl` : 'shadow-sm'} animate-stagger`}
-            style={{ animationDelay: `${index * 0.1}s`, animationFillMode: 'backwards' }}
+            className={`bg-white rounded-xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3 border border-gray-200 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-800/10 border-l-[3px] sm:border-l-[4px] ${card.color} ${selectedFilter === card.key ? `ring-2 ${card.ring} -translate-y-0.5 shadow-xl` : 'shadow-sm'}`}
+            style={{ animation: `slideUp 0.5s ease-out ${index * 0.1}s both` }}
           >
             <div className={`text-lg sm:text-xl lg:text-2xl w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center bg-gradient-to-br ${card.iconBg} shrink-0 shadow-sm sm:shadow-md`}>
               {card.icon === 'desk' ? <DeskIcon /> : card.icon}
@@ -211,7 +244,7 @@ export default function Tenants() {
       </div>
 
       {/* All Tenants List Section */}
-      <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 lg:p-6 xl:p-7 shadow-lg shadow-slate-800/5 border border-gray-200 animate-slideUp">
+      <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 lg:p-6 xl:p-7 shadow-lg shadow-slate-800/5 border border-gray-200" style={{ animation: 'slideUp 0.5s ease-out 0.3s both' }}>
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-5 lg:mb-6 gap-4">
           <div className="flex-1">
             <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-1">
@@ -339,7 +372,6 @@ export default function Tenants() {
                   <tr 
                     key={`${tenant.type}-${tenant.id}`} 
                     className="bg-white hover:bg-gray-50 transition-colors cursor-pointer"
-                    style={{ animationDelay: `${index * 0.05}s` }}
                   >
                     <td className="px-4 sm:px-6 py-4">
                       <div>

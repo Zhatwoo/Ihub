@@ -5,7 +5,7 @@ import {
   createRoom,
   updateRoom,
   deleteRoom
-} from '../controllers/roomsController.js';
+} from '../controllers/Admin/roomsController.js';
 import { authenticate, isAdmin } from '../middlewares/auth.js';
 
 const router = express.Router();

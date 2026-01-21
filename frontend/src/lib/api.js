@@ -5,6 +5,10 @@
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
+// Simple cache for GET requests to reduce API calls
+const requestCache = new Map();
+const CACHE_DURATION = 60 * 1000; // 60 seconds - increased to reduce quota usage
+
 // Log API URL in development (only once)
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
   console.log('🔗 API Client configured:', API_URL);
@@ -49,12 +53,20 @@ async function handleResponse(response) {
  */
 export const api = {
   /**
-   * GET request
+   * GET request with caching
    * @param {string} endpoint - API endpoint (e.g., '/api/rooms')
    * @param {Object} options - Additional fetch options
    * @returns {Promise} JSON response
    */
   get: async (endpoint, options = {}) => {
+    // Check cache first (skip cache if explicitly disabled)
+    if (!options.skipCache) {
+      const cached = requestCache.get(endpoint);
+      if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        return cached.data;
+      }
+    }
+
     const token = getAuthToken();
     try {
       const response = await fetch(`${API_URL}${endpoint}`, {
@@ -66,7 +78,15 @@ export const api = {
         },
         ...options
       });
-      return handleResponse(response);
+      const data = await handleResponse(response);
+      
+      // Cache successful response
+      requestCache.set(endpoint, {
+        data,
+        timestamp: Date.now()
+      });
+      
+      return data;
     } catch (error) {
       // Handle network errors (backend not running, CORS, etc.)
       if (error.name === 'TypeError' && error.message.includes('fetch')) {

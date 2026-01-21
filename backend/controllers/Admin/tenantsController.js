@@ -15,36 +15,39 @@ export const getTenantStats = async (req, res) => {
       return sendFirestoreError(res);
     }
 
-    // Get tenant data first
-    const [schedulesSnapshot, virtualOfficeSnapshot, deskAssignmentsSnapshot] = await Promise.all([
+    // Fetch all data in parallel to reduce latency
+    const [schedulesSnapshot, virtualOfficeSnapshot, deskAssignmentsSnapshot, roomsSnapshot] = await Promise.all([
       firestore.collection('privateOfficeRooms').doc('data').collection('requests').get(),
       firestore.collection('virtual-office-clients').get(),
-      firestore.collection('desk-assignments').get()
+      firestore.collection('desk-assignments').get(),
+      firestore.collection('privateOfficeRooms').doc('data').collection('office').get()
     ]);
 
-    // Process schedules data
+    // Process all data
     const schedules = schedulesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-    // Process virtual office data
     const virtualOfficeClients = virtualOfficeSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-    // Process desk assignments
     const deskAssignments = deskAssignmentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const rooms = roomsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    // Process Private Office tenants
-    const privateOfficeTenants = schedules
-      .filter(s => ['active', 'upcoming', 'ongoing'].includes(s.status))
-      .map(s => ({
-        id: s.id,
-        type: 'private-office',
-        name: s.clientName,
-        email: s.email,
-        phone: s.contactNumber,
-        office: s.room,
-        startDate: s.startDate,
-        status: ['upcoming', 'ongoing'].includes(s.status) ? 'active' : s.status,
-        createdAt: s.createdAt
-      }));
+    console.log('🔍 Tenants Debug:');
+    console.log('Total rooms:', rooms.length);
+    console.log('Occupied rooms:', rooms.filter(r => r.status === 'Occupied').length);
+    console.log('Desk assignments:', deskAssignments.length);
+    console.log('Desk assignment types:', deskAssignments.map(d => d.type));
+
+    // Process Private Office tenants - only occupied rooms
+    const occupiedRooms = rooms.filter(room => room.status === 'Occupied');
+    const occupiedPrivateOfficeTenants = occupiedRooms.map(room => ({
+      id: room.id,
+      type: 'private-office',
+      name: room.occupiedBy || 'Unknown',
+      email: '',
+      phone: '',
+      office: room.name,
+      startDate: room.updatedAt,
+      status: 'active',
+      createdAt: room.createdAt
+    }));
 
     // Process Virtual Office tenants
     const virtualOfficeTenants = virtualOfficeClients
@@ -62,33 +65,46 @@ export const getTenantStats = async (req, res) => {
         createdAt: c.createdAt
       }));
 
-    // Process Dedicated Desk tenants
-    const dedicatedDeskTenants = deskAssignments.map(assignment => ({
-      id: assignment.id,
-      type: 'dedicated-desk',
-      desk: assignment.desk,
-      name: assignment.name,
-      email: assignment.email,
-      phone: assignment.contactNumber,
-      occupantType: assignment.type,
-      company: assignment.company || null,
-      startDate: assignment.assignedAt,
-      status: 'active',
-      createdAt: assignment.assignedAt || assignment.createdAt
-    }));
+    // Process Dedicated Desk tenants - prioritize Tenants type
+    const dedicatedDeskTenants = deskAssignments
+      .sort((a, b) => {
+        // Tenants first, then Employees
+        if (a.type === 'Tenant' && b.type !== 'Tenant') return -1;
+        if (a.type !== 'Tenant' && b.type === 'Tenant') return 1;
+        return 0;
+      })
+      .map(assignment => ({
+        id: assignment.id,
+        type: 'dedicated-desk',
+        desk: assignment.desk,
+        name: assignment.name,
+        email: assignment.email,
+        phone: assignment.contactNumber,
+        occupantType: assignment.type,
+        company: assignment.company || null,
+        startDate: assignment.assignedAt,
+        status: 'active',
+        createdAt: assignment.assignedAt || assignment.createdAt
+      }));
+
+    console.log('✅ Processed tenants:');
+    console.log('Private Office:', occupiedPrivateOfficeTenants.length);
+    console.log('Virtual Office:', virtualOfficeTenants.length);
+    console.log('Dedicated Desk:', dedicatedDeskTenants.length);
+    console.log('Dedicated Desk order (first 3):', dedicatedDeskTenants.slice(0, 3).map(d => ({ name: d.name, type: d.occupantType })));
 
     // Calculate counts
     const stats = {
-      privateOffice: privateOfficeTenants.length,
+      privateOffice: occupiedPrivateOfficeTenants.length,
       virtualOffice: virtualOfficeTenants.length,
       dedicatedDesk: dedicatedDeskTenants.length,
-      total: privateOfficeTenants.length + virtualOfficeTenants.length + dedicatedDeskTenants.length
+      total: occupiedPrivateOfficeTenants.length + virtualOfficeTenants.length + dedicatedDeskTenants.length
     };
 
     const tenantData = {
       stats,
       tenants: {
-        privateOffice: privateOfficeTenants,
+        privateOffice: occupiedPrivateOfficeTenants,
         virtualOffice: virtualOfficeTenants,
         dedicatedDesk: dedicatedDeskTenants
       }
@@ -121,10 +137,11 @@ export const getFilteredTenants = async (req, res) => {
     }
 
     // Get tenant data first by calling getTenantStats function logic
-    const [schedulesSnapshot, virtualOfficeSnapshot, deskAssignmentsSnapshot] = await Promise.all([
+    const [schedulesSnapshot, virtualOfficeSnapshot, deskAssignmentsSnapshot, roomsSnapshot] = await Promise.all([
       firestore.collection('privateOfficeRooms').doc('data').collection('requests').get(),
       firestore.collection('virtual-office-clients').get(),
-      firestore.collection('desk-assignments').get()
+      firestore.collection('desk-assignments').get(),
+      firestore.collection('privateOfficeRooms').doc('data').collection('office').get()
     ]);
 
     // Process schedules data
@@ -136,9 +153,12 @@ export const getFilteredTenants = async (req, res) => {
     // Process desk assignments
     const deskAssignments = deskAssignmentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    // Process Private Office tenants
+    // Process rooms data
+    const rooms = roomsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    // Process Private Office tenants - include all non-rejected/non-pending statuses
     const privateOfficeTenants = schedules
-      .filter(s => ['active', 'upcoming', 'ongoing'].includes(s.status))
+      .filter(s => !['rejected', 'pending', 'cancelled'].includes(s.status))
       .map(s => ({
         id: s.id,
         type: 'private-office',
@@ -147,9 +167,23 @@ export const getFilteredTenants = async (req, res) => {
         phone: s.contactNumber,
         office: s.room,
         startDate: s.startDate,
-        status: ['upcoming', 'ongoing'].includes(s.status) ? 'active' : s.status,
+        status: ['upcoming', 'ongoing', 'approved'].includes(s.status) ? 'active' : s.status,
         createdAt: s.createdAt
       }));
+
+    // Filter to only show occupied rooms
+    const occupiedRooms = rooms.filter(room => room.status === 'Occupied');
+    const occupiedPrivateOfficeTenants = occupiedRooms.map(room => ({
+      id: room.id,
+      type: 'private-office',
+      name: room.occupiedBy || 'Unknown',
+      email: '',
+      phone: '',
+      office: room.name,
+      startDate: room.updatedAt,
+      status: 'active',
+      createdAt: room.createdAt
+    }));
 
     // Process Virtual Office tenants
     const virtualOfficeTenants = virtualOfficeClients
@@ -167,22 +201,29 @@ export const getFilteredTenants = async (req, res) => {
         createdAt: c.createdAt
       }));
 
-    // Process Dedicated Desk tenants
-    const dedicatedDeskTenants = deskAssignments.map(assignment => ({
-      id: assignment.id,
-      type: 'dedicated-desk',
-      desk: assignment.desk,
-      name: assignment.name,
-      email: assignment.email,
-      phone: assignment.contactNumber,
-      occupantType: assignment.type,
-      company: assignment.company || null,
-      startDate: assignment.assignedAt,
-      status: 'active',
-      createdAt: assignment.assignedAt || assignment.createdAt
-    }));
+    // Process Dedicated Desk tenants - prioritize Tenants type
+    const dedicatedDeskTenants = deskAssignments
+      .sort((a, b) => {
+        // Tenants first, then Employees
+        if (a.type === 'Tenant' && b.type !== 'Tenant') return -1;
+        if (a.type !== 'Tenant' && b.type === 'Tenant') return 1;
+        return 0;
+      })
+      .map(assignment => ({
+        id: assignment.id,
+        type: 'dedicated-desk',
+        desk: assignment.desk,
+        name: assignment.name,
+        email: assignment.email,
+        phone: assignment.contactNumber,
+        occupantType: assignment.type,
+        company: assignment.company || null,
+        startDate: assignment.assignedAt,
+        status: 'active',
+        createdAt: assignment.assignedAt || assignment.createdAt
+      }));
 
-    let allTenants = [...privateOfficeTenants, ...virtualOfficeTenants, ...dedicatedDeskTenants];
+    let allTenants = [...occupiedPrivateOfficeTenants, ...virtualOfficeTenants, ...dedicatedDeskTenants];
 
     // Apply type filter
     if (type && type !== 'all') {
@@ -220,10 +261,10 @@ export const getFilteredTenants = async (req, res) => {
     });
 
     const stats = {
-      privateOffice: privateOfficeTenants.length,
+      privateOffice: occupiedPrivateOfficeTenants.length,
       virtualOffice: virtualOfficeTenants.length,
       dedicatedDesk: dedicatedDeskTenants.length,
-      total: privateOfficeTenants.length + virtualOfficeTenants.length + dedicatedDeskTenants.length
+      total: occupiedPrivateOfficeTenants.length + virtualOfficeTenants.length + dedicatedDeskTenants.length
     };
 
     res.json({
