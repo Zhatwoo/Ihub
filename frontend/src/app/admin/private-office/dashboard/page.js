@@ -5,7 +5,7 @@ import { api } from '@/lib/api';
 
 export default function Dashboard() {
   const [schedules, setSchedules] = useState([]);
-  const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0 });
+  const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0, cancelled: 0 });
   const [selectedFilter, setSelectedFilter] = useState(null);
   const [scheduleSearch, setScheduleSearch] = useState('');
   const [sortBy, setSortBy] = useState('date');
@@ -16,15 +16,15 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchSchedules = async () => {
       try {
-        const response = await api.get('/api/admin/private-office/dashboard');
+        const response = await api.get('/api/admin/private-office/dashboard', { skipCache: true });
         if (response.success && response.data) {
           setSchedules(response.data.schedules || []);
-          setStats(response.data.stats || { total: 0, pending: 0, approved: 0, rejected: 0 });
+          setStats(response.data.stats || { total: 0, pending: 0, approved: 0, rejected: 0, cancelled: 0 });
         }
       } catch (error) {
         console.error('Error fetching schedules:', error);
         setSchedules([]);
-        setStats({ total: 0, pending: 0, approved: 0, rejected: 0 });
+        setStats({ total: 0, pending: 0, approved: 0, rejected: 0, cancelled: 0 });
       }
     };
     fetchSchedules();
@@ -45,10 +45,10 @@ export default function Dashboard() {
       params.append('sortBy', sortBy);
       params.append('sortOrder', sortOrder);
 
-      const response = await api.get(`/api/admin/private-office/dashboard?${params.toString()}`);
+      const response = await api.get(`/api/admin/private-office/dashboard?${params.toString()}`, { skipCache: true });
       if (response.success && response.data) {
         setSchedules(response.data.schedules || []);
-        setStats(response.data.stats || { total: 0, pending: 0, approved: 0, rejected: 0 });
+        setStats(response.data.stats || { total: 0, pending: 0, approved: 0, rejected: 0, cancelled: 0 });
         return response.data.schedules || [];
       }
     } catch (error) {
@@ -90,11 +90,12 @@ export default function Dashboard() {
     { key: 'pending', icon: '⏳', label: 'Pending', color: 'border-l-yellow-500', iconBg: 'from-yellow-100 to-yellow-200', ring: 'ring-yellow-500 shadow-yellow-500/20' },
     { key: 'approved', icon: '✅', label: 'Approved', color: 'border-l-green-500', iconBg: 'from-green-100 to-green-200', ring: 'ring-green-500 shadow-green-500/20' },
     { key: 'rejected', icon: '❌', label: 'Rejected', color: 'border-l-red-500', iconBg: 'from-red-100 to-red-200', ring: 'ring-red-500 shadow-red-500/20' },
+    { key: 'cancelled', icon: '⛔', label: 'Cancelled', color: 'border-l-orange-500', iconBg: 'from-orange-100 to-orange-200', ring: 'ring-orange-500 shadow-orange-500/20' },
   ];
 
   return (
     <div className="flex flex-col gap-4 sm:gap-5 lg:gap-6 animate-fadeIn">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 lg:gap-5">
         {statCards.map(card => (
           <div 
             key={card.key} 

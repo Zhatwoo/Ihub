@@ -90,8 +90,12 @@ export const api = {
    * @returns {Promise} JSON response
    */
   get: async (endpoint, options = {}) => {
-    // Check cache first (skip cache if explicitly disabled)
-    if (!options.skipCache) {
+    // Never cache dashboard or requests endpoints
+    const noCacheEndpoints = ['/api/admin/private-office/dashboard', '/api/admin/private-office/requests'];
+    const shouldSkipCache = options.skipCache || noCacheEndpoints.some(ep => endpoint.includes(ep));
+    
+    // Check cache first (skip cache if explicitly disabled or for no-cache endpoints)
+    if (!shouldSkipCache) {
       const cached = requestCache.get(endpoint);
       if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
         return cached.data;
@@ -111,11 +115,13 @@ export const api = {
       });
       const data = await handleResponse(response);
       
-      // Cache successful response
-      requestCache.set(endpoint, {
-        data,
-        timestamp: Date.now()
-      });
+      // Cache successful response (unless it's a no-cache endpoint)
+      if (!noCacheEndpoints.some(ep => endpoint.includes(ep))) {
+        requestCache.set(endpoint, {
+          data,
+          timestamp: Date.now()
+        });
+      }
       
       return data;
     } catch (error) {
