@@ -3,6 +3,9 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { api } from '@/lib/api';
 
+// React Icons - Material Design Icons
+import { MdBusiness, MdTv, MdDesktopMac } from 'react-icons/md';
+
 export default function Tenants() {
   const [privateOfficeTenants, setPrivateOfficeTenants] = useState([]);
   const [virtualOfficeTenants, setVirtualOfficeTenants] = useState([]);
@@ -20,8 +23,8 @@ export default function Tenants() {
     const fetchTenants = async () => {
       try {
         setLoading(true);
-        // Fetch processed tenant data from admin API - use cache
-        const response = await api.get('/api/admin/tenants/stats');
+        // Fetch processed tenant data from admin API - skip cache to get fresh data
+        const response = await api.get('/api/admin/tenants/stats', { skipCache: true });
         
         if (response.success && response.data) {
           const { stats, tenants } = response.data;
@@ -59,7 +62,7 @@ export default function Tenants() {
         if (!tenantsIntervalRef.current) {
           fetchTenants(); // Fetch immediately when tab becomes visible
           tenantsIntervalRef.current = setInterval(() => {
-            api.get('/api/admin/tenants/stats').then(response => {
+            api.get('/api/admin/tenants/stats', { skipCache: true }).then(response => {
               if (response.success && response.data) {
                 const { stats, tenants } = response.data;
                 setPrivateOfficeTenants(tenants.privateOffice || []);
@@ -76,7 +79,7 @@ export default function Tenants() {
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !tenantsIntervalRef.current) {
       tenantsIntervalRef.current = setInterval(() => {
-        api.get('/api/admin/tenants/stats').then(response => {
+        api.get('/api/admin/tenants/stats', { skipCache: true }).then(response => {
           if (response.success && response.data) {
             const { stats, tenants } = response.data;
             setPrivateOfficeTenants(tenants.privateOffice || []);
@@ -102,14 +105,6 @@ export default function Tenants() {
   // Combine all tenants - memoized to prevent infinite loops
   const allTenants = useMemo(() => [...privateOfficeTenants, ...virtualOfficeTenants, ...dedicatedDeskTenants], [privateOfficeTenants, virtualOfficeTenants, dedicatedDeskTenants]);
 
-  // Get tenants by type
-  const getTenantsByType = (type) => {
-    if (type === 'private-office') return privateOfficeTenants;
-    if (type === 'virtual-office') return virtualOfficeTenants;
-    if (type === 'dedicated-desk') return dedicatedDeskTenants;
-    return allTenants;
-  };
-
   // Calculate counts for each type
   const getCountByType = (type) => {
     if (type === 'private-office') return privateOfficeTenants.length;
@@ -122,7 +117,7 @@ export default function Tenants() {
   const statCards = [
     { 
       key: 'dedicated-desk', 
-      icon: 'desk', 
+      icon: MdDesktopMac, 
       label: 'Dedicated Desk', 
       color: 'border-l-teal-600', 
       iconBg: 'from-teal-50 to-teal-100', 
@@ -130,7 +125,7 @@ export default function Tenants() {
     },
     { 
       key: 'private-office', 
-      icon: '🏢', 
+      icon: MdBusiness, 
       label: 'Private Office', 
       color: 'border-l-blue-600', 
       iconBg: 'from-blue-50 to-blue-100', 
@@ -138,24 +133,13 @@ export default function Tenants() {
     },
     { 
       key: 'virtual-office', 
-      icon: '☁️', 
+      icon: MdTv, 
       label: 'Virtual Office', 
       color: 'border-l-indigo-600', 
       iconBg: 'from-indigo-50 to-indigo-100', 
       ring: 'ring-indigo-600 shadow-indigo-600/20',
     },
   ];
-
-  // Desk SVG icon component
-  const DeskIcon = () => (
-    <svg className="w-5 h-5 sm:w-6 sm:h-6 text-teal-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="6" width="20" height="4" rx="1" />
-      <path d="M4 10v8" />
-      <path d="M20 10v8" />
-      <path d="M12 10v4" />
-      <rect x="8" y="14" width="8" height="3" rx="0.5" />
-    </svg>
-  );
 
   // Filter and sort tenants CLIENT-SIDE to avoid excessive API calls - memoized
   const filteredTenants = useMemo(() => {
@@ -225,81 +209,101 @@ export default function Tenants() {
       
       {/* Stat Cards */}
       <div className="grid grid-cols-3 gap-3 sm:gap-4 lg:gap-5 mb-4 sm:mb-6">
-        {statCards.map((card, index) => (
+        {statCards.map((card, index) => {
+          const IconComponent = card.icon;
+          return (
           <div 
             key={card.key} 
             onClick={() => setSelectedFilter(selectedFilter === card.key ? null : card.key)} 
             className={`bg-white rounded-xl p-3 sm:p-4 flex items-center gap-2 sm:gap-3 border border-gray-200 cursor-pointer transition-all duration-300 hover:-translate-y-1 hover:shadow-lg hover:shadow-slate-800/10 border-l-[3px] sm:border-l-[4px] ${card.color} ${selectedFilter === card.key ? `ring-2 ${card.ring} -translate-y-0.5 shadow-xl` : 'shadow-sm'}`}
             style={{ animation: `slideUp 0.5s ease-out ${index * 0.1}s both` }}
           >
-            <div className={`text-lg sm:text-xl lg:text-2xl w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center bg-gradient-to-br ${card.iconBg} shrink-0 shadow-sm sm:shadow-md`}>
-              {card.icon === 'desk' ? <DeskIcon /> : card.icon}
+            <style>{`
+              @keyframes slideUp {
+                from {
+                  opacity: 0;
+                  transform: translateY(20px);
+                }
+                to {
+                  opacity: 1;
+                  transform: translateY(0);
+                }
+              }
+              @keyframes fadeInScale {
+                from {
+                  opacity: 0;
+                  transform: scale(0.95);
+                }
+                to {
+                  opacity: 1;
+                  transform: scale(1);
+                }
+              }
+              @keyframes slideInDown {
+                from {
+                  opacity: 0;
+                  transform: translateY(-10px);
+                }
+                to {
+                  opacity: 1;
+                  transform: translateY(0);
+                }
+              }
+            `}</style>
+            <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center bg-gradient-to-br ${card.iconBg} shrink-0 shadow-sm sm:shadow-md`}>
+              <IconComponent size={20} />
             </div>
             <div className="flex items-baseline gap-2">
               <span className="text-xl sm:text-2xl lg:text-3xl font-bold text-slate-800">{getCountByType(card.key)}</span>
               <span className="text-xs sm:text-sm text-gray-500 font-semibold uppercase tracking-wide whitespace-nowrap">{card.label}</span>
             </div>
           </div>
-        ))}
+        );
+        })}
       </div>
 
       {/* All Tenants List Section */}
       <div className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-5 lg:p-6 xl:p-7 shadow-lg shadow-slate-800/5 border border-gray-200" style={{ animation: 'slideUp 0.5s ease-out 0.3s both' }}>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 sm:mb-5 lg:mb-6 gap-4">
-          <div className="flex-1">
-            <h2 className="text-xl sm:text-2xl font-bold text-slate-800 mb-1">
-              {selectedFilter 
-                ? `${statCards.find(c => c.key === selectedFilter)?.label} Tenants`
-                : 'All Tenants'}
-            </h2>
-            <p className="text-sm text-gray-500">
-              {selectedFilter 
-                ? `Showing ${filteredTenants.length} of ${getCountByType(selectedFilter)} tenants`
-                : `Total: ${allTenants.length} tenants`}
-            </p>
-          </div>
-          {selectedFilter && (
-            <button 
-              onClick={() => setSelectedFilter(null)}
-              className="text-sm text-teal-600 hover:text-teal-700 font-semibold transition-colors px-4 py-2 border border-teal-200 rounded-lg hover:bg-teal-50"
-            >
-              Show All
-            </button>
-          )}
-        </div>
+        <div className="mb-4 sm:mb-5 lg:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <h2 className="text-xl sm:text-2xl font-bold text-slate-800">
+            {selectedFilter 
+              ? `${statCards.find(c => c.key === selectedFilter)?.label} Tenants`
+              : 'All Tenants'}
+          </h2>
 
-        {/* Search and Filter Controls */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-4 sm:mb-5">
-          <div className="flex-1 relative">
-            <input
-              type="text"
-              placeholder="Search tenants by name, email, phone, or company..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-4 py-2.5 pl-10 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all"
-            />
-            <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-          <div className="flex gap-2">
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-              className="px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all"
-            >
-              <option value="name">Sort by Name</option>
-              <option value="date">Sort by Date</option>
-              <option value="type">Sort by Type</option>
-              <option value="status">Sort by Status</option>
-            </select>
-            <button
-              onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
-              className="px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 hover:bg-gray-100 focus:outline-none focus:border-teal-600 transition-all"
-              title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
-            >
-              {sortOrder === 'asc' ? '↑' : '↓'}
-            </button>
+          {/* Search and Filter Controls */}
+          <div className="flex flex-col sm:flex-row gap-3 items-center w-full sm:w-auto">
+            <div className="flex-1 sm:flex-none relative w-full sm:w-64">
+              <input
+                type="text"
+                placeholder="Search tenants by name, email, phone, or company..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full px-4 py-2.5 pl-10 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all"
+              />
+              <svg className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value)}
+                className="flex-1 sm:flex-none px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all"
+              >
+                <option value="name">Sort by Name</option>
+                <option value="date">Sort by Date</option>
+                <option value="type">Sort by Type</option>
+                <option value="status">Sort by Status</option>
+              </select>
+              <button
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                className="px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 hover:bg-gray-100 focus:outline-none focus:border-teal-600 transition-all whitespace-nowrap"
+                title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+              >
+                {sortOrder === 'asc' ? '↑' : '↓'}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -338,17 +342,14 @@ export default function Tenants() {
             <table className="w-full">
               <thead className="bg-gradient-to-r from-slate-800 to-slate-700 text-white">
                 <tr>
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Tenant</th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Occupant</th>
                   <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Type</th>
                   <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Contact</th>
                   {!selectedFilter && (
-                    <>
-                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Office/Desk</th>
-                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Company</th>
-                    </>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Company</th>
                   )}
                   {selectedFilter === 'private-office' && (
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Office</th>
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Company</th>
                   )}
                   {selectedFilter === 'virtual-office' && (
                     <>
@@ -372,12 +373,13 @@ export default function Tenants() {
                   <tr 
                     key={`${tenant.type}-${tenant.id}`} 
                     className="bg-white hover:bg-gray-50 transition-colors cursor-pointer"
+                    style={{ animation: `fadeInScale 0.3s ease-out ${index * 0.05}s both` }}
                   >
                     <td className="px-4 sm:px-6 py-4">
                       <div>
-                        <p className="text-slate-800 font-semibold text-sm">{tenant.name || 'Unnamed Tenant'}</p>
+                        <p className="text-slate-800 font-semibold text-sm">{tenant.clientName || tenant.name || 'Unnamed Tenant'}</p>
                         <p className="text-gray-500 text-xs mt-0.5 truncate max-w-[200px]" title={tenant.email || 'N/A'}>
-                          {tenant.email || 'N/A'}
+                          {tenant.email ? tenant.email : 'N/A'}
                         </p>
                       </div>
                     </td>
@@ -387,32 +389,27 @@ export default function Tenants() {
                       </span>
                     </td>
                     <td className="px-4 sm:px-6 py-4">
-                      <p className="text-gray-600 text-sm">{tenant.phone || 'N/A'}</p>
+                      <p className="text-gray-600 text-sm">{tenant.contactNumber || tenant.phone || 'N/A'}</p>
                     </td>
                     {!selectedFilter && (
-                      <>
-                        <td className="px-4 sm:px-6 py-4">
-                          <p className="text-gray-600 text-sm font-medium">
-                            {tenant.office || tenant.desk || 'N/A'}
-                          </p>
-                        </td>
-                        <td className="px-4 sm:px-6 py-4">
-                          <p className="text-gray-600 text-sm truncate max-w-[150px]" title={tenant.company || 'N/A'}>
-                            {tenant.company || 'N/A'}
-                          </p>
-                        </td>
-                      </>
+                      <td className="px-4 sm:px-6 py-4">
+                        <p className="text-gray-600 text-sm truncate max-w-[150px]" title={tenant.companyName || tenant.company || 'N/A'}>
+                          {tenant.companyName || tenant.company ? tenant.companyName || tenant.company : 'N/A'}
+                        </p>
+                      </td>
                     )}
                     {selectedFilter === 'private-office' && (
                       <td className="px-4 sm:px-6 py-4">
-                        <p className="text-gray-600 text-sm font-medium">{tenant.office || 'N/A'}</p>
+                        <p className="text-gray-600 text-sm truncate max-w-[150px]" title={tenant.companyName || 'N/A'}>
+                          {tenant.companyName ? tenant.companyName : 'N/A'}
+                        </p>
                       </td>
                     )}
                     {selectedFilter === 'virtual-office' && (
                       <>
                         <td className="px-4 sm:px-6 py-4">
-                          <p className="text-gray-600 text-sm truncate max-w-[150px]" title={tenant.company || 'N/A'}>
-                            {tenant.company || 'N/A'}
+                          <p className="text-gray-600 text-sm truncate max-w-[150px]" title={tenant.companyName || 'N/A'}>
+                            {tenant.companyName ? tenant.companyName : 'N/A'}
                           </p>
                         </td>
                         <td className="px-4 sm:px-6 py-4">
@@ -431,8 +428,8 @@ export default function Tenants() {
                           <p className="text-gray-600 text-sm capitalize">{tenant.occupantType || 'N/A'}</p>
                         </td>
                         <td className="px-4 sm:px-6 py-4">
-                          <p className="text-gray-600 text-sm truncate max-w-[150px]" title={tenant.company || 'N/A'}>
-                            {tenant.company || 'N/A'}
+                          <p className="text-gray-600 text-sm truncate max-w-[150px]" title={tenant.companyName || 'N/A'}>
+                            {tenant.companyName ? tenant.companyName : 'N/A'}
                           </p>
                         </td>
                       </>
@@ -465,26 +462,6 @@ export default function Tenants() {
                 ))}
               </tbody>
             </table>
-          </div>
-        )}
-        
-        {/* Summary Footer */}
-        {filteredTenants.length > 0 && (
-          <div className="mt-4 pt-4 border-t border-gray-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-gray-600">
-            <p>
-              Showing <span className="font-semibold text-slate-800">{filteredTenants.length}</span> tenant{filteredTenants.length !== 1 ? 's' : ''}
-              {selectedFilter && ` (${getCountByType(selectedFilter)} total)`}
-            </p>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-teal-500"></span>
-                <span>Active</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full bg-yellow-500"></span>
-                <span>Pending</span>
-              </div>
-            </div>
           </div>
         )}
       </div>

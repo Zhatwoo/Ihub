@@ -1,7 +1,7 @@
 import express from 'express';
-import { getDashboardStats } from '../controllers/Admin/dashboardController.js';
-import { getTenantStats } from '../controllers/Admin/tenantsController.js';
-import { getPrivateOfficeDashboard } from '../controllers/Admin/privateOfficeController.js';
+import { getDashboardStats } from '../controllers/Admin/Dashboard/dashboardController.js';
+import { getTenantStats } from '../controllers/Admin/Tenants/tenantsController.js';
+import { getPrivateOfficeDashboard } from '../controllers/Admin/Private Office/privateOfficeController.js';
 
 const router = express.Router();
 

@@ -14,7 +14,6 @@ import roomsRoutes from './routes/rooms.js';
 import schedulesRoutes from './routes/schedules.js';
 import virtualOfficeRoutes from './routes/virtualOffice.js';
 import deskAssignmentsRoutes from './routes/deskAssignments.js';
-import floorsRoutes from './routes/floors.js';
 import uploadRoutes from './routes/upload.js';
 import emailRoutes from './routes/emails.js';
 
@@ -78,7 +77,6 @@ app.get('/api', (req, res) => {
       schedules: '/api/schedules',
       virtualOffice: '/api/virtual-office',
       deskAssignments: '/api/desk-assignments',
-      floors: '/api/floors',
       upload: '/api/upload',
       emails: '/api/emails'
     }
@@ -94,7 +92,6 @@ app.use('/api/rooms', roomsRoutes);
 app.use('/api/schedules', schedulesRoutes);
 app.use('/api/virtual-office', virtualOfficeRoutes);
 app.use('/api/desk-assignments', deskAssignmentsRoutes);
-app.use('/api/floors', floorsRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/emails', emailRoutes);
 

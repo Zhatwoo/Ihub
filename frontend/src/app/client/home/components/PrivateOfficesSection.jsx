@@ -46,6 +46,7 @@ export default function PrivateOfficesSection() {
     fullName: '',
     email: '',
     contactNumber: '',
+    companyName: '',
     startDate: '',
     endDate: '',
     startTime: '',
@@ -74,7 +75,8 @@ export default function PrivateOfficesSection() {
                 ...prev,
                 fullName: `${response.data.firstName || ''} ${response.data.lastName || ''}`.trim() || prev.fullName,
                 email: response.data.email || user.email || prev.email,
-                contactNumber: response.data.contact || prev.contactNumber
+                contactNumber: response.data.contact || prev.contactNumber,
+                companyName: response.data.company || prev.companyName
               }));
             }
           } catch (error) {
@@ -217,7 +219,8 @@ export default function PrivateOfficesSection() {
         ...prev,
         fullName: `${userInfo.firstName || ''} ${userInfo.lastName || ''}`.trim() || prev.fullName,
         email: userInfo.email || currentUser?.email || prev.email,
-        contactNumber: userInfo.contact || prev.contactNumber
+        contactNumber: userInfo.contact || prev.contactNumber,
+        companyName: userInfo.company || prev.companyName
       }));
     } else if (currentUser?.email) {
       setFormData(prev => ({
@@ -243,6 +246,7 @@ export default function PrivateOfficesSection() {
       fullName: userInfo ? `${userInfo.firstName || ''} ${userInfo.lastName || ''}`.trim() : '',
       email: userInfo?.email || currentUser?.email || '',
       contactNumber: userInfo?.contact || '',
+      companyName: '',
       startDate: '',
       endDate: '',
       startTime: '',
@@ -272,6 +276,7 @@ export default function PrivateOfficesSection() {
         clientName: formData.fullName.trim(),
         email: formData.email.trim(),
         contactNumber: formData.contactNumber.trim(),
+        companyName: formData.companyName.trim(),
         room: selectedRoom.name || selectedRoom.title,
         roomId: selectedRoom.id,
         startDate: formData.startDate,
@@ -285,7 +290,13 @@ export default function PrivateOfficesSection() {
         createdAt: new Date().toISOString()
       };
       
-      console.log('Submitting booking for:', reservationData.room, 'ID:', reservationData.roomId);
+      console.log('Submitting booking:', {
+        room: reservationData.room,
+        roomId: reservationData.roomId,
+        clientName: reservationData.clientName,
+        companyName: reservationData.companyName,
+        fullData: reservationData
+      });
       
       const response = await api.post('/api/schedules', reservationData);
       
@@ -642,6 +653,20 @@ export default function PrivateOfficesSection() {
                       {formErrors.contactNumber && (
                         <p className="text-red-500 text-xs mt-1.5">{formErrors.contactNumber}</p>
                       )}
+                    </div>
+
+                    <div>
+                      <label className="block text-slate-700 mb-2 text-sm font-medium">
+                        Company Name <span className="text-gray-400 text-xs font-normal">(Optional)</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="companyName"
+                        value={formData.companyName}
+                        onChange={handleChange}
+                        placeholder="Your company name"
+                        className="w-full px-4 py-3 border border-gray-200 rounded-lg text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all"
+                      />
                     </div>
                   </div>
                 )}

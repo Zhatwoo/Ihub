@@ -5,7 +5,7 @@ import {
   createDeskAssignment,
   updateDeskAssignment,
   deleteDeskAssignment
-} from '../controllers/Admin/dedicatedDeskController.js';
+} from '../controllers/Admin/Dedicated Desk/dedicatedDeskController.js';
 import { authenticate, isAdmin } from '../middlewares/auth.js';
 
 const router = express.Router();
