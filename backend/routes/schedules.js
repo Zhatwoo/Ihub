@@ -7,7 +7,7 @@ import {
   deleteSchedule,
   getUserSchedules,
   getRoomOccupancy
-} from '../controllers/Admin/schedulesController.js';
+} from '../controllers/Admin/Private Office/schedulesController.js';
 import { authenticate, isAdmin } from '../middlewares/auth.js';
 
 const router = express.Router();

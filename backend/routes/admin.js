@@ -2,28 +2,28 @@ import express from 'express';
 import { authenticate, isAdmin } from '../middlewares/auth.js';
 
 // Import admin controllers
-import { getDashboardStats } from '../controllers/Admin/dashboardController.js';
-import { getTenantStats, getFilteredTenants } from '../controllers/Admin/tenantsController.js';
+import { getDashboardStats } from '../controllers/Admin/Dashboard/dashboardController.js';
+import { getTenantStats, getFilteredTenants } from '../controllers/Admin/Tenants/tenantsController.js';
 import { 
   getPrivateOfficeDashboard, 
   getPrivateOfficeRequests, 
   updateRequestStatus 
-} from '../controllers/Admin/privateOfficeController.js';
+} from '../controllers/Admin/Private Office/privateOfficeController.js';
 import { 
   getDeskAssignments, 
   getDeskRequests, 
   updateDeskRequestStatus, 
   getOccupantsByPart 
-} from '../controllers/Admin/dedicatedDeskController.js';
+} from '../controllers/Admin/Dedicated Desk/dedicatedDeskController.js';
 import { 
   getVirtualOfficeClients, 
   updateClientStatus,
   getAllOccupants 
-} from '../controllers/Admin/virtualOfficeController.js';
+} from '../controllers/Admin/Virtual Office/virtualOfficeController.js';
 import { 
   getBillingDashboard, 
   getInvoices 
-} from '../controllers/Admin/billingController.js';
+} from '../controllers/Admin/Billing/billingController.js';
 
 const router = express.Router();
 

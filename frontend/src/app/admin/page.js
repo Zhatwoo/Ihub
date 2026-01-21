@@ -4,6 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '@/lib/api';
 
+// React Icons - Material Design Icons
+import { MdBusiness, MdTv, MdDesktopMac } from 'react-icons/md';
+
 export default function AdminDashboard() {
   // UI State
   const [loading, setLoading] = useState(true);
@@ -100,7 +103,7 @@ export default function AdminDashboard() {
       key: 'private-office',
       label: 'Private Office', 
       value: privateOfficeStats.totalBookings || 0, 
-      icon: '🏢', 
+      icon: MdBusiness, 
       iconBg: 'from-teal-50 to-teal-100', 
       borderColor: 'border-l-teal-600',
       description: 'Meeting rooms & bookings'
@@ -109,7 +112,7 @@ export default function AdminDashboard() {
       key: 'virtual-office',
       label: 'Virtual Office', 
       value: virtualOfficeStats.totalClients || 0, 
-      icon: '💼', 
+      icon: MdTv, 
       iconBg: 'from-blue-50 to-blue-100', 
       borderColor: 'border-l-blue-600',
       description: 'Virtual office tenants'
@@ -118,7 +121,7 @@ export default function AdminDashboard() {
       key: 'dedicated-desk',
       label: 'Dedicated Desk', 
       value: dedicatedDeskStats.totalAssigned || 0, 
-      icon: '🪑', 
+      icon: MdDesktopMac, 
       iconBg: 'from-purple-50 to-purple-100', 
       borderColor: 'border-l-purple-600',
       description: 'Desk assignments'
@@ -178,7 +181,9 @@ export default function AdminDashboard() {
 
       {/* Service Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-        {services.map((service, index) => (
+        {services.map((service, index) => {
+          const IconComponent = service.icon;
+          return (
           <div
             key={service.key}
             onClick={() => openServiceModal(service.key)}
@@ -188,8 +193,8 @@ export default function AdminDashboard() {
             <div className="flex items-center justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-3 mb-3">
-                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${service.iconBg} flex items-center justify-center text-xl group-hover:scale-110 transition-transform`}>
-                    {service.icon}
+                  <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${service.iconBg} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                    <IconComponent size={24} />
                   </div>
                   <div>
                     <h3 className="font-bold text-slate-800 text-lg">{service.label}</h3>
@@ -205,7 +210,8 @@ export default function AdminDashboard() {
               </div>
             </div>
           </div>
-        ))}
+        );
+        })}
       </div>
 
       {/* Service Modals */}
@@ -219,7 +225,7 @@ export default function AdminDashboard() {
                 <div className="flex justify-between items-center mb-6 pb-4 border-b-2 border-gray-100">
                   <div>
                     <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
-                      <span className="text-3xl">🏢</span>
+                      <MdBusiness size={28} />
                       Private Office
                     </h2>
                     <p className="text-gray-600 text-sm">Meeting rooms and bookings overview</p>
@@ -398,7 +404,7 @@ export default function AdminDashboard() {
                 <div className="flex justify-between items-center mb-6 pb-4 border-b-2 border-gray-100">
                   <div>
                     <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
-                      <span className="text-3xl">💼</span>
+                      <MdTv size={28} />
                       Virtual Office
                     </h2>
                     <p className="text-gray-600 text-sm">Virtual office clients and services</p>
@@ -482,7 +488,7 @@ export default function AdminDashboard() {
                 <div className="flex justify-between items-center mb-6 pb-4 border-b-2 border-gray-100">
                   <div>
                     <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-3">
-                      <span className="text-3xl">🪑</span>
+                      <MdDesktopMac size={28} />
                       Dedicated Desk
                     </h2>
                     <p className="text-gray-600 text-sm">Desk assignments and requests</p>
