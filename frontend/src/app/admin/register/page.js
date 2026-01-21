@@ -56,13 +56,21 @@ export default function AdminRegisterPage() {
     } catch (error) {
       console.error('Admin registration error:', error);
       
-      // Handle API errors
+      // Handle API errors with better error messages
       let errorMessage = 'An error occurred during registration. Please try again.';
       
+      // Check for specific error messages
       if (error.message) {
         errorMessage = error.message;
       } else if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      }
+      
+      // Show more helpful error for network issues
+      if (errorMessage.includes('Failed to fetch') || errorMessage.includes('Network')) {
+        errorMessage = 'Unable to connect to server. Please check your connection and try again.';
       }
       
       setError(errorMessage);

@@ -4,14 +4,6 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { api } from '@/lib/api';
 
-// Cache for admin auth check to prevent excessive API calls
-const authCheckCache = {
-  userId: null,
-  isAdmin: null,
-  timestamp: null,
-  CACHE_DURATION: 10 * 60 * 1000 // 10 minutes
-};
-
 /**
  * AdminAuthGuard Component
  * Protects admin routes by checking if user is authenticated and has admin role
@@ -28,8 +20,7 @@ export default function AdminAuthGuard({ children }) {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const hasCheckedRef = useRef(false);
-  con
-st checkInProgressRef = useRef(false);
+  const checkInProgressRef = useRef(false);
 
   useEffect(() => {
     // Only check on initial mount, not on every route change
@@ -46,11 +37,6 @@ st checkInProgressRef = useRef(false);
       hasCheckedRef.current = true;
 
       try {
-        // Prevent multiple simultaneous checks
-        if (checkInProgressRef.current) {
-          return;
-        }
-
         setIsLoading(true);
 
         // Allow access to register page without auth check
@@ -189,14 +175,13 @@ st checkInProgressRef = useRef(false);
             router.push('/');
           }
         }
-        */
+        
       } catch (error) {
         console.error('Error in admin auth guard:', error);
         router.push('/');
       } finally {
         checkInProgressRef.current = false;
         setIsLoading(false);
-        checkInProgressRef.current = false;
       }
     };
 

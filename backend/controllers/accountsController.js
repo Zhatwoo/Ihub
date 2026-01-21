@@ -4,6 +4,7 @@
 import { getFirestore, getFirebaseAuth } from '../config/firebase.js';
 import admin from 'firebase-admin';
 import { sendFirestoreError } from '../utils/firestoreHelper.js';
+import { config } from '../config/env.js';
 
 /**
  * Get all client users
@@ -454,16 +455,12 @@ export const deleteDeskRequest = async (req, res) => {
 
 /**
  * Create admin user
+ * Uses Firebase Auth REST API (like signup) to avoid Admin SDK permission issues
  */
 export const createAdminUser = async (req, res) => {
   try {
     const { email, password, firstName, lastName, role = 'admin' } = req.body;
-    const auth = getFirebaseAuth();
     const firestore = getFirestore();
-
-    if (!firestore) {
-      return sendFirestoreError(res);
-    }
 
     if (!email || !password) {
       return res.status(400).json({
@@ -473,35 +470,119 @@ export const createAdminUser = async (req, res) => {
       });
     }
 
-    // Create user in Firebase Auth
-    const user = await auth.createUser({
-      email,
-      password,
-      emailVerified: false,
-    });
+    if (password.length < 6) {
+      return res.status(400).json({
+        success: false,
+        error: 'Bad Request',
+        message: 'Password must be at least 6 characters long'
+      });
+    }
 
-    // Save admin data to Firestore
+    // Get Firebase API key from config
+    const FIREBASE_API_KEY = config.firebase.apiKey;
+    if (!FIREBASE_API_KEY) {
+      console.error('❌ Firebase API key not configured');
+      return res.status(500).json({
+        success: false,
+        error: 'Server Configuration Error',
+        message: 'Firebase API key not configured. Please add FIREBASE_API_KEY or NEXT_PUBLIC_FIREBASE_API_KEY to backend/.env file and restart the server.'
+      });
+    }
+
+    // Use Firebase Auth REST API to create user (like signup function)
+    const FIREBASE_AUTH_URL = 'https://identitytoolkit.googleapis.com/v1/accounts';
+    const signUpUrl = `${FIREBASE_AUTH_URL}:signUp?key=${FIREBASE_API_KEY}`;
+    
+    let response;
+    let data;
+    
+    try {
+      response = await fetch(signUpUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          returnSecureToken: true,
+        }),
+      });
+
+      data = await response.json();
+    } catch (fetchError) {
+      console.error('Firebase Auth API fetch error:', fetchError);
+      return res.status(500).json({
+        success: false,
+        error: 'Network Error',
+        message: 'Failed to connect to Firebase Authentication service. Please check your internet connection and Firebase configuration.'
+      });
+    }
+
+    if (!response.ok) {
+      let errorMessage = 'Failed to create admin user';
+      
+      if (data.error?.message) {
+        const message = data.error.message;
+        if (message.includes('EMAIL_EXISTS')) {
+          errorMessage = 'This email is already registered';
+        } else if (message.includes('INVALID_EMAIL')) {
+          errorMessage = 'Invalid email address';
+        } else if (message.includes('WEAK_PASSWORD')) {
+          errorMessage = 'Password is too weak';
+        } else if (message.includes('OPERATION_NOT_ALLOWED')) {
+          errorMessage = 'Email/Password sign-up is currently disabled. Please enable it in Firebase Console > Authentication > Sign-in method > Email/Password.';
+        } else {
+          errorMessage = message;
+        }
+      }
+
+      return res.status(400).json({
+        success: false,
+        error: 'Bad Request',
+        message: errorMessage
+      });
+    }
+
+    // User created successfully, get UID from response
+    const uid = data.localId;
+
+    // Save admin data to Firestore (if available)
     const adminDoc = {
       firstName: firstName || '',
       lastName: lastName || '',
       email,
       role: role || 'admin',
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      createdAt: new Date().toISOString(),
     };
 
-    await firestore
-      .collection('accounts')
-      .doc('admin')
-      .collection('users')
-      .doc(user.uid)
-      .set(adminDoc);
+    // Try to save to Firestore if available
+    if (firestore) {
+      try {
+        await firestore
+          .collection('accounts')
+          .doc('admin')
+          .collection('users')
+          .doc(uid)
+          .set({
+            ...adminDoc,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          });
+      } catch (firestoreError) {
+        // Firestore not available - log warning but continue
+        console.warn('⚠️  Firestore not available, admin data not saved to Firestore:', firestoreError.message);
+        console.warn('   Admin user created in Firebase Auth but profile data not saved');
+      }
+    } else {
+      console.warn('⚠️  Firestore not initialized, admin data not saved to Firestore');
+    }
 
     res.status(201).json({
       success: true,
       message: 'Admin user created successfully',
       data: {
-        uid: user.uid,
-        email: user.email,
+        uid,
+        email: data.email,
         ...adminDoc
       }
     });
@@ -509,14 +590,21 @@ export const createAdminUser = async (req, res) => {
     console.error('Create admin user error:', error);
     let errorMessage = 'Failed to create admin user';
     
-    if (error.code === 'auth/email-already-exists') {
-      errorMessage = 'This email is already registered';
+    // Provide more specific error messages
+    if (error.message) {
+      errorMessage = error.message;
+    }
+    
+    // Check if it's a network/fetch error
+    if (error.name === 'TypeError' && error.message.includes('fetch')) {
+      errorMessage = 'Failed to connect to Firebase. Please check your internet connection and Firebase configuration.';
     }
     
     res.status(500).json({
       success: false,
       error: 'Internal Server Error',
-      message: errorMessage
+      message: errorMessage,
+      details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };

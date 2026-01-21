@@ -71,13 +71,20 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
     } catch (error) {
       console.error('Sign up error:', error);
       
-      // Handle API errors
+      // Handle API errors with better error messages
       let errorMessage = 'An error occurred during sign up. Please try again.';
       
+      // Check for specific Firebase error messages
       if (error.message) {
-        errorMessage = error.message;
+        if (error.message.includes('OPERATION_NOT_ALLOWED')) {
+          errorMessage = 'Email/Password sign-up is currently disabled. Please enable it in Firebase Console > Authentication > Sign-in method > Email/Password.';
+        } else {
+          errorMessage = error.message;
+        }
       } else if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
       }
       
       setError(errorMessage);

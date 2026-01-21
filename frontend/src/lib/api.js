@@ -19,7 +19,11 @@ if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
  */
 function getAuthToken() {
   if (typeof window !== 'undefined') {
-    return localStorage.getItem('idToken');
+    const token = localStorage.getItem('idToken');
+    if (!token) {
+      console.warn('⚠️ No authentication token found in localStorage. User may need to log in again.');
+    }
+    return token;
   }
   return null;
 }
@@ -37,6 +41,33 @@ async function handleResponse(response) {
         error: 'Network error',
         message: response.statusText || 'Request failed'
       };
+    }
+    
+    // Handle 401 Unauthorized - token missing or expired
+    if (response.status === 401) {
+      // Clear invalid token from localStorage
+      if (typeof window !== 'undefined') {
+        const token = localStorage.getItem('idToken');
+        if (!token) {
+          // Token was already missing - user needs to log in
+          error.message = 'Please log in to continue. No authentication token found.';
+        } else {
+          // Token exists but is invalid/expired - clear it
+          console.warn('⚠️ Authentication token expired or invalid. Please log in again.');
+          localStorage.removeItem('idToken');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('user');
+          error.message = 'Your session has expired. Please log in again.';
+        }
+        
+        // Redirect to login if we're in the browser
+        if (window.location.pathname.startsWith('/admin') || window.location.pathname.startsWith('/client')) {
+          // Small delay to allow error message to show
+          setTimeout(() => {
+            window.location.href = '/';
+          }, 2000);
+        }
+      }
     }
     
     // Throw error with proper message

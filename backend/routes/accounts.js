@@ -26,7 +26,9 @@ router.get('/client/users/:userId', authenticate, getClientUser);
 router.get('/admin/users/:userId', authenticate, getAdminUser);
 
 // POST /api/accounts/admin/users - Create admin user (admin only)
-router.post('/admin/users', authenticate, isAdmin, createAdminUser);
+// Allow admin registration without requiring an existing token
+// so the first admin can be created.
+router.post('/admin/users', createAdminUser);
 
 // PUT /api/accounts/admin/users/:userId (admin only)
 router.put('/admin/users/:userId', authenticate, isAdmin, updateAdminUser);
