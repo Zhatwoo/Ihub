@@ -12,66 +12,33 @@ export function usePrivateOffices() {
   useEffect(() => {
     const fetchRooms = async () => {
       try {
-        // Fetch both rooms and occupancy status in parallel
-        const [roomsResponse, occupancyResponse] = await Promise.all([
-          api.get('/api/rooms'),
-          api.get('/api/schedules/occupancy').catch((error) => {
-            // If occupancy check fails, log warning but continue (won't filter any rooms)
-            console.warn('Could not fetch room occupancy status:', error.message);
-            return { success: false, data: { occupiedRoomIds: [], occupiedRoomNames: [] } };
-          })
-        ]);
+        /**
+         * IMPORTANT:
+         * We intentionally do NOT call `/api/schedules/occupancy` here anymore.
+         * That endpoint can be expensive (Firestore reads) and caused `RESOURCE_EXHAUSTED`.
+         * Client home now relies on the room's `status` field (Vacant/Occupied) from `/api/rooms`.
+         */
+        const roomsResponse = await api.get('/api/rooms');
 
         if (roomsResponse.success && roomsResponse.data) {
-          // Get occupied room IDs and names from occupancy endpoint
-          const occupiedRoomIds = new Set();
-          const occupiedRoomNames = new Set();
-
-          if (occupancyResponse.success && occupancyResponse.data) {
-            // Backend already processed all schedules and returns occupied rooms
-            (occupancyResponse.data.occupiedRoomIds || []).forEach(id => occupiedRoomIds.add(id));
-            (occupancyResponse.data.occupiedRoomNames || []).forEach(name => occupiedRoomNames.add(name));
-          }
-
-          // Filter out occupied rooms and map remaining rooms
           const roomsData = roomsResponse.data
-            .filter(room => {
-              // Check if room status is explicitly marked as "Occupied" by admin
-              const isOccupiedByStatus = room.status === 'Occupied';
-              
-              // Check schedule-based occupancy
-              const isOccupiedById = occupiedRoomIds.has(room.id);
-              const roomNameLower = room.name ? room.name.toLowerCase().trim() : '';
-              const isOccupiedByName = roomNameLower && occupiedRoomNames.has(roomNameLower);
-              
-              // Also check for partial name matches
-              let partialNameMatch = false;
-              if (roomNameLower) {
-                for (const occupiedName of occupiedRoomNames) {
-                  if (roomNameLower.includes(occupiedName) || occupiedName.includes(roomNameLower)) {
-                    partialNameMatch = true;
-                    break;
-                  }
-                }
-              }
-              
-              // Filter out if occupied by status OR by schedule
-              return !isOccupiedByStatus && !isOccupiedById && !isOccupiedByName && !partialNameMatch;
-            })
-            .map(room => ({
+            .filter((room) => room.status !== 'Occupied') // hide occupied rooms
+            .map((room) => ({
               id: room.id,
               name: room.name || 'Private Office',
               title: room.name || 'Private Office',
-              description: room.inclusions || 'Modern, well-equipped private office designed for productivity and comfort.',
+              description:
+                room.inclusions ||
+                'Modern, well-equipped private office designed for productivity and comfort.',
               image: room.image || '/images/inspirelogo.png',
               rating: 4.95, // Default rating
               badge: 'Guest favorite',
               rentFee: room.rentFee || 0,
               currency: room.currency || 'PHP',
               rentFeePeriod: room.rentFeePeriod || 'per hour',
-              inclusions: room.inclusions || ''
+              inclusions: room.inclusions || '',
             }));
-          
+
           setRooms(roomsData);
         }
       } catch (error) {
