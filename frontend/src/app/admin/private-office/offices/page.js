@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { api } from '@/lib/api';
 
 export default function PrivateOffices() {
+  const router = useRouter();
   const [rooms, setRooms] = useState([]);
   const [mounted, setMounted] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -13,7 +15,7 @@ export default function PrivateOffices() {
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [editingRoom, setEditingRoom] = useState(null);
-  const [formData, setFormData] = useState({ name: '', rentFee: '', currency: 'PHP', rentFeePeriod: 'per hour', description: '', inclusions: '', status: 'Vacant' });
+  const [formData, setFormData] = useState({ name: '', rentFee: '', currency: 'PHP', rentFeePeriod: 'per hour', description: '', inclusions: '', occupiedBy: null });
   const [searchTerm, setSearchTerm] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -21,6 +23,7 @@ export default function PrivateOffices() {
   const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
+  const [confirmType, setConfirmType] = useState(null); // 'delete' or 'removeTenant'
 
   const showToast = (message, type = 'success') => {
     setToast({ show: true, message, type });
@@ -53,7 +56,7 @@ export default function PrivateOffices() {
   useEffect(() => {
     const fetchRooms = async () => {
       try {
-        const response = await api.get('/api/rooms');
+        const response = await api.get('/api/rooms', { skipCache: true });
         if (response.success && response.data) {
           setRooms(response.data);
         }
@@ -103,6 +106,9 @@ export default function PrivateOffices() {
         const uploadedPath = await uploadImage();
         if (uploadedPath) imagePath = uploadedPath;
       }
+      // Calculate status automatically: Occupied if occupiedBy has value, Vacant otherwise
+      const status = formData.occupiedBy ? 'Occupied' : 'Vacant';
+      
       const roomData = { 
         name: formData.name, 
         rentFee: parseFloat(formData.rentFee), 
@@ -110,16 +116,21 @@ export default function PrivateOffices() {
         rentFeePeriod: formData.rentFeePeriod, 
         description: formData.description, 
         inclusions: formData.inclusions, 
-        status: formData.status || 'Vacant', // Default to Vacant
+        status,
         image: imagePath 
       };
+      
+      // Only include occupiedBy if it has a value
+      if (formData.occupiedBy) {
+        roomData.occupiedBy = formData.occupiedBy;
+      }
       
       if (editingRoom) {
         const response = await api.put(`/api/rooms/${editingRoom.id}`, roomData);
         if (response.success) {
           showToast('Office updated successfully!', 'success');
           // Refresh rooms
-          const roomsResponse = await api.get('/api/rooms');
+          const roomsResponse = await api.get('/api/rooms', { skipCache: true });
           if (roomsResponse.success && roomsResponse.data) {
             setRooms(roomsResponse.data);
           }
@@ -131,7 +142,7 @@ export default function PrivateOffices() {
         if (response.success) {
           showToast('Office added successfully!', 'success');
           // Refresh rooms
-          const roomsResponse = await api.get('/api/rooms');
+          const roomsResponse = await api.get('/api/rooms', { skipCache: true });
           if (roomsResponse.success && roomsResponse.data) {
             setRooms(roomsResponse.data);
           }
@@ -149,7 +160,7 @@ export default function PrivateOffices() {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', rentFee: '', currency: 'PHP', rentFeePeriod: 'per hour', description: '', inclusions: '', status: 'Vacant' });
+    setFormData({ name: '', rentFee: '', currency: 'PHP', rentFeePeriod: 'per hour', description: '', inclusions: '', occupiedBy: null });
     setImageFile(null);
     setImagePreview(null);
     setEditingRoom(null);
@@ -166,7 +177,7 @@ export default function PrivateOffices() {
       rentFeePeriod: selectedRoom.rentFeePeriod || 'per hour', 
       description: selectedRoom.description || '', 
       inclusions: selectedRoom.inclusions || '',
-      status: selectedRoom.status || 'Vacant'
+      occupiedBy: selectedRoom.occupiedBy || null
     });
     setImagePreview(selectedRoom.image);
     setShowFormModal(true);
@@ -174,6 +185,7 @@ export default function PrivateOffices() {
 
   const handleDelete = async () => {
     if (!selectedRoom) return;
+    setConfirmType('delete');
     setConfirmAction(() => async () => {
       try {
         const response = await api.delete(`/api/rooms/${selectedRoom.id}`);
@@ -182,7 +194,7 @@ export default function PrivateOffices() {
           setSelectedRoom(null);
           showToast('Office deleted successfully!', 'success');
           // Refresh rooms
-          const roomsResponse = await api.get('/api/rooms');
+          const roomsResponse = await api.get('/api/rooms', { skipCache: true });
           if (roomsResponse.success && roomsResponse.data) {
             setRooms(roomsResponse.data);
           }
@@ -194,13 +206,45 @@ export default function PrivateOffices() {
         showToast('Failed to delete office', 'error');
       }
       setShowConfirmDialog(false);
+      setConfirmType(null);
+    });
+    setShowConfirmDialog(true);
+  };
+
+  const handleRemoveTenant = async () => {
+    if (!selectedRoom) return;
+    setConfirmType('removeTenant');
+    setConfirmAction(() => async () => {
+      try {
+        // Call backend endpoint to remove tenant (updates both room and request)
+        const response = await api.put(`/api/admin/private-office/rooms/${selectedRoom.id}/remove-tenant`, {});
+        if (response.success) {
+          setShowViewModal(false);
+          setSelectedRoom(null);
+          showToast('Tenant removed successfully!', 'success');
+          // Refresh rooms
+          const roomsResponse = await api.get('/api/rooms', { skipCache: true });
+          if (roomsResponse.success && roomsResponse.data) {
+            setRooms(roomsResponse.data);
+          }
+          // Refresh entire page to update all tabs
+          router.refresh();
+        } else {
+          showToast(response.message || 'Failed to remove tenant', 'error');
+        }
+      } catch (error) {
+        console.error('Error removing tenant:', error);
+        showToast('Failed to remove tenant', 'error');
+      }
+      setShowConfirmDialog(false);
+      setConfirmType(null);
     });
     setShowConfirmDialog(true);
   };
 
   const openAddModal = () => { 
     setEditingRoom(null); 
-    setFormData({ name: '', rentFee: '', currency: 'PHP', rentFeePeriod: 'per hour', description: '', inclusions: '', status: 'Vacant' }); 
+    setFormData({ name: '', rentFee: '', currency: 'PHP', rentFeePeriod: 'per hour', description: '', inclusions: '', occupiedBy: null }); 
     setImageFile(null); 
     setImagePreview(null); 
     setShowFormModal(true); 
@@ -403,18 +447,6 @@ export default function PrivateOffices() {
                       </select>
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Status</label>
-                    <select 
-                      name="status" 
-                      value={formData.status} 
-                      onChange={handleChange} 
-                      className="w-full px-3 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all cursor-pointer"
-                    >
-                      <option value="Vacant">Vacant</option>
-                      <option value="Occupied">Occupied</option>
-                    </select>
-                  </div>
                 </div>
                 {/* Column 2 */}
                 <div className="flex flex-col gap-4 sm:gap-5">
@@ -462,6 +494,15 @@ export default function PrivateOffices() {
                 >
                   ✏️
                 </button>
+                {selectedRoom?.status === 'Occupied' && (
+                  <button 
+                    onClick={handleRemoveTenant} 
+                    title="Remove Tenant" 
+                    className="p-1.5 sm:p-2 bg-orange-50 rounded-lg text-base sm:text-lg hover:bg-orange-100 hover:scale-110 transition-all"
+                  >
+                    👤
+                  </button>
+                )}
                 <button 
                   onClick={handleDelete} 
                   title="Delete" 
@@ -576,31 +617,45 @@ export default function PrivateOffices() {
 
       {/* Confirmation Dialog */}
       {showConfirmDialog && mounted && createPortal(
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10001] animate-[fadeIn_0.2s_ease] p-4" onClick={() => { setShowConfirmDialog(false); setConfirmAction(null); }}>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10001] animate-[fadeIn_0.2s_ease] p-4" onClick={() => { setShowConfirmDialog(false); setConfirmAction(null); setConfirmType(null); }}>
           <div className="bg-white rounded-xl sm:rounded-2xl p-6 sm:p-8 w-full max-w-md shadow-2xl animate-[slideUp_0.3s_ease]" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+                confirmType === 'removeTenant' ? 'bg-orange-100' : 'bg-red-100'
+              }`}>
+                <svg className={`w-6 h-6 ${
+                  confirmType === 'removeTenant' ? 'text-orange-600' : 'text-red-600'
+                }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                 </svg>
               </div>
               <div className="flex-1">
-                <h3 className="text-lg sm:text-xl font-bold text-slate-800 mb-1">Delete Office</h3>
-                <p className="text-sm text-gray-600">Are you sure you want to delete this office? This action cannot be undone.</p>
+                <h3 className="text-lg sm:text-xl font-bold text-slate-800 mb-1">
+                  {confirmType === 'removeTenant' ? 'Remove Tenant' : 'Delete Office'}
+                </h3>
+                <p className="text-sm text-gray-600">
+                  {confirmType === 'removeTenant' 
+                    ? 'Are you sure you want to remove this tenant? The office will be marked as vacant.'
+                    : 'Are you sure you want to delete this office? This action cannot be undone.'}
+                </p>
               </div>
             </div>
             <div className="flex gap-3">
               <button 
-                onClick={() => { setShowConfirmDialog(false); setConfirmAction(null); }} 
+                onClick={() => { setShowConfirmDialog(false); setConfirmAction(null); setConfirmType(null); }} 
                 className="flex-1 px-4 py-2.5 sm:py-3 bg-gray-200 text-slate-800 font-medium rounded-xl hover:bg-gray-300 transition-colors"
               >
                 Cancel
               </button>
               <button 
                 onClick={() => { if (confirmAction) confirmAction(); }} 
-                className="flex-1 px-4 py-2.5 sm:py-3 bg-red-600 text-white font-medium rounded-xl hover:bg-red-700 transition-colors"
+                className={`flex-1 px-4 py-2.5 sm:py-3 text-white font-medium rounded-xl transition-colors ${
+                  confirmType === 'removeTenant' 
+                    ? 'bg-orange-600 hover:bg-orange-700' 
+                    : 'bg-red-600 hover:bg-red-700'
+                }`}
               >
-                Delete
+                {confirmType === 'removeTenant' ? 'Remove' : 'Delete'}
               </button>
             </div>
           </div>

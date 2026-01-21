@@ -26,7 +26,19 @@ export const getPrivateOfficeDashboard = async (req, res) => {
     let schedules = schedulesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     const rooms = roomsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    // Apply status filter
+    // Keep a copy of ALL schedules for stats calculation
+    const allSchedules = [...schedules];
+
+    // Calculate stats from ALL documents (BEFORE any filtering)
+    const stats = {
+      total: allSchedules.length,
+      pending: allSchedules.filter(s => s.status === 'pending').length,
+      approved: allSchedules.filter(s => s.status === 'approved').length,
+      rejected: allSchedules.filter(s => s.status === 'rejected').length,
+      cancelled: allSchedules.filter(s => s.status === 'cancelled').length
+    };
+    
+    // Apply status filter (only to schedules, NOT to allSchedules)
     if (status && status !== 'total') {
       if (status === 'approved') {
         schedules = schedules.filter(s => s.status === 'approved');
@@ -66,18 +78,7 @@ export const getPrivateOfficeDashboard = async (req, res) => {
       return sortOrder === 'desc' ? -comparison : comparison;
     });
 
-    // Calculate stats
-    const allSchedules = schedulesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    const stats = {
-      total: allSchedules.length,
-      active: allSchedules.filter(s => ['upcoming', 'ongoing', 'active'].includes(s.status)).length,
-      pending: allSchedules.filter(s => s.status === 'pending').length,
-      approved: allSchedules.filter(s => s.status === 'approved').length,
-      rejected: allSchedules.filter(s => s.status === 'rejected').length,
-      completed: allSchedules.filter(s => s.status === 'completed').length
-    };
-
-    // Get unique rooms for filter dropdown
+    // Get unique rooms for filter dropdown (from ALL schedules)
     const uniqueRooms = [...new Set(allSchedules.map(s => s.room).filter(Boolean))];
 
     res.json({
@@ -114,14 +115,22 @@ export const getPrivateOfficeRequests = async (req, res) => {
     const schedulesSnapshot = await firestore.collection('privateOfficeRooms').doc('data').collection('requests').get();
     let schedules = schedulesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
+    console.log('=== DEBUG: All Requests from Firebase ===');
+    console.log('Total requests:', schedules.length);
+    schedules.forEach(s => {
+      console.log(`- ${s.clientName}: status=${s.status}`);
+    });
+
     // For Request List, only show pending requests by default
     // Dashboard will show all requests including approved/rejected
     if (!status || status === 'all') {
       // Default: only show pending requests in Request List
       schedules = schedules.filter(s => s.status === 'pending');
+      console.log('Filtered to pending only:', schedules.length);
     } else {
       // Apply specific status filter if provided
       schedules = schedules.filter(s => s.status === status);
+      console.log(`Filtered to ${status}:`, schedules.length);
     }
 
     // Apply search filter
@@ -165,6 +174,86 @@ export const getPrivateOfficeRequests = async (req, res) => {
 };
 
 /**
+ * Remove tenant from room (mark request as cancelled and room as vacant)
+ */
+export const removeTenant = async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const firestore = getFirestore();
+    
+    if (!firestore) {
+      return sendFirestoreError(res);
+    }
+
+    // Get the room to find the associated request
+    const roomRef = firestore.collection('privateOfficeRooms').doc('data').collection('office').doc(roomId);
+    const roomDoc = await roomRef.get();
+
+    if (!roomDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        error: 'Not Found',
+        message: 'Room not found'
+      });
+    }
+
+    const roomData = roomDoc.data();
+    
+    console.log('=== Removing Tenant ===');
+    console.log('Room ID:', roomId);
+    console.log('Room Data:', {
+      name: roomData.name,
+      status: roomData.status,
+      occupiedBy: roomData.occupiedBy
+    });
+
+    // Find the associated request for this room
+    const requestsSnapshot = await firestore
+      .collection('privateOfficeRooms')
+      .doc('data')
+      .collection('requests')
+      .where('roomId', '==', roomId)
+      .where('status', '==', 'approved')
+      .get();
+
+    // Update room to Vacant
+    await roomRef.update({
+      status: 'Vacant',
+      occupiedBy: admin.firestore.FieldValue.delete(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    // Update associated request to cancelled
+    for (const requestDoc of requestsSnapshot.docs) {
+      await requestDoc.ref.update({
+        status: 'cancelled',
+        adminNotes: 'Tenant removed by admin',
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+      console.log('Request cancelled:', requestDoc.id);
+    }
+
+    console.log('Tenant removed successfully');
+
+    res.json({
+      success: true,
+      message: 'Tenant removed successfully',
+      data: {
+        roomId,
+        status: 'Vacant'
+      }
+    });
+  } catch (error) {
+    console.error('Remove tenant error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal Server Error',
+      message: error.message || 'Failed to remove tenant'
+    });
+  }
+};
+
+/**
  * Update request status (approve/reject)
  */
 export const updateRequestStatus = async (req, res) => {
@@ -189,6 +278,16 @@ export const updateRequestStatus = async (req, res) => {
     }
 
     const currentRequest = requestDoc.data();
+    
+    console.log('=== Updating Request Status ===');
+    console.log('Request ID:', requestId);
+    console.log('Current Request:', {
+      clientName: currentRequest.clientName,
+      status: currentRequest.status,
+      roomId: currentRequest.roomId,
+      room: currentRequest.room
+    });
+    console.log('New Status:', status);
     
     // Update request status
     const updateData = {
@@ -237,7 +336,20 @@ export const updateRequestStatus = async (req, res) => {
       }
     }
 
+    // Ensure the update is committed to Firebase
     await requestRef.update(updateData);
+
+    console.log('Request status updated successfully to:', status);
+    console.log('Updated request data:', updateData);
+
+    // Verify the update was saved by reading the document back
+    const updatedDoc = await requestRef.get();
+    console.log('Verification - Updated request in Firebase:', {
+      id: updatedDoc.id,
+      status: updatedDoc.data().status,
+      clientName: updatedDoc.data().clientName,
+      room: updatedDoc.data().room
+    });
 
     res.json({
       success: true,
