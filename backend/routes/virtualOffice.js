@@ -6,7 +6,7 @@ import {
   updateVirtualOfficeClient,
   deleteVirtualOfficeClient,
   getUserVirtualOfficeClients
-} from '../controllers/virtualOfficeController.js';
+} from '../controllers/Admin/virtualOfficeController.js';
 import { authenticate, isAdmin } from '../middlewares/auth.js';
 
 const router = express.Router();

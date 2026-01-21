@@ -7,13 +7,14 @@ import {
   deleteSchedule,
   getUserSchedules,
   getRoomOccupancy
-} from '../controllers/schedulesController.js';
+} from '../controllers/Admin/schedulesController.js';
 import { authenticate, isAdmin } from '../middlewares/auth.js';
 
 const router = express.Router();
 
 // GET /api/schedules/occupancy - Get room occupancy status (public - for checking available rooms)
-router.get('/occupancy', getRoomOccupancy);
+// DISABLED: Using room.status field instead to reduce Firestore reads
+// router.get('/occupancy', getRoomOccupancy);
 
 // GET /api/schedules - Get all schedules (admin only)
 router.get('/', authenticate, isAdmin, getAllSchedules);

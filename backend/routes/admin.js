@@ -21,11 +21,6 @@ import {
   getAllOccupants 
 } from '../controllers/Admin/virtualOfficeController.js';
 import { 
-  getReservationTrends, 
-  getReportHistory, 
-  generateReport 
-} from '../controllers/Admin/reportsController.js';
-import { 
   getBillingDashboard, 
   getInvoices 
 } from '../controllers/Admin/billingController.js';
@@ -57,11 +52,6 @@ router.get('/dedicated-desk/occupants/:part', getOccupantsByPart);
 router.get('/virtual-office/clients', getVirtualOfficeClients);
 router.get('/virtual-office/occupants', getAllOccupants);
 router.put('/virtual-office/clients/:clientId/status', updateClientStatus);
-
-// Reports routes
-router.get('/reports/trends', getReservationTrends);
-router.get('/reports/history', getReportHistory);
-router.post('/reports/generate', generateReport);
 
 // Billing routes
 router.get('/billing/dashboard', getBillingDashboard);

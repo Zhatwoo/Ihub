@@ -265,6 +265,161 @@ export const updateSchedule = async (req, res) => {
 };
 
 /**
+ * Get room occupancy status (public/authenticated)
+ * Returns which rooms are currently occupied without exposing full schedule details
+ */
+export const getRoomOccupancy = async (req, res) => {
+  try {
+    const firestore = getFirestore();
+    
+    if (!firestore) {
+      return sendFirestoreError(res);
+    }
+    
+    const now = new Date();
+    const occupiedRoomIds = new Set();
+    const occupiedRoomNames = new Set();
+    
+    // Get all schedules to check occupancy
+    const schedulesSnapshot = await firestore.collection('privateOfficeRooms').doc('data').collection('requests').get();
+    
+    schedulesSnapshot.docs.forEach((doc) => {
+      const schedule = doc.data();
+      
+      // Check if schedule is for private office
+      const isPrivateOffice = schedule.requestType === 'privateroom' || 
+                             schedule.requestType === 'private-office' ||
+                             schedule.requestType === 'private_office' ||
+                             (!schedule.requestType && schedule.room && (schedule.roomId || schedule.room)) ||
+                             (schedule.room && schedule.roomId);
+      
+      // Check if status indicates the room is occupied
+      const isOccupiedStatus = schedule.status === 'active' || 
+                              schedule.status === 'ongoing' || 
+                              schedule.status === 'upcoming' ||
+                              schedule.status === 'approved';
+      
+      if (isPrivateOffice && isOccupiedStatus) {
+        const startDate = schedule.startDate ? new Date(schedule.startDate) : null;
+        const endDate = schedule.endDate ? new Date(schedule.endDate) : null;
+        
+        let isCurrentlyOccupied = false;
+        
+        // Active/ongoing/approved always means occupied
+        if (schedule.status === 'active' || schedule.status === 'ongoing' || schedule.status === 'approved') {
+          isCurrentlyOccupied = true;
+        } else if (schedule.status === 'upcoming' && startDate) {
+          // For upcoming, check if current date/time is within booking period
+          const startDateOnly = new Date(startDate);
+          startDateOnly.setHours(0, 0, 0, 0);
+          const nowDateOnly = new Date(now);
+          nowDateOnly.setHours(0, 0, 0, 0);
+          
+          if (!endDate) {
+            // Single day booking
+            if (startDateOnly.getTime() <= nowDateOnly.getTime()) {
+              if (schedule.startTime && schedule.endTime) {
+                const [startHour, startMin] = schedule.startTime.split(':').map(Number);
+                const [endHour, endMin] = schedule.endTime.split(':').map(Number);
+                const currentHour = now.getHours();
+                const currentMin = now.getMinutes();
+                const currentTimeInMinutes = currentHour * 60 + currentMin;
+                const startTimeInMinutes = startHour * 60 + startMin;
+                const endTimeInMinutes = endHour * 60 + endMin;
+                
+                if (startDateOnly.getTime() < nowDateOnly.getTime() || 
+                    (startDateOnly.getTime() === nowDateOnly.getTime() && 
+                     currentTimeInMinutes >= startTimeInMinutes && currentTimeInMinutes <= endTimeInMinutes)) {
+                  isCurrentlyOccupied = true;
+                }
+              } else {
+                isCurrentlyOccupied = true;
+              }
+            }
+          } else {
+            // Multi-day booking
+            const endDateOnly = new Date(endDate);
+            endDateOnly.setHours(23, 59, 59, 999);
+            
+            if (now >= startDateOnly && now <= endDateOnly) {
+              if (schedule.startTime && schedule.endTime) {
+                const isStartDate = startDateOnly.getTime() === nowDateOnly.getTime();
+                const isEndDate = endDateOnly.getTime() === nowDateOnly.getTime();
+                
+                if (isStartDate) {
+                  const [startHour, startMin] = schedule.startTime.split(':').map(Number);
+                  const currentHour = now.getHours();
+                  const currentMin = now.getMinutes();
+                  const currentTimeInMinutes = currentHour * 60 + currentMin;
+                  const startTimeInMinutes = startHour * 60 + startMin;
+                  
+                  if (currentTimeInMinutes >= startTimeInMinutes) {
+                    isCurrentlyOccupied = true;
+                  }
+                } else if (isEndDate) {
+                  const [endHour, endMin] = schedule.endTime.split(':').map(Number);
+                  const currentHour = now.getHours();
+                  const currentMin = now.getMinutes();
+                  const currentTimeInMinutes = currentHour * 60 + currentMin;
+                  const endTimeInMinutes = endHour * 60 + endMin;
+                  
+                  if (currentTimeInMinutes <= endTimeInMinutes) {
+                    isCurrentlyOccupied = true;
+                  }
+                } else {
+                  isCurrentlyOccupied = true;
+                }
+              } else {
+                isCurrentlyOccupied = true;
+              }
+            } else if (now > endDateOnly) {
+              isCurrentlyOccupied = true;
+            }
+          }
+        } else if (!startDate) {
+          if (schedule.status === 'active' || schedule.status === 'ongoing') {
+            isCurrentlyOccupied = true;
+          }
+        }
+        
+        if (isCurrentlyOccupied) {
+          if (schedule.roomId) {
+            occupiedRoomIds.add(schedule.roomId);
+          }
+          if (schedule.room) {
+            occupiedRoomNames.add(schedule.room.toLowerCase().trim());
+          }
+        }
+      }
+    });
+    
+    res.json({
+      success: true,
+      data: {
+        occupiedRoomIds: Array.from(occupiedRoomIds),
+        occupiedRoomNames: Array.from(occupiedRoomNames)
+      }
+    });
+  } catch (error) {
+    console.error('Get room occupancy error:', error);
+    
+    if (error.message && error.message.includes('not initialized')) {
+      return res.status(503).json({
+        success: false,
+        error: 'Service Unavailable',
+        message: 'Firestore database is not connected. Please configure Firebase Admin SDK credentials in backend/.env'
+      });
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Internal Server Error',
+      message: error.message || 'Failed to fetch room occupancy'
+    });
+  }
+};
+
+/**
  * Delete schedule/booking
  */
 export const deleteSchedule = async (req, res) => {
