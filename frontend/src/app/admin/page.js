@@ -33,9 +33,9 @@ export default function AdminDashboard() {
         if (response.success) {
           const { privateOffice, virtualOffice, dedicatedDesk, rawData } = response.data;
           
-          console.log('🔍 Dashboard Data Debug:');
-          console.log('Virtual Office Stats:', virtualOffice);
-          console.log('All Occupants:', virtualOffice.allOccupants);
+          console.log('🔍 Frontend Debug - Virtual Office Data:');
+          console.log('virtualOffice:', virtualOffice);
+          console.log('allTenants:', virtualOffice.allTenants);
           
           // Set processed stats from backend
           setPrivateOfficeStats(privateOffice);
@@ -108,7 +108,7 @@ export default function AdminDashboard() {
     { 
       key: 'virtual-office',
       label: 'Virtual Office', 
-      value: virtualOfficeStats.totalOccupants || 0, 
+      value: virtualOfficeStats.totalClients || 0, 
       icon: '💼', 
       iconBg: 'from-blue-50 to-blue-100', 
       borderColor: 'border-l-blue-600',
@@ -414,7 +414,7 @@ export default function AdminDashboard() {
                 {/* Item Cards */}
                 <div className="grid grid-cols-1 gap-4 mb-6">
                   {[
-                    { key: 'tenants', label: 'Tenants', value: virtualOfficeStats.totalOccupants || 0, color: 'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200', textColor: 'text-blue-700' }
+                    { key: 'tenants', label: 'Tenants', value: virtualOfficeStats.totalClients || 0, color: 'bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200', textColor: 'text-blue-700' }
                   ].map((item, index) => (
                     <div
                       key={item.key}
@@ -434,7 +434,7 @@ export default function AdminDashboard() {
                 <div className="animate-[fadeIn_0.4s_ease] border-t-2 border-gray-100 pt-6">
                   {selectedDetailView === 'tenants' && (
                     <div>
-                      <h4 className="text-lg font-semibold text-slate-800 mb-4">All Tenants ({virtualOfficeStats.totalOccupants || 0})</h4>
+                      <h4 className="text-lg font-semibold text-slate-800 mb-4">All Tenants ({virtualOfficeStats.allTenants ? virtualOfficeStats.allTenants.filter(t => t.type === 'Virtual Office Client').length : 0})</h4>
                       <div className="space-y-3 max-h-96 overflow-y-auto">
                         {!virtualOfficeStats.allTenants || virtualOfficeStats.allTenants.length === 0 ? (
                           <div className="text-center py-12">
@@ -442,15 +442,14 @@ export default function AdminDashboard() {
                             <p className="text-gray-500">No tenants found</p>
                           </div>
                         ) : (
-                          virtualOfficeStats.allTenants.map((tenant) => (
+                          virtualOfficeStats.allTenants
+                            .filter(tenant => tenant.type === 'Virtual Office Client') // Only show Virtual Office clients
+                            .map((tenant) => (
                             <div key={`${tenant.source}-${tenant.id}`} className="bg-blue-50 rounded-lg p-4 flex justify-between items-center border border-blue-200">
                               <div className="flex-1">
                                 <div className="flex items-center gap-3 mb-2">
                                   <div className="font-semibold text-slate-800">{tenant.name}</div>
-                                  <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                                    tenant.type === 'Virtual Office Client' ? 'bg-blue-100 text-blue-700' :
-                                    'bg-purple-100 text-purple-700'
-                                  }`}>
+                                  <span className="px-2 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700">
                                     {tenant.type}
                                   </span>
                                 </div>
@@ -458,7 +457,6 @@ export default function AdminDashboard() {
                                 <div className="text-sm text-gray-600 mb-1">
                                   {tenant.company !== 'N/A' && tenant.company ? `${tenant.company} • ` : ''}
                                   {tenant.position !== 'N/A' ? tenant.position : ''}
-                                  {tenant.desk ? ` • Desk: ${tenant.desk}` : ''}
                                 </div>
                                 <div className="text-xs text-gray-500">
                                   {tenant.phone !== 'N/A' ? `📞 ${tenant.phone}` : ''}

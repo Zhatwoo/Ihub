@@ -177,11 +177,18 @@ export const getAllDeskRequests = async (req, res) => {
     // For each user, check if they have a desk request
     for (const userDoc of usersSnapshot.docs) {
       const userId = userDoc.id;
+      const userData = userDoc.data();
+      const firstName = userData.firstName;
+      
+      if (!firstName) {
+        continue; // Skip users without firstName
+      }
+      
       const requestDoc = await firestore
         .collection('accounts')
         .doc('client')
         .collection('users')
-        .doc(userId)
+        .doc(firstName)
         .collection('request')
         .doc('desk')
         .get();
@@ -190,7 +197,13 @@ export const getAllDeskRequests = async (req, res) => {
         requests.push({
           id: requestDoc.id,
           userId,
-          ...requestDoc.data()
+          firstName,
+          ...requestDoc.data(),
+          userInfo: {
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            email: userData.email
+          }
         });
       }
     }

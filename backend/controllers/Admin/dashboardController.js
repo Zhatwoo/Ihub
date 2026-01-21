@@ -36,21 +36,38 @@ export const getDashboardStats = async (req, res) => {
     // Process desk assignments
     const deskAssignments = deskAssignmentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    // Get desk requests from user documents
+    // Get desk requests from user documents using correct path structure
     const deskRequests = [];
     for (const userDoc of deskRequestsSnapshot.docs) {
       const userData = userDoc.data();
-      if (userData.deskRequest) {
-        deskRequests.push({
-          id: userDoc.id,
-          userId: userDoc.id,
-          ...userData.deskRequest,
-          userInfo: {
-            firstName: userData.firstName,
-            lastName: userData.lastName,
-            email: userData.email
-          }
-        });
+      const userId = userDoc.id;
+      
+      try {
+        // Check the correct path: /accounts/client/users/{userId}/request/desk
+        const deskRequestDoc = await firestore
+          .collection('accounts')
+          .doc('client')
+          .collection('users')
+          .doc(userId)
+          .collection('request')
+          .doc('desk')
+          .get();
+
+        if (deskRequestDoc.exists) {
+          const deskRequestData = deskRequestDoc.data();
+          deskRequests.push({
+            id: userId,
+            userId: userId,
+            ...deskRequestData,
+            userInfo: {
+              firstName: userData.firstName,
+              lastName: userData.lastName,
+              email: userData.email
+            }
+          });
+        }
+      } catch (error) {
+        console.error(`Error checking desk request for user ${userId}:`, error);
       }
     }
 
@@ -66,47 +83,31 @@ export const getDashboardStats = async (req, res) => {
         .slice(0, 5)
     };
 
-    // Calculate Virtual Office stats (tenants only, no employees)
-    const tenantAssignments = deskAssignments.filter(d => d.type === 'Tenant');
-    
+    // Calculate Virtual Office stats (Virtual Office clients only)
     const virtualOfficeStats = {
-      totalTenants: tenantAssignments.length,
       totalClients: virtualOfficeClients.length,
-      totalOccupants: virtualOfficeClients.length + tenantAssignments.length,
-      recentTenants: tenantAssignments
-        .sort((a, b) => new Date(b.assignedAt || 0) - new Date(a.assignedAt || 0))
+      recentClients: virtualOfficeClients
+        .sort((a, b) => new Date(b.createdAt || b.dateStart || 0) - new Date(a.createdAt || a.dateStart || 0))
         .slice(0, 5),
-      // Combined occupants data for "Tenants" view (Virtual Office Clients + Dedicated Desk Tenants only)
-      allTenants: [
-        // Virtual office clients
-        ...virtualOfficeClients.map(client => ({
-          id: client.id,
-          name: client.fullName || 'N/A',
-          email: client.email || 'N/A',
-          phone: client.phoneNumber || 'N/A',
-          company: client.company || 'N/A',
-          position: client.position || 'N/A',
-          type: 'Virtual Office Client',
-          status: client.status || 'active',
-          startDate: client.dateStart || client.preferredStartDate || client.createdAt,
-          source: 'virtual-office'
-        })),
-        // Desk assignments (tenants only)
-        ...tenantAssignments.map(assignment => ({
-          id: assignment.id,
-          name: assignment.name || 'N/A',
-          email: assignment.email || 'N/A',
-          phone: assignment.contactNumber || 'N/A',
-          company: assignment.company || 'N/A',
-          position: assignment.type || 'N/A',
-          type: 'Dedicated Desk Tenant',
-          status: 'active',
-          startDate: assignment.assignedAt || assignment.createdAt,
-          source: 'desk-assignment',
-          desk: assignment.desk
-        }))
-      ].sort((a, b) => new Date(b.startDate || 0) - new Date(a.startDate || 0)).slice(0, 10) // Limit for performance
+      // Virtual Office clients only for "Tenants" view
+      allTenants: virtualOfficeClients.map(client => ({
+        id: client.id,
+        name: client.fullName || 'N/A',
+        email: client.email || 'N/A',
+        phone: client.phoneNumber || 'N/A',
+        company: client.company || 'N/A',
+        position: client.position || 'N/A',
+        type: 'Virtual Office Client',
+        status: client.status || 'active',
+        startDate: client.dateStart || client.preferredStartDate || client.createdAt,
+        source: 'virtual-office'
+      })).sort((a, b) => new Date(b.startDate || 0) - new Date(a.startDate || 0)).slice(0, 10) // Limit for performance
     };
+
+    console.log('🔍 Backend Debug - Virtual Office Only:');
+    console.log('Virtual Office Clients Raw:', virtualOfficeClients);
+    console.log('Virtual Office Stats:', virtualOfficeStats);
+    console.log('All Tenants (should be VO clients only):', virtualOfficeStats.allTenants);
 
     // Calculate Dedicated Desk stats
     const dedicatedDeskStats = {

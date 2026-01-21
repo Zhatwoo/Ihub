@@ -96,33 +96,68 @@ export const getDeskAssignments = async (req, res) => {
  * Get desk requests with filtering
  */
 export const getDeskRequests = async (req, res) => {
+  console.log('🔍 getDeskRequests function called!');
+  
   try {
     const { status, search, sortBy = 'requestDate', sortOrder = 'desc' } = req.query;
     const firestore = getFirestore();
     
+    console.log('🔍 Firestore instance:', !!firestore);
+    
     if (!firestore) {
+      console.log('🔍 No firestore instance - sending error');
       return sendFirestoreError(res);
     }
 
-    // Get desk requests from user documents
+    console.log('🔍 Starting getDeskRequests with correct path...');
+
+    // Get all users first
     const usersSnapshot = await firestore.collection('accounts').doc('client').collection('users').get();
     const deskRequests = [];
 
+    console.log('� Totalo users found:', usersSnapshot.docs.length);
+
+    // For each user, check if they have a desk request in the subcollection
     for (const userDoc of usersSnapshot.docs) {
       const userData = userDoc.data();
-      if (userData.deskRequest) {
-        deskRequests.push({
-          id: userDoc.id,
-          userId: userDoc.id,
-          ...userData.deskRequest,
-          userInfo: {
-            firstName: userData.firstName,
-            lastName: userData.lastName,
-            email: userData.email
+      const userId = userDoc.id;
+      
+      try {
+        // Check the correct path: /accounts/client/users/{userId}/request/desk
+        const deskRequestDoc = await firestore
+          .collection('accounts')
+          .doc('client')
+          .collection('users')
+          .doc(userId)
+          .collection('request')
+          .doc('desk')
+          .get();
+
+        if (deskRequestDoc.exists) {
+          const deskRequestData = deskRequestDoc.data();
+          
+          // Skip empty documents
+          if (Object.keys(deskRequestData).length === 0) {
+            continue;
           }
-        });
+          
+          deskRequests.push({
+            id: userId,
+            userId: userId,
+            ...deskRequestData,
+            userInfo: {
+              firstName: userData.firstName,
+              lastName: userData.lastName,
+              email: userData.email
+            }
+          });
+        }
+      } catch (error) {
+        console.error(`Error checking desk request for user ${userId}:`, error);
       }
     }
+
+
 
     let filteredRequests = [...deskRequests];
 
@@ -195,6 +230,7 @@ export const updateDeskRequestStatus = async (req, res) => {
       return sendFirestoreError(res);
     }
 
+    // Get user data first
     const userRef = firestore.collection('accounts').doc('client').collection('users').doc(userId);
     const userDoc = await userRef.get();
 
@@ -207,7 +243,19 @@ export const updateDeskRequestStatus = async (req, res) => {
     }
 
     const userData = userDoc.data();
-    if (!userData.deskRequest) {
+
+    // Get desk request from correct path: /accounts/client/users/{userId}/request/desk
+    const deskRequestRef = firestore
+      .collection('accounts')
+      .doc('client')
+      .collection('users')
+      .doc(userId)
+      .collection('request')
+      .doc('desk');
+      
+    const deskRequestDoc = await deskRequestRef.get();
+
+    if (!deskRequestDoc.exists) {
       return res.status(404).json({
         success: false,
         error: 'Not Found',
@@ -215,14 +263,14 @@ export const updateDeskRequestStatus = async (req, res) => {
       });
     }
 
-    // Update request status
+    const deskRequestData = deskRequestDoc.data();
+
+    // Update request status in the correct path
     const updateData = {
-      deskRequest: {
-        ...userData.deskRequest,
-        status,
-        adminNotes: adminNotes || '',
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      }
+      ...deskRequestData,
+      status,
+      adminNotes: adminNotes || '',
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
     };
 
     // If approving, create desk assignment
@@ -232,17 +280,17 @@ export const updateDeskRequestStatus = async (req, res) => {
         name: `${userData.firstName} ${userData.lastName}`,
         email: userData.email,
         contactNumber: userData.phoneNumber || '',
-        type: userData.deskRequest.occupantType || 'Tenant',
-        company: userData.deskRequest.company || '',
+        type: deskRequestData.occupantType || 'Tenant',
+        company: deskRequestData.company || '',
         assignedAt: admin.firestore.FieldValue.serverTimestamp(),
         userId: userId
       };
 
       await firestore.collection('desk-assignments').doc(assignedDesk).set(assignmentData);
-      updateData.deskRequest.assignedDesk = assignedDesk;
+      updateData.assignedDesk = assignedDesk;
     }
 
-    await userRef.update(updateData);
+    await deskRequestRef.update(updateData);
 
     res.json({
       success: true,

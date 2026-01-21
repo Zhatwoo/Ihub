@@ -94,11 +94,12 @@ export default function DedicatedDesk() {
       const response = await api.get('/api/admin/dedicated-desk/requests');
       
       if (response.success && response.data) {
-        setAllRequests(response.data.requests || []);
+        return response.data.requests || [];
       }
+      return [];
     } catch (error) {
       console.error('Error fetching requests:', error);
-      setAllRequests([]);
+      return [];
     }
   };
 
@@ -205,7 +206,8 @@ export default function DedicatedDesk() {
         alert(`Request approved successfully! Desk ${request.deskId} has been assigned.`);
         
         // Refresh data
-        fetchAllRequests();
+        const updatedRequests = await fetchAllRequests();
+        setRequests(updatedRequests);
         
         // Refresh assignments
         const assignmentsResponse = await api.get('/api/admin/dedicated-desk/assignments');
@@ -240,7 +242,8 @@ export default function DedicatedDesk() {
         alert('Request rejected successfully!');
         
         // Refresh requests
-        fetchAllRequests();
+        const updatedRequests = await fetchAllRequests();
+        setRequests(updatedRequests);
       } else {
         alert(response.message || 'Failed to reject request. Please try again.');
       }
@@ -263,7 +266,8 @@ export default function DedicatedDesk() {
         alert('Request deleted successfully!');
         
         // Refresh requests from backend
-        fetchAllRequests();
+        const updatedRequests = await fetchAllRequests();
+        setRequests(updatedRequests);
       } else {
         alert(response.message || 'Failed to delete request. Please try again.');
       }
