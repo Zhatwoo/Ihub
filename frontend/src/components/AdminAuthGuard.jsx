@@ -18,16 +18,33 @@ const authCheckCache = {
  * - Redirects non-authenticated users to login
  * - Redirects client users to client dashboard
  * - Only allows admin users to access admin routes
+ * 
+ * OPTIMIZED: Only checks admin status ONCE on initial mount, uses localStorage cache
+ * to prevent repeated Firestore reads on route changes.
  */
 export default function AdminAuthGuard({ children }) {
   const router = useRouter();
   const pathname = usePathname();
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const checkInProgressRef = useRef(false);
+  const hasCheckedRef = useRef(false);
+  con
+st checkInProgressRef = useRef(false);
 
   useEffect(() => {
+    // Only check on initial mount, not on every route change
+    if (hasCheckedRef.current || checkInProgressRef.current) {
+      return;
+    }
+
     const checkAdminAccess = async () => {
+      // Prevent concurrent checks
+      if (checkInProgressRef.current) {
+        return;
+      }
+      checkInProgressRef.current = true;
+      hasCheckedRef.current = true;
+
       try {
         // Prevent multiple simultaneous checks
         if (checkInProgressRef.current) {
@@ -40,12 +57,14 @@ export default function AdminAuthGuard({ children }) {
         if (pathname === '/admin/register') {
           setIsAuthorized(true);
           setIsLoading(false);
+          checkInProgressRef.current = false;
           return;
         }
 
         // Check if user is logged in (only in browser)
         if (typeof window === 'undefined') {
           setIsLoading(false);
+          checkInProgressRef.current = false;
           return;
         }
 
@@ -54,6 +73,7 @@ export default function AdminAuthGuard({ children }) {
           // Not logged in - redirect to landing page
           console.warn('⚠️  Unauthorized: Not logged in. Redirecting to home page.');
           router.push('/');
+          checkInProgressRef.current = false;
           return;
         }
 
@@ -64,44 +84,40 @@ export default function AdminAuthGuard({ children }) {
           localStorage.removeItem('user');
           localStorage.removeItem('idToken');
           router.push('/');
+          checkInProgressRef.current = false;
           return;
         }
 
-        // TEMPORARY: Skip admin check due to Firestore quota limits
-        // Just verify user is logged in
-        console.log('✅ User logged in, allowing admin access');
-        setIsAuthorized(true);
-        setIsLoading(false);
-        return;
+        // Check localStorage cache FIRST (10 minute duration)
+        const cacheKey = `adminAuth_${user.uid}`;
+        const cachedData = localStorage.getItem(cacheKey);
+        
+        if (cachedData) {
+          try {
+            const { isAdmin, timestamp } = JSON.parse(cachedData);
+            const cacheAge = Date.now() - timestamp;
+            const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
 
-        // Original admin check code (disabled temporarily):
-        /*
-        // Check cache first - use localStorage for persistence across page reloads
-        const cachedAdminStatus = localStorage.getItem(`admin_status_${user.uid}`);
-        const cachedTimestamp = localStorage.getItem(`admin_status_timestamp_${user.uid}`);
-        const now = Date.now();
-
-        if (
-          cachedAdminStatus !== null &&
-          cachedTimestamp &&
-          now - parseInt(cachedTimestamp) < authCheckCache.CACHE_DURATION
-        ) {
-          // Use cached result
-          const isAdmin = cachedAdminStatus === 'true';
-          if (isAdmin) {
-            setIsAuthorized(true);
-          } else {
-            console.warn('⚠️  Unauthorized: User is not an admin. Redirecting to client dashboard.');
-            router.push('/client/home');
+            if (cacheAge < CACHE_DURATION && isAdmin === true) {
+              // Cache is valid and user is admin
+              console.log('✅ Admin auth: Using cached result');
+              setIsAuthorized(true);
+              setIsLoading(false);
+              checkInProgressRef.current = false;
+              return;
+            } else if (cacheAge < CACHE_DURATION && isAdmin === false) {
+              // Cache is valid but user is not admin - check if client or redirect
+              console.log('✅ Admin auth: Using cached result (not admin)');
+              // Continue to check if they're a client
+            } else {
+              // Cache expired - remove it and continue with API call
+              localStorage.removeItem(cacheKey);
+            }
+          } catch (e) {
+            // Invalid cache - remove it
+            localStorage.removeItem(cacheKey);
           }
-          setIsLoading(false);
-          return;
         }
-
-        checkInProgressRef.current = true;
-
-        // Add a small delay to prevent quota exhaustion from rapid requests
-        await new Promise(resolve => setTimeout(resolve, 500));
 
         // Check if user is admin by fetching admin user data
         try {
@@ -109,29 +125,64 @@ export default function AdminAuthGuard({ children }) {
           
           if (response.success && response.data) {
             // User exists in admin collection - authorized
-            localStorage.setItem(`admin_status_${user.uid}`, 'true');
-            localStorage.setItem(`admin_status_timestamp_${user.uid}`, now.toString());
+            // Cache the result for 10 minutes
+            localStorage.setItem(cacheKey, JSON.stringify({
+              isAdmin: true,
+              timestamp: Date.now()
+            }));
             setIsAuthorized(true);
           } else {
-            // User not found in admin collection
-            localStorage.setItem(`admin_status_${user.uid}`, 'false');
-            localStorage.setItem(`admin_status_timestamp_${user.uid}`, now.toString());
-            console.warn('⚠️  Unauthorized: User is not an admin. Redirecting to client dashboard.');
-            router.push('/client/home');
+            // User not found in admin collection - check if they're a client
+            // Cache the negative result
+            localStorage.setItem(cacheKey, JSON.stringify({
+              isAdmin: false,
+              timestamp: Date.now()
+            }));
+
+            try {
+              const clientResponse = await api.get(`/api/accounts/client/users/${user.uid}`);
+              if (clientResponse.success && clientResponse.data) {
+                // User is a client, not an admin - redirect to client dashboard
+                console.warn('⚠️  Unauthorized: Client user attempting to access admin dashboard. Redirecting to client dashboard.');
+                router.push('/client/home');
+              } else {
+                // User doesn't exist in either collection - redirect to landing page
+                console.warn('⚠️  Unauthorized: User not found in admin or client collections. Redirecting to home page.');
+                router.push('/');
+              }
+            } catch (clientError) {
+              // Error checking client - user might not be registered yet
+              // Redirect to landing page
+              console.warn('⚠️  Unauthorized: Error verifying user. Redirecting to home page.');
+              router.push('/');
+            }
           }
         } catch (error) {
           // 404 means user is not an admin
           if (error.response?.status === 404) {
-            localStorage.setItem(`admin_status_${user.uid}`, 'false');
-            localStorage.setItem(`admin_status_timestamp_${user.uid}`, now.toString());
-            console.warn('⚠️  Unauthorized: User not found in admin collection. Redirecting to client dashboard.');
-            router.push('/client/home');
-          } else if (error.message && error.message.includes('Quota exceeded')) {
-            // Quota exceeded - assume user is not admin to prevent redirect loop
-            localStorage.setItem(`admin_status_${user.uid}`, 'false');
-            localStorage.setItem(`admin_status_timestamp_${user.uid}`, now.toString());
-            console.warn('⚠️  Quota exceeded. Assuming user is not admin.');
-            router.push('/client/home');
+            // Cache the negative result
+            localStorage.setItem(cacheKey, JSON.stringify({
+              isAdmin: false,
+              timestamp: Date.now()
+            }));
+
+            // Check if they're a client
+            try {
+              const clientResponse = await api.get(`/api/accounts/client/users/${user.uid}`);
+              if (clientResponse.success && clientResponse.data) {
+                // User is a client - redirect to client dashboard
+                console.warn('⚠️  Unauthorized: Client user attempting to access admin dashboard. Redirecting to client dashboard.');
+                router.push('/client/home');
+              } else {
+                // User doesn't exist - redirect to landing page
+                console.warn('⚠️  Unauthorized: User not found. Redirecting to home page.');
+                router.push('/');
+              }
+            } catch {
+              // Error checking - redirect to landing page
+              console.warn('⚠️  Unauthorized: Error verifying user. Redirecting to home page.');
+              router.push('/');
+            }
           } else {
             // Other error - show error and redirect
             console.error('Error checking admin access:', error);
@@ -145,11 +196,19 @@ export default function AdminAuthGuard({ children }) {
       } finally {
         checkInProgressRef.current = false;
         setIsLoading(false);
+        checkInProgressRef.current = false;
       }
     };
 
     checkAdminAccess();
-  }, [router, pathname]);
+    // Only run on mount - removed pathname and router from dependencies
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array = only run once on mount
+
+  // Handle register page separately (no auth needed)
+  if (pathname === '/admin/register' && !isLoading) {
+    return <>{children}</>;
+  }
 
   // Show loading state while checking authorization
   if (isLoading) {

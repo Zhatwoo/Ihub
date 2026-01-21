@@ -12,30 +12,33 @@ export function usePrivateOffices() {
   useEffect(() => {
     const fetchRooms = async () => {
       try {
-        // Fetch rooms only - status field already indicates occupancy
+        /**
+         * IMPORTANT:
+         * We intentionally do NOT call `/api/schedules/occupancy` here anymore.
+         * That endpoint can be expensive (Firestore reads) and caused `RESOURCE_EXHAUSTED`.
+         * Client home now relies on the room's `status` field (Vacant/Occupied) from `/api/rooms`.
+         */
         const roomsResponse = await api.get('/api/rooms');
 
         if (roomsResponse.success && roomsResponse.data) {
-          // Filter out occupied rooms based on status field
           const roomsData = roomsResponse.data
-            .filter(room => {
-              // Only show rooms that are NOT occupied
-              return room.status !== 'Occupied';
-            })
-            .map(room => ({
+            .filter((room) => room.status !== 'Occupied') // hide occupied rooms
+            .map((room) => ({
               id: room.id,
               name: room.name || 'Private Office',
               title: room.name || 'Private Office',
-              description: room.description || room.inclusions || 'Modern, well-equipped private office designed for productivity and comfort.',
+              description:
+                room.inclusions ||
+                'Modern, well-equipped private office designed for productivity and comfort.',
               image: room.image || '/images/inspirelogo.png',
               rating: 4.95, // Default rating
               badge: 'Guest favorite',
               rentFee: room.rentFee || 0,
               currency: room.currency || 'PHP',
               rentFeePeriod: room.rentFeePeriod || 'per hour',
-              inclusions: room.inclusions || ''
+              inclusions: room.inclusions || '',
             }));
-          
+
           setRooms(roomsData);
         }
       } catch (error) {
