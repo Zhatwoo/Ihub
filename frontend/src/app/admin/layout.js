@@ -21,7 +21,6 @@ const DeskIcon = ({ className }) => (
 
 const navItems = [
   { name: 'Dashboard', href: '/admin', icon: '📊' },
-  { name: 'Reports', href: '/admin/reports', icon: '📈' },
   { name: 'Dedicated Desk', href: '/admin/dedicated-desk', icon: 'desk', isSvg: true },
   { name: 'Private Office', href: '/admin/private-office', icon: '🏢' },
   { name: 'Virtual Office', href: '/admin/virtual-office', icon: '💻' },
