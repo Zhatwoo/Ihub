@@ -1,7 +1,7 @@
 // Helper function to get Firestore with error handling
 import { getFirestore } from '../config/firebase.js';
 
-const FIRESTORE_ERROR_MESSAGE = 'Firestore database is not connected. Please add Firebase Admin SDK credentials to backend/.env:\n\nFIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----\\n"\nFIREBASE_CLIENT_EMAIL="firebase-adminsdk-xxxxx@i-hub-18b78.iam.gserviceaccount.com"\n\nOR use:\nFIREBASE_SERVICE_ACCOUNT_PATH=./serviceAccountKey.json\n\nGet these from Firebase Console > Project Settings > Service Accounts';
+const FIRESTORE_ERROR_MESSAGE = 'Firestore database is not connected. Please add Firebase Admin SDK credentials to backend/.env:\n\nFIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----\\n"\nFIREBASE_CLIENT_EMAIL="firebase-adminsdk-xxxxx@your-project-id.iam.gserviceaccount.com"\n\nOR use:\nFIREBASE_SERVICE_ACCOUNT_PATH=./serviceAccountKey.json\n\nGet these from Firebase Console > Project Settings > Service Accounts';
 
 /**
  * Get Firestore instance and return error response if not initialized

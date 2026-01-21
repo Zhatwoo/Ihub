@@ -69,6 +69,8 @@ export const login = async (req, res) => {
           errorMessage = 'This account has been disabled';
         } else if (message.includes('TOO_MANY_ATTEMPTS')) {
           errorMessage = 'Too many failed attempts. Please try again later';
+        } else if (message.includes('OPERATION_NOT_ALLOWED')) {
+          errorMessage = 'Email/Password sign-in is currently disabled. Please enable it in Firebase Console > Authentication > Sign-in method > Email/Password.';
         } else {
           errorMessage = message;
         }
@@ -208,12 +210,15 @@ export const signup = async (req, res) => {
           errorMessage = 'Invalid email address';
         } else if (message.includes('WEAK_PASSWORD')) {
           errorMessage = 'Password is too weak';
+        } else if (message.includes('OPERATION_NOT_ALLOWED')) {
+          errorMessage = 'Email/Password sign-up is currently disabled. Please contact the administrator or enable Email/Password authentication in Firebase Console > Authentication > Sign-in method.';
         } else {
           errorMessage = message;
         }
       }
 
       return res.status(400).json({
+        success: false,
         error: 'Bad Request',
         message: errorMessage
       });

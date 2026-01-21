@@ -379,15 +379,20 @@ export default function PrivateOfficesSection() {
                   onClick={() => handleCardClick(feature)}
                   className="shrink-0 w-[300px] rounded-2xl overflow-hidden cursor-pointer group relative transition-all duration-300 shadow-md hover:shadow-2xl hover:ring-2 hover:ring-teal-500"
                 >
-                  <div className="relative h-[200px]">
-                    <Image
-                      src={feature.image}
-                      alt={feature.title}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
-                      unoptimized
-                    />
-                  </div>
+                <div className="relative h-[200px]">
+                  <Image
+                    src={feature.image}
+                    alt={feature.title}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    unoptimized
+                    onError={({ currentTarget }) => {
+                      // Fallback placeholder when image fails to load
+                      currentTarget.onerror = null;
+                      currentTarget.src = '/images/inspirelogo.png';
+                    }}
+                  />
+                </div>
                   <div className="p-4 bg-white">
                     {index === 0 && (
                       <div className="inline-block bg-teal-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded mb-1">

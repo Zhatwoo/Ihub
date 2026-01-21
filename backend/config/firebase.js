@@ -75,7 +75,7 @@ export const initFirebase = async () => {
           console.warn('   For local development, you need service account credentials.');
           console.warn('   Add to backend/.env:');
           console.warn('     FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\\n...\\n-----END PRIVATE KEY-----\\n"');
-          console.warn('     FIREBASE_CLIENT_EMAIL="firebase-adminsdk-xxxxx@i-hub-18b78.iam.gserviceaccount.com"');
+          console.warn('     FIREBASE_CLIENT_EMAIL="firebase-adminsdk-xxxxx@your-project-id.iam.gserviceaccount.com"');
           console.warn('   OR use:');
           console.warn('     FIREBASE_SERVICE_ACCOUNT_PATH=./serviceAccountKey.json');
           console.warn('   Admin SDK features (Firestore, token verification) will not be available');
