@@ -56,10 +56,13 @@ export const getPrivateOfficeDashboard = async (req, res) => {
     }
 
     // Fetch schedules and rooms
+    console.log('📖 FIRESTORE READ: Starting private office dashboard fetch...');
     const [schedulesSnapshot, roomsSnapshot] = await Promise.all([
       firestore.collection('privateOfficeRooms').doc('data').collection('requests').get(),
       firestore.collection('privateOfficeRooms').doc('data').collection('office').get()
     ]);
+    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests - ${schedulesSnapshot.docs.length} documents`);
+    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/office - ${roomsSnapshot.docs.length} documents`);
 
     let schedules = schedulesSnapshot.docs.map(doc => convertTimestamps({ id: doc.id, ...doc.data() }));
     const rooms = roomsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -150,7 +153,9 @@ export const getPrivateOfficeRequests = async (req, res) => {
       return sendFirestoreError(res);
     }
 
+    console.log('📖 FIRESTORE READ: privateOfficeRooms/data/requests - executing query...');
     const schedulesSnapshot = await firestore.collection('privateOfficeRooms').doc('data').collection('requests').get();
+    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests - ${schedulesSnapshot.docs.length} documents read`);
     let schedules = schedulesSnapshot.docs.map(doc => convertTimestamps({ id: doc.id, ...doc.data() }));
 
     // Removed: Debug logs containing private user data (clientName)
@@ -221,7 +226,9 @@ export const removeTenant = async (req, res) => {
 
     // Get the room to find the associated request
     const roomRef = firestore.collection('privateOfficeRooms').doc('data').collection('office').doc(roomId);
+    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/office/${roomId} - executing query...`);
     const roomDoc = await roomRef.get();
+    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/office/${roomId} - ${roomDoc.exists ? '1 document' : 'not found'}`);
 
     if (!roomDoc.exists) {
       return res.status(404).json({
@@ -240,6 +247,7 @@ export const removeTenant = async (req, res) => {
     }
 
     // Find the associated request for this room
+    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests - querying where roomId==${roomId} AND status=='approved'...`);
     const requestsSnapshot = await firestore
       .collection('privateOfficeRooms')
       .doc('data')
@@ -247,6 +255,7 @@ export const removeTenant = async (req, res) => {
       .where('roomId', '==', roomId)
       .where('status', '==', 'approved')
       .get();
+    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests - ${requestsSnapshot.docs.length} documents found`);
 
     // Update room to Vacant
     await roomRef.update({
@@ -299,7 +308,9 @@ export const updateRequestStatus = async (req, res) => {
     }
 
     const requestRef = firestore.collection('privateOfficeRooms').doc('data').collection('requests').doc(requestId);
+    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests/${requestId} - executing query...`);
     const requestDoc = await requestRef.get();
+    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests/${requestId} - ${requestDoc.exists ? '1 document' : 'not found'}`);
 
     if (!requestDoc.exists) {
       return res.status(404).json({
@@ -328,7 +339,9 @@ export const updateRequestStatus = async (req, res) => {
       if (currentRequest.roomId && currentRequest.clientName) {
         try {
           const roomRef = firestore.collection('privateOfficeRooms').doc('data').collection('office').doc(currentRequest.roomId);
-          const roomDoc = await roomRef.get();
+          console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/office/${roomId} - executing query...`);
+    const roomDoc = await roomRef.get();
+    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/office/${roomId} - ${roomDoc.exists ? '1 document' : 'not found'}`);
           
           if (roomDoc.exists) {
             await roomRef.update({
@@ -348,7 +361,9 @@ export const updateRequestStatus = async (req, res) => {
       if (currentRequest.roomId) {
         try {
           const roomRef = firestore.collection('privateOfficeRooms').doc('data').collection('office').doc(currentRequest.roomId);
-          const roomDoc = await roomRef.get();
+          console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/office/${roomId} - executing query...`);
+    const roomDoc = await roomRef.get();
+    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/office/${roomId} - ${roomDoc.exists ? '1 document' : 'not found'}`);
           
           if (roomDoc.exists) {
             await roomRef.update({
@@ -370,7 +385,9 @@ export const updateRequestStatus = async (req, res) => {
     // Removed: Log containing request update data (may contain private info)
 
     // Verify the update was saved by reading the document back
+    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests/${requestId} - verification read...`);
     const updatedDoc = await requestRef.get();
+    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests/${requestId} - ${updatedDoc.exists ? '1 document verified' : 'not found'}`);
     // Removed: Verification log containing private request data (clientName, room)
 
     res.json({

@@ -34,6 +34,7 @@ export default function Tenants() {
           setVirtualOfficeTenants(tenants.virtualOffice || []);
           setDedicatedDeskTenants(tenants.dedicatedDesk || []);
           setStats(stats);
+          console.log(`📊 SNAPSHOT: admin/tenants - PO: ${tenants.privateOffice?.length || 0}, VO: ${tenants.virtualOffice?.length || 0}, DD: ${tenants.dedicatedDesk?.length || 0}`);
         }
       } catch (error) {
         console.error('Error fetching tenants:', error);
@@ -47,63 +48,22 @@ export default function Tenants() {
       }
     };
 
+    // Initial fetch only - AUTO REFRESH DISABLED
+    console.log('📖 AUTO READ: admin/tenants - Initial fetchTenants starting...');
+    console.log('📖 AUTO READ: admin/tenants - Calling /api/admin/tenants/stats...');
     fetchTenants();
     
-    // Poll for updates every 15 minutes (increased to reduce Firestore reads)
-    // Only poll when tab is visible to reduce unnecessary requests
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        if (tenantsIntervalRef.current) {
-          clearInterval(tenantsIntervalRef.current);
-          tenantsIntervalRef.current = null;
-          console.log('⏸️ POLLING STOPPED: admin/tenants - /api/admin/tenants/stats (tab hidden)');
-        }
-      } else {
-        // Only create interval if one doesn't already exist
-        if (!tenantsIntervalRef.current) {
-          fetchTenants(); // Fetch immediately when tab becomes visible
-          tenantsIntervalRef.current = setInterval(() => {
-            console.log('🔄 POLLING EXECUTED: admin/tenants - /api/admin/tenants/stats');
-            api.get('/api/admin/tenants/stats').then(response => {
-              if (response.success && response.data) {
-                const { stats, tenants } = response.data;
-                setPrivateOfficeTenants(tenants.privateOffice || []);
-                setVirtualOfficeTenants(tenants.virtualOffice || []);
-                setDedicatedDeskTenants(tenants.dedicatedDesk || []);
-                setStats(stats);
-              }
-            }).catch(error => console.error('Error polling tenants:', error));
-          }, 900000); // 15 minutes
-          console.log('🔄 POLLING STARTED: admin/tenants - /api/admin/tenants/stats (15 min interval)');
-        }
-      }
-    };
-    
-    // Start polling if tab is visible (only if no interval exists)
-    if (!document.hidden && !tenantsIntervalRef.current) {
-      tenantsIntervalRef.current = setInterval(() => {
-        console.log('🔄 POLLING EXECUTED: admin/tenants - /api/admin/tenants/stats');
-        api.get('/api/admin/tenants/stats').then(response => {
-          if (response.success && response.data) {
-            const { stats, tenants } = response.data;
-            setPrivateOfficeTenants(tenants.privateOffice || []);
-            setVirtualOfficeTenants(tenants.virtualOffice || []);
-            setDedicatedDeskTenants(tenants.dedicatedDesk || []);
-            setStats(stats);
-          }
-        }).catch(error => console.error('Error polling tenants:', error));
-      }, 900000); // 15 minutes
-      console.log('🔄 POLLING STARTED: admin/tenants - /api/admin/tenants/stats (15 min interval)');
-    }
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    // DISABLED: Auto refresh/polling - was causing excessive Firestore reads
+    // Data will only load once on mount, no automatic refresh
+    // const handleVisibilityChange = () => { ... };
+    // document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
       if (tenantsIntervalRef.current) {
         clearInterval(tenantsIntervalRef.current);
         tenantsIntervalRef.current = null;
       }
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      // document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 

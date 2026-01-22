@@ -70,8 +70,6 @@ export default function Bookings() {
     
     // REMOVED: Storage change listener - was causing excessive API calls
     // User data is now cached and only fetched once on mount
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   // Currency symbol helper
@@ -84,154 +82,24 @@ export default function Bookings() {
   };
 
   // Refetch bookings function - can be called after mutations
-  const refetchBookings = async () => {
-    if (!currentUser) return;
-
-    const userId = currentUser.uid;
-    const userEmail = currentUser.email?.toLowerCase() || '';
-    
-    const userFullName = userInfo 
-      ? `${userInfo.firstName || ''} ${userInfo.lastName || ''}`.trim().toLowerCase()
-      : '';
-    const userFirstName = userInfo?.firstName?.toLowerCase() || '';
-    const userLastName = userInfo?.lastName?.toLowerCase() || '';
-    
-    try {
-      // Fetch desk assignments
-      const deskAssignmentsResponse = await api.get('/api/desk-assignments');
-      const deskBookings = [];
-      
-      if (deskAssignmentsResponse.success && deskAssignmentsResponse.data) {
-        deskAssignmentsResponse.data.forEach((assignmentData) => {
-          const deskId = assignmentData.id;
-          const assignmentEmail = assignmentData.email?.toLowerCase() || '';
-          const assignmentName = assignmentData.name?.toLowerCase() || '';
-          
-          const emailMatch = userEmail && assignmentEmail && assignmentEmail === userEmail;
-          const nameMatch = userFullName && assignmentName && assignmentName === userFullName;
-          const firstNameMatch = userFirstName && assignmentName && assignmentName.includes(userFirstName);
-          const lastNameMatch = userLastName && assignmentName && assignmentName.includes(userLastName);
-          
-          const isUserAssignment = emailMatch || nameMatch || (firstNameMatch && lastNameMatch);
-          
-          if (isUserAssignment) {
-            const finalDeskId = assignmentData.desk || deskId;
-            
-            const booking = {
-              ...assignmentData,
-              id: finalDeskId,
-              type: 'desk',
-              deskId: finalDeskId,
-              desk: finalDeskId,
-              room: assignmentData.section || assignmentData.location || 'Dedicated Desk',
-              section: assignmentData.section || finalDeskId.substring(0, 1),
-              location: assignmentData.location || 'Alliance Global Tower',
-              clientName: assignmentData.name || 'User',
-              email: assignmentData.email || '',
-              contactNumber: assignmentData.contactNumber || '',
-              company: assignmentData.company || '',
-              startDate: assignmentData.assignedAt || assignmentData.createdAt || assignmentData.updatedAt,
-              createdAt: assignmentData.assignedAt || assignmentData.createdAt,
-              status: 'approved',
-            };
-            deskBookings.push(booking);
-          }
-        });
-      }
-
-      // Fetch virtual office clients for this user
-      const virtualOfficeResponse = await api.get(`/api/virtual-office/user/${userId}`).catch(() => ({ success: false, data: [] }));
-      const virtualOfficeBookings = [];
-      
-      if (virtualOfficeResponse.success && virtualOfficeResponse.data) {
-        virtualOfficeResponse.data.forEach((clientData) => {
-          const clientId = clientData.id;
-          
-          const booking = {
-            id: clientId,
-            type: 'virtual-office',
-            room: 'Virtual Office',
-            clientName: clientData.fullName || 'User',
-            email: clientData.email || '',
-            contactNumber: clientData.phoneNumber || '',
-            company: clientData.company || '',
-            position: clientData.position || '',
-            startDate: clientData.dateStart || clientData.createdAt,
-            createdAt: clientData.createdAt,
-            status: 'active',
-            ...clientData,
-          };
-          virtualOfficeBookings.push(booking);
-        });
-      }
-
-      // Fetch schedules/bookings
-      const schedulesResponse = await api.get(`/api/schedules/user/${userId}`);
-      const scheduleBookings = [];
-      
-      if (schedulesResponse.success && schedulesResponse.data) {
-        schedulesResponse.data.forEach((scheduleData) => {
-          const booking = {
-            id: scheduleData.id,
-            type: 'privateroom',
-            room: scheduleData.room || 'Private Room',
-            roomId: scheduleData.roomId || '',
-            clientName: scheduleData.clientName || 'User',
-            email: scheduleData.email || '',
-            contactNumber: scheduleData.contactNumber || '',
-            startDate: scheduleData.startDate,
-            endDate: scheduleData.endDate,
-            startTime: scheduleData.startTime,
-            endTime: scheduleData.endTime,
-            createdAt: scheduleData.createdAt,
-            status: scheduleData.status || 'pending',
-            notes: scheduleData.notes || '',
-            ...scheduleData,
-          };
-          scheduleBookings.push(booking);
-        });
-      }
-
-      // Combine all bookings
-      const allBookings = [...deskBookings, ...virtualOfficeBookings, ...scheduleBookings];
-
-      // Remove duplicates
-      const uniqueBookings = allBookings.reduce((acc, booking) => {
-        const existing = acc.find(b => b.id === booking.id && b.type === booking.type);
-        if (!existing) {
-          acc.push(booking);
-        }
-        return acc;
-      }, []);
-
-      // Sort by date (newest first)
-      const sortedBookings = uniqueBookings.sort((a, b) => {
-        const dateA = new Date(a.startDate || a.assignedAt || a.createdAt || a.dateStart || 0);
-        const dateB = new Date(b.startDate || b.assignedAt || b.createdAt || b.dateStart || 0);
-        return dateB - dateA;
-      });
-      
-      setBookings(sortedBookings);
-    } catch (error) {
-      console.error('Error refetching bookings:', error);
-    }
-  };
-
-  // Fetch bookings from backend API (desk-assignments, virtual-office-clients, and schedules)
-  // Use stable dependencies (primitive values) instead of object references to prevent refresh loops
   // Extract stable primitive values from objects for dependency tracking
   const userId = currentUser?.uid || null;
   const userEmail = currentUser?.email?.toLowerCase() || '';
   const userFirstName = userInfo?.firstName?.toLowerCase() || '';
   const userLastName = userInfo?.lastName?.toLowerCase() || '';
   
-  useEffect(() => {
+  // Shared function to fetch bookings - prevents duplicate code
+  const fetchBookings = async (showLoading = true) => {
     if (!userId) {
-      setLoading(false);
+      if (showLoading) setLoading(false);
       return;
     }
 
-    const fetchBookings = async () => {
+    if (showLoading) {
+      console.log('📖 AUTO READ: bookings/page - fetchBookings starting...');
+      setLoading(true);
+    }
+      console.log('📖 AUTO READ: bookings/page - fetchBookings starting...');
       setLoading(true);
       
       // Get user's full name from userInfo
@@ -241,6 +109,7 @@ export default function Bookings() {
       
       try {
         // Fetch desk assignments from backend API
+        console.log('📖 AUTO READ: bookings/page - Calling /api/desk-assignments...');
         const deskAssignmentsResponse = await api.get('/api/desk-assignments');
         const deskBookings = [];
         
@@ -287,6 +156,7 @@ export default function Bookings() {
         }
 
         // Fetch virtual office clients for this user from backend API
+        console.log(`📖 AUTO READ: bookings/page - Calling /api/virtual-office/user/${userId}...`);
         const virtualOfficeResponse = await api.get(`/api/virtual-office/user/${userId}`).catch(() => ({ success: false, data: [] }));
         const virtualOfficeBookings = [];
         
@@ -313,6 +183,7 @@ export default function Bookings() {
         }
 
         // Fetch schedules/bookings from backend API
+        console.log(`📖 AUTO READ: bookings/page - Calling /api/schedules/user/${userId}...`);
         const schedulesResponse = await api.get(`/api/schedules/user/${userId}`);
         const scheduleBookings = [];
         
@@ -363,46 +234,33 @@ export default function Bookings() {
         console.error('Error fetching bookings:', error);
         setBookings([]);
       } finally {
-        setLoading(false);
+        if (showLoading) setLoading(false);
       }
     };
 
-    // Initial fetch
-    fetchBookings();
+  // Refetch bookings function (for manual refresh after actions)
+  const refetchBookings = async () => {
+    await fetchBookings(false); // Don't show loading spinner on manual refresh
+  };
+
+  // Fetch bookings from backend API (desk-assignments, virtual-office-clients, and schedules)
+  // Use stable dependencies (primitive values) instead of object references to prevent refresh loops
+  useEffect(() => {
+    // Initial fetch only - AUTO REFRESH DISABLED
+    console.log('📖 AUTO READ: bookings/page - Initial fetchBookings starting...');
+    fetchBookings(true);
     
-    // Poll for updates every 15 minutes (increased to reduce Firestore reads)
-    // Only poll when tab is visible to reduce unnecessary requests
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        if (bookingsIntervalRef.current) {
-          clearInterval(bookingsIntervalRef.current);
-          bookingsIntervalRef.current = null;
-          console.log('⏸️ POLLING STOPPED: bookings/page - fetchBookings (tab hidden)');
-        }
-      } else {
-        // Only create interval if one doesn't already exist
-        if (!bookingsIntervalRef.current) {
-          fetchBookings(); // Fetch immediately when tab becomes visible
-          bookingsIntervalRef.current = setInterval(fetchBookings, 900000); // 15 minutes
-          console.log('🔄 POLLING STARTED: bookings/page - fetchBookings (15 min interval)');
-        }
-      }
-    };
-    
-    // Start polling if tab is visible (only if no interval exists)
-    if (!document.hidden && !bookingsIntervalRef.current) {
-      bookingsIntervalRef.current = setInterval(fetchBookings, 900000); // 15 minutes
-      console.log('🔄 POLLING STARTED: bookings/page - fetchBookings (15 min interval)');
-    }
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    // DISABLED: Auto refresh/polling - was causing excessive Firestore reads
+    // Data will only load once on mount, no automatic refresh
+    // const handleVisibilityChange = () => { ... };
+    // document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
       if (bookingsIntervalRef.current) {
         clearInterval(bookingsIntervalRef.current);
         bookingsIntervalRef.current = null;
       }
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      // document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [userId, userEmail, userFirstName, userLastName]); // Use stable primitive dependencies
 
@@ -410,10 +268,13 @@ export default function Bookings() {
   // Fetch rooms from backend API to get rental fee information
   useEffect(() => {
     const fetchRooms = async () => {
+      console.log('📖 AUTO READ: bookings/page - fetchRooms starting...');
       try {
+        console.log('📖 AUTO READ: bookings/page - Calling /api/rooms...');
         const response = await api.get('/api/rooms');
         if (response.success && response.data) {
           setRooms(response.data);
+          console.log(`📊 SNAPSHOT: bookings/page - ${response.data.length} rooms loaded`);
         }
       } catch (error) {
         console.error('Error fetching rooms:', error);
@@ -421,42 +282,20 @@ export default function Bookings() {
       }
     };
 
-    // Initial fetch
+    // Initial fetch only - AUTO REFRESH DISABLED
     fetchRooms();
     
-    // Poll for updates every 15 minutes (increased to reduce Firestore reads)
-    // Only poll when tab is visible to reduce unnecessary requests
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        if (roomsIntervalRef.current) {
-          clearInterval(roomsIntervalRef.current);
-          roomsIntervalRef.current = null;
-          console.log('⏸️ POLLING STOPPED: bookings/page - fetchRooms (tab hidden)');
-        }
-      } else {
-        // Only create interval if one doesn't already exist
-        if (!roomsIntervalRef.current) {
-          fetchRooms(); // Fetch immediately when tab becomes visible
-          roomsIntervalRef.current = setInterval(fetchRooms, 900000); // 15 minutes
-          console.log('🔄 POLLING STARTED: bookings/page - fetchRooms (15 min interval)');
-        }
-      }
-    };
-    
-    // Start polling if tab is visible (only if no interval exists)
-    if (!document.hidden && !roomsIntervalRef.current) {
-      roomsIntervalRef.current = setInterval(fetchRooms, 900000); // 15 minutes
-      console.log('🔄 POLLING STARTED: bookings/page - fetchRooms (15 min interval)');
-    }
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    // DISABLED: Auto refresh/polling - was causing excessive Firestore reads
+    // Data will only load once on mount, no automatic refresh
+    // const handleVisibilityChange = () => { ... };
+    // document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
       if (roomsIntervalRef.current) {
         clearInterval(roomsIntervalRef.current);
         roomsIntervalRef.current = null;
       }
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      // document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 

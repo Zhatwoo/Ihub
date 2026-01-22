@@ -95,8 +95,6 @@ export default function DedicatedDeskSection() {
     
     // REMOVED: Storage change listener - was causing excessive API calls
     // User data is now cached and only fetched once on mount
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   // Fetch desk assignments from backend API
@@ -104,6 +102,7 @@ export default function DedicatedDeskSection() {
   
   useEffect(() => {
     const fetchDeskAssignments = async () => {
+      console.log('🔄 POLLING EXECUTED: DedicatedDeskSection - fetchDeskAssignments');
       try {
         const response = await api.get('/api/desk-assignments');
         if (response.success && response.data) {
@@ -112,6 +111,7 @@ export default function DedicatedDeskSection() {
             assignments[assignment.id] = assignment;
           });
           setDeskAssignments(assignments);
+          console.log(`📊 SNAPSHOT: DedicatedDeskSection - ${Object.keys(assignments).length} desk assignments loaded`);
         }
       } catch (error) {
         console.error('Error fetching desk assignments:', error);
@@ -119,42 +119,21 @@ export default function DedicatedDeskSection() {
       }
     };
 
-    // Initial fetch
+    // Initial fetch only - AUTO REFRESH DISABLED
+    console.log('📖 AUTO READ: DedicatedDeskSection - Initial fetch starting...');
     fetchDeskAssignments();
     
-    // Poll for updates every 15 minutes (increased to reduce Firestore reads)
-    // Only poll when tab is visible to reduce unnecessary requests
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        if (deskAssignmentsIntervalRef.current) {
-          clearInterval(deskAssignmentsIntervalRef.current);
-          deskAssignmentsIntervalRef.current = null;
-          console.log('⏸️ POLLING STOPPED: DedicatedDeskSection - fetchDeskAssignments (tab hidden)');
-        }
-      } else {
-        // Only create interval if one doesn't already exist
-        if (!deskAssignmentsIntervalRef.current) {
-          fetchDeskAssignments(); // Fetch immediately when tab becomes visible
-          deskAssignmentsIntervalRef.current = setInterval(fetchDeskAssignments, 900000); // 15 minutes
-          console.log('🔄 POLLING STARTED: DedicatedDeskSection - fetchDeskAssignments (15 min interval)');
-        }
-      }
-    };
-    
-    // Start polling if tab is visible (only if no interval exists)
-    if (!document.hidden && !deskAssignmentsIntervalRef.current) {
-      deskAssignmentsIntervalRef.current = setInterval(fetchDeskAssignments, 900000); // 15 minutes
-      console.log('🔄 POLLING STARTED: DedicatedDeskSection - fetchDeskAssignments (15 min interval)');
-    }
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    // DISABLED: Auto refresh/polling - was causing excessive Firestore reads
+    // Data will only load once on mount, no automatic refresh
+    // const handleVisibilityChange = () => { ... };
+    // document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
       if (deskAssignmentsIntervalRef.current) {
         clearInterval(deskAssignmentsIntervalRef.current);
         deskAssignmentsIntervalRef.current = null;
       }
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      // document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 

@@ -41,6 +41,7 @@ export default function DedicatedDesk() {
   // Fetch desk assignments from backend with real-time updates
   useEffect(() => {
     const fetchAssignments = async () => {
+      console.log('🔄 POLLING EXECUTED: admin/dedicated-desk - fetchAssignments');
       try {
         const response = await api.get('/api/admin/dedicated-desk/assignments', { skipCache: true });
         if (response.success && response.data) {
@@ -49,6 +50,7 @@ export default function DedicatedDesk() {
             assignments[assignment.id] = assignment;
           });
           setDeskAssignments(assignments);
+          console.log(`📊 SNAPSHOT: admin/dedicated-desk/assignments - ${Object.keys(assignments).length} assignments loaded`);
         }
       } catch (error) {
         console.error('Error fetching desk assignments:', error);
@@ -56,42 +58,21 @@ export default function DedicatedDesk() {
       }
     };
 
-    // Initial fetch
+    // Initial fetch only - AUTO REFRESH DISABLED
+    console.log('📖 AUTO READ: admin/dedicated-desk - Initial fetchAssignments starting...');
     fetchAssignments();
     
-    // Poll for updates every 15 minutes (increased to reduce Firestore reads)
-    // Only poll when tab is visible to reduce unnecessary requests
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        if (assignmentsIntervalRef.current) {
-          clearInterval(assignmentsIntervalRef.current);
-          assignmentsIntervalRef.current = null;
-          console.log('⏸️ POLLING STOPPED: admin/dedicated-desk - fetchAssignments (tab hidden)');
-        }
-      } else {
-        // Only create interval if one doesn't already exist
-        if (!assignmentsIntervalRef.current) {
-          fetchAssignments(); // Fetch immediately when tab becomes visible
-          assignmentsIntervalRef.current = setInterval(fetchAssignments, 900000); // 15 minutes
-          console.log('🔄 POLLING STARTED: admin/dedicated-desk - fetchAssignments (15 min interval)');
-        }
-      }
-    };
-    
-    // Start polling if tab is visible (only if no interval exists)
-    if (!document.hidden && !assignmentsIntervalRef.current) {
-          assignmentsIntervalRef.current = setInterval(fetchAssignments, 900000); // 15 minutes
-          console.log('🔄 POLLING STARTED: admin/dedicated-desk - fetchAssignments (15 min interval)');
-    }
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    // DISABLED: Auto refresh/polling - was causing excessive Firestore reads
+    // Data will only load once on mount, no automatic refresh
+    // const handleVisibilityChange = () => { ... };
+    // document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
       if (assignmentsIntervalRef.current) {
         clearInterval(assignmentsIntervalRef.current);
         assignmentsIntervalRef.current = null;
       }
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      // document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
@@ -118,6 +99,7 @@ export default function DedicatedDesk() {
     }
     
     const fetchRequests = async () => {
+      console.log('🔄 POLLING EXECUTED: admin/dedicated-desk - fetchRequests');
       // Only show loading on initial fetch
       if (requests.length === 0) {
         setLoadingRequests(true);
@@ -125,6 +107,7 @@ export default function DedicatedDesk() {
       try {
         const requestsData = await fetchAllRequests();
         setRequests(requestsData);
+        console.log(`📊 SNAPSHOT: admin/dedicated-desk/requests - ${requestsData.length} requests loaded`);
       } catch (error) {
         console.error('Error fetching requests:', error);
       } finally {
@@ -142,42 +125,21 @@ export default function DedicatedDesk() {
       return;
     }
     
-    // Initial fetch
+    // Initial fetch only - AUTO REFRESH DISABLED
+    console.log('📖 AUTO READ: admin/dedicated-desk - Initial fetchRequests starting...');
     fetchRequests();
     
-    // Poll for updates every 15 minutes (increased to reduce Firestore reads)
-    // Only poll when tab is visible to reduce unnecessary requests
-    const handleVisibilityChange = () => {
-      if (document.hidden || activeTab !== 'requests') {
-        if (requestsIntervalRef.current) {
-          clearInterval(requestsIntervalRef.current);
-          requestsIntervalRef.current = null;
-          console.log('⏸️ POLLING STOPPED: admin/dedicated-desk - fetchRequests (tab hidden or inactive)');
-        }
-      } else {
-        // Only create interval if one doesn't already exist
-        if (!requestsIntervalRef.current) {
-          fetchRequests(); // Fetch immediately when tab becomes visible
-          requestsIntervalRef.current = setInterval(fetchRequests, 900000); // 15 minutes
-          console.log('🔄 POLLING STARTED: admin/dedicated-desk - fetchRequests (15 min interval)');
-        }
-      }
-    };
-    
-    // Start polling if tab is visible (only if no interval exists)
-    if (!document.hidden && !requestsIntervalRef.current) {
-      requestsIntervalRef.current = setInterval(fetchRequests, 900000); // 15 minutes
-      console.log('🔄 POLLING STARTED: admin/dedicated-desk - fetchRequests (15 min interval)');
-    }
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    // DISABLED: Auto refresh/polling - was causing excessive Firestore reads
+    // Data will only load once on mount, no automatic refresh
+    // const handleVisibilityChange = () => { ... };
+    // document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
       if (requestsIntervalRef.current) {
         clearInterval(requestsIntervalRef.current);
         requestsIntervalRef.current = null;
       }
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      // document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, [activeTab]);
   
@@ -361,24 +323,10 @@ export default function DedicatedDesk() {
     }
   };
 
-  // Get assignments list from backend (already processed)
-  const [assignmentsList, setAssignmentsList] = useState([]);
-
-  useEffect(() => {
-    const fetchAssignmentsList = async () => {
-      try {
-        const response = await api.get('/api/admin/dedicated-desk/assignments', { skipCache: true });
-        if (response.success && response.data) {
-          setAssignmentsList(response.data.assignments || []);
-        }
-      } catch (error) {
-        console.error('Error fetching assignments list:', error);
-        setAssignmentsList([]);
-      }
-    };
-
-    fetchAssignmentsList();
-  }, [deskAssignments]);
+  // Get assignments list - derive from deskAssignments instead of fetching again
+  // This prevents double fetching when deskAssignments changes
+  // FIXED: Removed duplicate useEffect that was calling /api/admin/dedicated-desk/assignments
+  const assignmentsList = Object.values(deskAssignments);
 
   return (
     <div className={`w-full relative transition-all duration-500 ease-out pb-8 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>

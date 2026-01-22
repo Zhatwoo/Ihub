@@ -1,12 +1,15 @@
 import express from 'express';
+import { createServer } from 'http';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import morgan from 'morgan';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { Server } from 'socket.io';
 import { config } from './config/index.js';
 import { initFirebase } from './config/firebase.js';
+import { initRealtimeFirestore } from './services/realtimeFirestore.js';
 import adminRoutes from './routes/admin.js';
 import authRoutes from './routes/auth.js';
 import accountsRoutes from './routes/accounts.js';
@@ -43,7 +46,6 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Initialize Firebase Admin SDK
-// Check Firebase API key configuration
 if (!config.firebase?.apiKey) {
   console.warn('⚠️  Firebase API key not found in environment variables');
   console.warn('   Add to backend/.env: NEXT_PUBLIC_FIREBASE_API_KEY=your-api-key');
@@ -51,11 +53,6 @@ if (!config.firebase?.apiKey) {
 } else {
   console.log('✅ Firebase API key configured');
 }
-
-initFirebase().catch(err => {
-  console.error('⚠️  Firebase Admin SDK initialization failed:', err.message);
-  console.error('   Some features may not work. Check your Firebase configuration.');
-});
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -116,11 +113,40 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Server is running on http://localhost:${PORT}`);
-  console.log(`📡 API endpoint: http://localhost:${PORT}/api`);
-  console.log(`💚 Health check: http://localhost:${PORT}/health`);
+// Create HTTP server and attach Socket.IO (for onSnapshot real-time updates)
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: config.corsOrigin,
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
 });
+
+io.on('connection', (socket) => {
+  console.log('🔌 Socket connected:', socket.id);
+  socket.on('disconnect', () => {
+    console.log('🔌 Socket disconnected:', socket.id);
+  });
+});
+
+// Start server (async: init Firebase then realtime Firestore, then listen)
+async function start() {
+  try {
+    await initFirebase();
+  } catch (err) {
+    console.error('⚠️  Firebase Admin SDK initialization failed:', err.message);
+    console.error('   Some features may not work. Check your Firebase configuration.');
+  }
+  initRealtimeFirestore(io);
+  httpServer.listen(PORT, () => {
+    console.log(`🚀 Server is running on http://localhost:${PORT}`);
+    console.log(`📡 API endpoint: http://localhost:${PORT}/api`);
+    console.log(`💚 Health check: http://localhost:${PORT}/health`);
+    console.log(`🔌 Socket.IO enabled for real-time Firestore (onSnapshot)`);
+  });
+}
+
+start();
 
 export default app;

@@ -257,9 +257,13 @@ export const api = {
     if (!shouldSkipCache) {
       const cached = requestCache.get(endpoint);
       if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+        console.log(`📖 AUTO READ (CACHED): ${endpoint} - Using cached data`);
         return cached.data;
       }
     }
+
+    // Log all API reads
+    console.log(`📖 AUTO READ: ${endpoint} - Executing GET request...`);
 
     // Tokens are in HttpOnly cookies - browser sends them automatically
     // Include credentials to send cookies with request
@@ -275,6 +279,14 @@ export const api = {
       });
       const data = await handleResponse(response);
       
+      // Log successful response
+      if (data && typeof data === 'object') {
+        const dataSize = Array.isArray(data) ? data.length : Object.keys(data).length;
+        console.log(`✅ AUTO READ: ${endpoint} - Success (${dataSize} items/keys)`);
+      } else {
+        console.log(`✅ AUTO READ: ${endpoint} - Success`);
+      }
+      
       // Cache successful response (unless it's a no-cache endpoint)
       if (!noCacheEndpoints.some(ep => endpoint.includes(ep))) {
         requestCache.set(endpoint, {
@@ -285,6 +297,7 @@ export const api = {
       
       return data;
     } catch (error) {
+      console.error(`❌ AUTO READ: ${endpoint} - Error:`, error.message);
       // Handle network errors (backend not running, CORS, etc.)
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
         throw new Error(`Cannot connect to backend server at ${API_URL}. Please make sure the backend is running on port 5000.`);
@@ -301,6 +314,7 @@ export const api = {
    * @returns {Promise} JSON response
    */
   post: async (endpoint, data, options = {}) => {
+    console.log(`📝 API WRITE: ${endpoint} - Executing POST request...`);
     // Tokens are in HttpOnly cookies - browser sends them automatically
     try {
       const response = await fetch(`${API_URL}${endpoint}`, {
@@ -313,8 +327,11 @@ export const api = {
         body: JSON.stringify(data),
         ...options
       });
-      return handleResponse(response);
+      const result = await handleResponse(response);
+      console.log(`✅ API WRITE: ${endpoint} - Success`);
+      return result;
     } catch (error) {
+      console.error(`❌ API WRITE: ${endpoint} - Error:`, error.message);
       // Handle network errors (backend not running, CORS, etc.)
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
         throw new Error(`Cannot connect to backend server at ${API_URL}. Please make sure the backend is running on port 5000.`);
@@ -331,6 +348,7 @@ export const api = {
    * @returns {Promise} JSON response
    */
   put: async (endpoint, data, options = {}) => {
+    console.log(`📝 API WRITE: ${endpoint} - Executing PUT request...`);
     // Tokens are in HttpOnly cookies - browser sends them automatically
     try {
       const response = await fetch(`${API_URL}${endpoint}`, {
@@ -343,8 +361,11 @@ export const api = {
         body: JSON.stringify(data),
         ...options
       });
-      return handleResponse(response);
+      const result = await handleResponse(response);
+      console.log(`✅ API WRITE: ${endpoint} - Success`);
+      return result;
     } catch (error) {
+      console.error(`❌ API WRITE: ${endpoint} - Error:`, error.message);
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
         throw new Error(`Cannot connect to backend server at ${API_URL}. Please make sure the backend is running on port 5000.`);
       }
@@ -360,6 +381,7 @@ export const api = {
    * @returns {Promise} JSON response
    */
   patch: async (endpoint, data, options = {}) => {
+    console.log(`📝 API WRITE: ${endpoint} - Executing PATCH request...`);
     // Tokens are in HttpOnly cookies - browser sends them automatically
     try {
       const response = await fetch(`${API_URL}${endpoint}`, {
@@ -372,8 +394,11 @@ export const api = {
         body: JSON.stringify(data),
         ...options
       });
-      return handleResponse(response);
+      const result = await handleResponse(response);
+      console.log(`✅ API WRITE: ${endpoint} - Success`);
+      return result;
     } catch (error) {
+      console.error(`❌ API WRITE: ${endpoint} - Error:`, error.message);
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
         throw new Error(`Cannot connect to backend server at ${API_URL}. Please make sure the backend is running on port 5000.`);
       }
@@ -388,6 +413,7 @@ export const api = {
    * @returns {Promise} JSON response
    */
   delete: async (endpoint, options = {}) => {
+    console.log(`📝 API WRITE: ${endpoint} - Executing DELETE request...`);
     // Tokens are in HttpOnly cookies - browser sends them automatically
     try {
       const response = await fetch(`${API_URL}${endpoint}`, {
@@ -399,8 +425,11 @@ export const api = {
         },
         ...options
       });
-      return handleResponse(response);
+      const result = await handleResponse(response);
+      console.log(`✅ API WRITE: ${endpoint} - Success`);
+      return result;
     } catch (error) {
+      console.error(`❌ API WRITE: ${endpoint} - Error:`, error.message);
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
         throw new Error(`Cannot connect to backend server at ${API_URL}. Please make sure the backend is running on port 5000.`);
       }
