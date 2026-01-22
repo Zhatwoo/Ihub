@@ -6,6 +6,44 @@ import admin from 'firebase-admin';
 import { sendFirestoreError } from '../../../utils/firestoreHelper.js';
 
 /**
+ * Convert Firestore timestamps to ISO strings
+ */
+const convertTimestamps = (obj) => {
+  if (!obj) return obj;
+  
+  const converted = { ...obj };
+  
+  // Convert startDate
+  if (converted.startDate) {
+    if (typeof converted.startDate === 'object' && converted.startDate.toDate) {
+      converted.startDate = converted.startDate.toDate().toISOString();
+    } else if (!(typeof converted.startDate === 'string')) {
+      converted.startDate = new Date(converted.startDate).toISOString();
+    }
+  }
+  
+  // Convert createdAt
+  if (converted.createdAt) {
+    if (typeof converted.createdAt === 'object' && converted.createdAt.toDate) {
+      converted.createdAt = converted.createdAt.toDate().toISOString();
+    } else if (!(typeof converted.createdAt === 'string')) {
+      converted.createdAt = new Date(converted.createdAt).toISOString();
+    }
+  }
+  
+  // Convert updatedAt
+  if (converted.updatedAt) {
+    if (typeof converted.updatedAt === 'object' && converted.updatedAt.toDate) {
+      converted.updatedAt = converted.updatedAt.toDate().toISOString();
+    } else if (!(typeof converted.updatedAt === 'string')) {
+      converted.updatedAt = new Date(converted.updatedAt).toISOString();
+    }
+  }
+  
+  return converted;
+};
+
+/**
  * Get private office dashboard data with filtering and sorting
  */
 export const getPrivateOfficeDashboard = async (req, res) => {
@@ -23,7 +61,7 @@ export const getPrivateOfficeDashboard = async (req, res) => {
       firestore.collection('privateOfficeRooms').doc('data').collection('office').get()
     ]);
 
-    let schedules = schedulesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    let schedules = schedulesSnapshot.docs.map(doc => convertTimestamps({ id: doc.id, ...doc.data() }));
     const rooms = roomsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
     // Keep a copy of ALL schedules for stats calculation
@@ -113,7 +151,7 @@ export const getPrivateOfficeRequests = async (req, res) => {
     }
 
     const schedulesSnapshot = await firestore.collection('privateOfficeRooms').doc('data').collection('requests').get();
-    let schedules = schedulesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    let schedules = schedulesSnapshot.docs.map(doc => convertTimestamps({ id: doc.id, ...doc.data() }));
 
     console.log('=== DEBUG: All Requests from Firebase ===');
     console.log('Total requests:', schedules.length);
