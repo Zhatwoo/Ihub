@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { api } from '@/lib/api';
+import { api, getUserFromCookie } from '@/lib/api';
 import { League_Spartan, Roboto } from 'next/font/google';
 import { motion } from 'framer-motion';
+import { showToast } from '@/components/Toast';
 
 const leagueSpartan = League_Spartan({
   subsets: ['latin'],
@@ -27,14 +28,13 @@ export default function Bookings() {
   const bookingsIntervalRef = useRef(null);
   const roomsIntervalRef = useRef(null);
 
-  // Get current user from localStorage and fetch user info from backend
+  // Get current user from cookies and fetch user info from backend
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // Get user info from localStorage (set during login)
-        const userStr = localStorage.getItem('user');
-        if (userStr) {
-          const user = JSON.parse(userStr);
+        // Get user from cookie (tokens are in HttpOnly cookies)
+        const user = getUserFromCookie();
+        if (user && user.uid) {
           setCurrentUser({ uid: user.uid, email: user.email });
           
           // Fetch user details from backend API
@@ -384,14 +384,14 @@ export default function Bookings() {
         // Only create interval if one doesn't already exist
         if (!bookingsIntervalRef.current) {
           fetchBookings(); // Fetch immediately when tab becomes visible
-          bookingsIntervalRef.current = setInterval(fetchBookings, 30000);
+          bookingsIntervalRef.current = setInterval(fetchBookings, 300000); // 5 minutes
         }
       }
     };
     
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !bookingsIntervalRef.current) {
-      bookingsIntervalRef.current = setInterval(fetchBookings, 30000);
+      bookingsIntervalRef.current = setInterval(fetchBookings, 300000); // 5 minutes
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -435,14 +435,14 @@ export default function Bookings() {
         // Only create interval if one doesn't already exist
         if (!roomsIntervalRef.current) {
           fetchRooms(); // Fetch immediately when tab becomes visible
-          roomsIntervalRef.current = setInterval(fetchRooms, 30000);
+          roomsIntervalRef.current = setInterval(fetchRooms, 300000); // 5 minutes
         }
       }
     };
     
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !roomsIntervalRef.current) {
-      roomsIntervalRef.current = setInterval(fetchRooms, 30000);
+      roomsIntervalRef.current = setInterval(fetchRooms, 300000); // 5 minutes
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -497,7 +497,7 @@ export default function Bookings() {
     // Only allow canceling private room bookings (schedules)
     // Desk assignments and virtual office bookings are managed by admin
     if (booking.type !== 'privateroom') {
-      alert('This booking type cannot be canceled from here. Please contact support.');
+      showToast('This booking type cannot be canceled from here. Please contact support.', 'error');
       return;
     }
 
@@ -525,9 +525,9 @@ export default function Bookings() {
           // Don't show error to user since booking was already removed from UI
         }
         
-        alert('Booking canceled successfully!');
+        showToast('Booking canceled successfully!', 'success');
       } else {
-        alert(response.message || 'Failed to cancel booking. Please try again.');
+        showToast(response.message || 'Failed to cancel booking. Please try again.', 'error');
       }
     } catch (error) {
       console.error('Error canceling booking:', error);
@@ -546,7 +546,7 @@ export default function Bookings() {
         errorMessage = error.message;
       }
       
-      alert(errorMessage);
+      showToast(errorMessage, 'error');
     } finally {
       setDeletingBookingId(null);
     }

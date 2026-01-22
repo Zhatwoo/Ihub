@@ -36,9 +36,11 @@ export default function AdminDashboard() {
         if (response.success) {
           const { privateOffice, virtualOffice, dedicatedDesk, rawData } = response.data;
           
-          console.log('🔍 Frontend Debug - Virtual Office Data:');
-          console.log('virtualOffice:', virtualOffice);
-          console.log('allTenants:', virtualOffice.allTenants);
+          // Debug logs removed - sensitive user data should not be logged
+          // Only log summary in development mode
+          if (process.env.NODE_ENV === 'development') {
+            console.log('✅ Dashboard data loaded successfully');
+          }
           
           // Set processed stats from backend
           setPrivateOfficeStats(privateOffice);
@@ -76,14 +78,14 @@ export default function AdminDashboard() {
         // Only create interval if one doesn't already exist
         if (!dataIntervalRef.current) {
           fetchData(); // Fetch immediately when tab becomes visible
-          dataIntervalRef.current = setInterval(fetchData, 30000);
+          dataIntervalRef.current = setInterval(fetchData, 300000); // 5 minutes
         }
       }
     };
     
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !dataIntervalRef.current) {
-      dataIntervalRef.current = setInterval(fetchData, 30000);
+      dataIntervalRef.current = setInterval(fetchData, 300000); // 5 minutes
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);

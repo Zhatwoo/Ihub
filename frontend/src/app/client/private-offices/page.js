@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { api } from '@/lib/api';
+import { api, getUserFromCookie } from '@/lib/api';
 
 export default function PrivateOffices() {
   // Ref to track rooms polling interval
@@ -48,13 +48,13 @@ export default function PrivateOffices() {
     notes: ''
   });
 
-  // Get current user from localStorage and fetch user info from backend
+  // Get current user from cookies and fetch user info from backend
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const userStr = localStorage.getItem('user');
-        if (userStr) {
-          const user = JSON.parse(userStr);
+        // Get user from cookie (tokens are in HttpOnly cookies)
+        const user = getUserFromCookie();
+        if (user && user.uid) {
           setCurrentUser({ uid: user.uid, email: user.email });
           
           // Fetch user details from backend API
@@ -134,14 +134,14 @@ export default function PrivateOffices() {
         // Only create interval if one doesn't already exist
         if (!roomsIntervalRef.current) {
           fetchRooms(); // Fetch immediately when tab becomes visible
-          roomsIntervalRef.current = setInterval(fetchRooms, 30000);
+          roomsIntervalRef.current = setInterval(fetchRooms, 300000); // 5 minutes
         }
       }
     };
     
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !roomsIntervalRef.current) {
-      roomsIntervalRef.current = setInterval(fetchRooms, 30000);
+      roomsIntervalRef.current = setInterval(fetchRooms, 300000); // 5 minutes
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);

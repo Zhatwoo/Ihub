@@ -24,7 +24,7 @@ export default function Tenants() {
       try {
         setLoading(true);
         // Fetch processed tenant data from admin API - skip cache to get fresh data
-        const response = await api.get('/api/admin/tenants/stats', { skipCache: true });
+        const response = await api.get('/api/admin/tenants/stats');
         
         if (response.success && response.data) {
           const { stats, tenants } = response.data;
@@ -62,7 +62,7 @@ export default function Tenants() {
         if (!tenantsIntervalRef.current) {
           fetchTenants(); // Fetch immediately when tab becomes visible
           tenantsIntervalRef.current = setInterval(() => {
-            api.get('/api/admin/tenants/stats', { skipCache: true }).then(response => {
+            api.get('/api/admin/tenants/stats').then(response => {
               if (response.success && response.data) {
                 const { stats, tenants } = response.data;
                 setPrivateOfficeTenants(tenants.privateOffice || []);
@@ -71,7 +71,7 @@ export default function Tenants() {
                 setStats(stats);
               }
             }).catch(error => console.error('Error polling tenants:', error));
-          }, 60000);
+          }, 300000); // 5 minutes
         }
       }
     };
@@ -79,7 +79,7 @@ export default function Tenants() {
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !tenantsIntervalRef.current) {
       tenantsIntervalRef.current = setInterval(() => {
-        api.get('/api/admin/tenants/stats', { skipCache: true }).then(response => {
+        api.get('/api/admin/tenants/stats').then(response => {
           if (response.success && response.data) {
             const { stats, tenants } = response.data;
             setPrivateOfficeTenants(tenants.privateOffice || []);
@@ -88,7 +88,7 @@ export default function Tenants() {
             setStats(stats);
           }
         }).catch(error => console.error('Error polling tenants:', error));
-      }, 60000);
+      }, 300000); // 5 minutes
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);

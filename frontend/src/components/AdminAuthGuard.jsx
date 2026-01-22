@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { api } from '@/lib/api';
+import { api, getUserFromCookie, getAdminCacheFromCookie, setAdminCacheInCookie, removeAdminCacheFromCookie } from '@/lib/api';
 
 /**
  * AdminAuthGuard Component
@@ -11,7 +11,7 @@ import { api } from '@/lib/api';
  * - Redirects client users to client dashboard
  * - Only allows admin users to access admin routes
  * 
- * OPTIMIZED: Only checks admin status ONCE on initial mount, uses localStorage cache
+ * OPTIMIZED: Only checks admin status ONCE on initial mount, uses cookie cache
  * to prevent repeated Firestore reads on route changes.
  */
 export default function AdminAuthGuard({ children }) {
@@ -54,8 +54,9 @@ export default function AdminAuthGuard({ children }) {
           return;
         }
 
-        const userStr = localStorage.getItem('user');
-        if (!userStr) {
+        // Get user from cookie (tokens are in HttpOnly cookies, user info is in non-HttpOnly cookie)
+        const user = getUserFromCookie();
+        if (!user || !user.uid) {
           // Not logged in - redirect to landing page
           console.warn('⚠️  Unauthorized: Not logged in. Redirecting to home page.');
           router.push('/');
@@ -63,24 +64,12 @@ export default function AdminAuthGuard({ children }) {
           return;
         }
 
-        const user = JSON.parse(userStr);
-        if (!user?.uid) {
-          // Invalid user data - redirect to landing page
-          console.warn('⚠️  Unauthorized: Invalid user data. Redirecting to home page.');
-          localStorage.removeItem('user');
-          localStorage.removeItem('idToken');
-          router.push('/');
-          checkInProgressRef.current = false;
-          return;
-        }
-
-        // Check localStorage cache FIRST (10 minute duration)
-        const cacheKey = `adminAuth_${user.uid}`;
-        const cachedData = localStorage.getItem(cacheKey);
+        // Check cookie cache FIRST (10 minute duration)
+        const cachedData = getAdminCacheFromCookie(user.uid);
         
         if (cachedData) {
           try {
-            const { isAdmin, timestamp } = JSON.parse(cachedData);
+            const { isAdmin, timestamp } = cachedData;
             const cacheAge = Date.now() - timestamp;
             const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
 
@@ -97,11 +86,11 @@ export default function AdminAuthGuard({ children }) {
               // Continue to check if they're a client
             } else {
               // Cache expired - remove it and continue with API call
-              localStorage.removeItem(cacheKey);
+              removeAdminCacheFromCookie(user.uid);
             }
           } catch (e) {
             // Invalid cache - remove it
-            localStorage.removeItem(cacheKey);
+            removeAdminCacheFromCookie(user.uid);
           }
         }
 
@@ -111,19 +100,19 @@ export default function AdminAuthGuard({ children }) {
           
           if (response.success && response.data) {
             // User exists in admin collection - authorized
-            // Cache the result for 10 minutes
-            localStorage.setItem(cacheKey, JSON.stringify({
+            // Cache the result for 10 minutes in cookie
+            setAdminCacheInCookie(user.uid, {
               isAdmin: true,
               timestamp: Date.now()
-            }));
+            });
             setIsAuthorized(true);
           } else {
             // User not found in admin collection - check if they're a client
-            // Cache the negative result
-            localStorage.setItem(cacheKey, JSON.stringify({
+            // Cache the negative result in cookie
+            setAdminCacheInCookie(user.uid, {
               isAdmin: false,
               timestamp: Date.now()
-            }));
+            });
 
             try {
               const clientResponse = await api.get(`/api/accounts/client/users/${user.uid}`);
@@ -146,11 +135,11 @@ export default function AdminAuthGuard({ children }) {
         } catch (error) {
           // 404 means user is not an admin
           if (error.response?.status === 404) {
-            // Cache the negative result
-            localStorage.setItem(cacheKey, JSON.stringify({
+            // Cache the negative result in cookie
+            setAdminCacheInCookie(user.uid, {
               isAdmin: false,
               timestamp: Date.now()
-            }));
+            });
 
             // Check if they're a client
             try {

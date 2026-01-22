@@ -64,14 +64,14 @@ export function usePrivateOffices() {
         // Only create interval if one doesn't already exist
         if (!intervalRef.current) {
           fetchRooms(); // Fetch immediately when tab becomes visible
-          intervalRef.current = setInterval(fetchRooms, 60000);
+          intervalRef.current = setInterval(fetchRooms, 300000); // 5 minutes
         }
       }
     };
     
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !intervalRef.current) {
-      intervalRef.current = setInterval(fetchRooms, 60000);
+      intervalRef.current = setInterval(fetchRooms, 300000); // 5 minutes
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { api } from '@/lib/api';
+import { showToast } from '@/components/Toast';
 
 // Import tab components
 import FloorPlanView from "./tabs/FloorPlan";
@@ -58,7 +59,7 @@ export default function DedicatedDesk() {
     // Initial fetch
     fetchAssignments();
     
-    // Poll for updates every 30 seconds (reduced from 2 seconds to prevent excessive API calls)
+    // Poll for updates every 2 minutes (increased from 30 seconds to prevent quota exhaustion)
     // Only poll when tab is visible to reduce unnecessary requests
     const handleVisibilityChange = () => {
       if (document.hidden) {
@@ -70,14 +71,14 @@ export default function DedicatedDesk() {
         // Only create interval if one doesn't already exist
         if (!assignmentsIntervalRef.current) {
           fetchAssignments(); // Fetch immediately when tab becomes visible
-          assignmentsIntervalRef.current = setInterval(fetchAssignments, 30000);
+          assignmentsIntervalRef.current = setInterval(fetchAssignments, 300000); // 5 minutes
         }
       }
     };
     
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !assignmentsIntervalRef.current) {
-      assignmentsIntervalRef.current = setInterval(fetchAssignments, 30000);
+          assignmentsIntervalRef.current = setInterval(fetchAssignments, 300000); // 5 minutes
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -141,7 +142,7 @@ export default function DedicatedDesk() {
     // Initial fetch
     fetchRequests();
     
-    // Poll for updates every 30 seconds (reduced from 2 seconds to prevent excessive API calls)
+    // Poll for updates every 2 minutes (increased from 30 seconds to prevent quota exhaustion)
     // Only poll when tab is visible to reduce unnecessary requests
     const handleVisibilityChange = () => {
       if (document.hidden || activeTab !== 'requests') {
@@ -153,14 +154,14 @@ export default function DedicatedDesk() {
         // Only create interval if one doesn't already exist
         if (!requestsIntervalRef.current) {
           fetchRequests(); // Fetch immediately when tab becomes visible
-          requestsIntervalRef.current = setInterval(fetchRequests, 30000);
+          requestsIntervalRef.current = setInterval(fetchRequests, 300000); // 5 minutes
         }
       }
     };
     
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !requestsIntervalRef.current) {
-      requestsIntervalRef.current = setInterval(fetchRequests, 30000);
+      requestsIntervalRef.current = setInterval(fetchRequests, 300000); // 5 minutes
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -191,20 +192,33 @@ export default function DedicatedDesk() {
   // Handle accept request
   const handleAcceptRequest = async (request) => {
     if (!request.deskId) {
-      setAlertModal({ show: true, type: 'error', title: 'Error', message: 'Desk ID is missing from the request.' });
+      showToast('Error: Desk ID is missing from the request.', 'error');
       return;
     }
 
-    setConfirmModal({
-      show: true,
-      title: 'Approve Desk Request',
-      message: `Are you sure you want to approve the desk request for ${request.userInfo?.firstName || ''} ${request.userInfo?.lastName || ''}? Desk ${request.deskId} will be assigned.`,
-      onConfirm: async () => {
-        setConfirmModal({ ...confirmModal, show: false });
-        try {
-          const response = await api.put(`/api/admin/dedicated-desk/requests/${request.userId}/status`, {
-            status: 'approved',
-            assignedDesk: request.deskId
+    if (!confirm(`Are you sure you want to approve the desk request for ${request.userInfo?.firstName || ''} ${request.userInfo?.lastName || ''}? Desk ${request.deskId} will be assigned.`)) {
+      return;
+    }
+    
+    try {
+      const response = await api.put(`/api/admin/dedicated-desk/requests/${request.userId}/status`, {
+        status: 'approved',
+        assignedDesk: request.deskId
+      });
+      
+      if (response.success) {
+        showToast(`Request approved successfully! Desk ${request.deskId} has been assigned.`, 'success');
+        
+        // Refresh data
+        const updatedRequests = await fetchAllRequests();
+        setRequests(updatedRequests);
+        
+        // Refresh assignments
+        const assignmentsResponse = await api.get('/api/admin/dedicated-desk/assignments');
+        if (assignmentsResponse.success && assignmentsResponse.data) {
+          const assignments = {};
+          assignmentsResponse.data.assignments.forEach((assignment) => {
+            assignments[assignment.id] = assignment;
           });
           
           if (response.success) {
@@ -235,69 +249,63 @@ export default function DedicatedDesk() {
           console.error('Error accepting request:', error);
           setAlertModal({ show: true, type: 'error', title: 'Error', message: error.message || 'Failed to approve request. Please try again.' });
         }
-      },
-      onCancel: () => setConfirmModal({ ...confirmModal, show: false })
-    });
+      } else {
+        showToast(response.message || 'Failed to approve request. Please try again.', 'error');
+      }
+    } catch (error) {
+      console.error('Error accepting request:', error);
+      showToast(error.message || 'Failed to approve request. Please try again.', 'error');
+    }
   };
 
   // Handle reject request
   const handleRejectRequest = async (request) => {
-    setConfirmModal({
-      show: true,
-      title: 'Reject Desk Request',
-      message: `Are you sure you want to reject the desk request for ${request.userInfo?.firstName || ''} ${request.userInfo?.lastName || ''}?`,
-      onConfirm: async () => {
-        setConfirmModal({ ...confirmModal, show: false });
-        try {
-          const response = await api.put(`/api/admin/dedicated-desk/requests/${request.userId}/status`, {
-            status: 'rejected'
-          });
-          
-          if (response.success) {
-            setAlertModal({ show: true, type: 'success', title: 'Success', message: 'Request rejected successfully!' });
-            
-            // Refresh requests
-            const updatedRequests = await fetchAllRequests();
-            setRequests(updatedRequests);
-          } else {
-            setAlertModal({ show: true, type: 'error', title: 'Error', message: response.message || 'Failed to reject request. Please try again.' });
-          }
-        } catch (error) {
-          console.error('Error rejecting request:', error);
-          setAlertModal({ show: true, type: 'error', title: 'Error', message: error.message || 'Failed to reject request. Please try again.' });
-        }
-      },
-      onCancel: () => setConfirmModal({ ...confirmModal, show: false })
-    });
+    if (!confirm(`Are you sure you want to reject the desk request for ${request.userInfo?.firstName || ''} ${request.userInfo?.lastName || ''}?`)) {
+      return;
+    }
+    
+    try {
+      const response = await api.put(`/api/admin/dedicated-desk/requests/${request.userId}/status`, {
+        status: 'rejected'
+      });
+      
+      if (response.success) {
+        showToast('Request rejected successfully!', 'success');
+        
+        // Refresh requests
+        const updatedRequests = await fetchAllRequests();
+        setRequests(updatedRequests);
+      } else {
+        showToast(response.message || 'Failed to reject request. Please try again.', 'error');
+      }
+    } catch (error) {
+      console.error('Error rejecting request:', error);
+      showToast(error.message || 'Failed to reject request. Please try again.', 'error');
+    }
   };
 
   // Remove optimistic UI update - let backend handle it
   const handleDeleteRequest = async (request) => {
-    setConfirmModal({
-      show: true,
-      title: 'Delete Request',
-      message: `Are you sure you want to delete the rejected request for ${request.userInfo?.firstName} ${request.userInfo?.lastName}? This action cannot be undone.`,
-      onConfirm: async () => {
-        setConfirmModal({ ...confirmModal, show: false });
-        try {
-          const response = await api.delete(`/api/accounts/client/users/${request.userId}/request/desk`);
-          
-          if (response.success) {
-            setAlertModal({ show: true, type: 'success', title: 'Success', message: 'Request deleted successfully!' });
-            
-            // Refresh requests from backend
-            const updatedRequests = await fetchAllRequests();
-            setRequests(updatedRequests);
-          } else {
-            setAlertModal({ show: true, type: 'error', title: 'Error', message: response.message || 'Failed to delete request. Please try again.' });
-          }
-        } catch (error) {
-          console.error('Error deleting request:', error);
-          setAlertModal({ show: true, type: 'error', title: 'Error', message: error.message || 'Failed to delete request. Please try again.' });
-        }
-      },
-      onCancel: () => setConfirmModal({ ...confirmModal, show: false })
-    });
+    if (!confirm(`Are you sure you want to delete the rejected request for ${request.userInfo?.firstName} ${request.userInfo?.lastName}? This action cannot be undone.`)) {
+      return;
+    }
+    
+    try {
+      const response = await api.delete(`/api/accounts/client/users/${request.userId}/request/desk`);
+      
+      if (response.success) {
+        showToast('Request deleted successfully!', 'success');
+        
+        // Refresh requests from backend
+        const updatedRequests = await fetchAllRequests();
+        setRequests(updatedRequests);
+      } else {
+        showToast(response.message || 'Failed to delete request. Please try again.', 'error');
+      }
+    } catch (error) {
+      console.error('Error deleting request:', error);
+      showToast(error.message || 'Failed to delete request. Please try again.', 'error');
+    }
   };
 
   const handleCloseModal = () => {

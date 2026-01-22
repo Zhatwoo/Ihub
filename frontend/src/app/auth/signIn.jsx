@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import { showToast } from '@/components/Toast';
 
 export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
   const router = useRouter();
@@ -51,20 +52,13 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
       });
 
       if (response.success && response.data) {
-        // Store tokens in localStorage
-        if (response.data.idToken) {
-          localStorage.setItem('idToken', response.data.idToken);
-          localStorage.setItem('refreshToken', response.data.refreshToken);
-          localStorage.setItem('user', JSON.stringify({
-            uid: response.data.uid,
-            email: response.data.email,
-            role: response.data.role,
-          }));
-        }
-
-        // Success - close modal and redirect to client home
+        // Account created successfully - user needs to log in manually
+        // Close modal and redirect to landing page
         onClose();
-        router.push(response.data.redirectPath || '/client/home');
+        
+        // Show success message and redirect to landing page
+        showToast('Account created successfully! Please log in to continue.', 'success');
+        router.push('/');
       } else {
         setError(response.message || 'Sign up failed. Please try again.');
       }
