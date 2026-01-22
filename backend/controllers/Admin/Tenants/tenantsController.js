@@ -47,11 +47,15 @@ export const getTenantStats = async (req, res) => {
     }
 
     // Fetch all data in parallel to reduce latency
+    console.log('📖 FIRESTORE READ: Starting tenants stats fetch...');
     const [schedulesSnapshot, virtualOfficeSnapshot, deskAssignmentsSnapshot] = await Promise.all([
       firestore.collection('privateOfficeRooms').doc('data').collection('requests').get(),
       firestore.collection('virtual-office-clients').get(),
       firestore.collection('desk-assignments').get()
     ]);
+    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests - ${schedulesSnapshot.docs.length} documents`);
+    console.log(`📖 FIRESTORE READ: virtual-office-clients - ${virtualOfficeSnapshot.docs.length} documents`);
+    console.log(`📖 FIRESTORE READ: desk-assignments - ${deskAssignmentsSnapshot.docs.length} documents`);
 
     // Process all data
     const schedules = schedulesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -150,12 +154,17 @@ export const getFilteredTenants = async (req, res) => {
     }
 
     // Get tenant data first by calling getTenantStats function logic
+    console.log('📖 FIRESTORE READ: Starting filtered tenants fetch...');
     const [schedulesSnapshot, virtualOfficeSnapshot, deskAssignmentsSnapshot, roomsSnapshot] = await Promise.all([
       firestore.collection('privateOfficeRooms').doc('data').collection('requests').get(),
       firestore.collection('virtual-office-clients').get(),
       firestore.collection('desk-assignments').get(),
       firestore.collection('privateOfficeRooms').doc('data').collection('office').get()
     ]);
+    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests - ${schedulesSnapshot.docs.length} documents`);
+    console.log(`📖 FIRESTORE READ: virtual-office-clients - ${virtualOfficeSnapshot.docs.length} documents`);
+    console.log(`📖 FIRESTORE READ: desk-assignments - ${deskAssignmentsSnapshot.docs.length} documents`);
+    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/office - ${roomsSnapshot.docs.length} documents`);
 
     // Process schedules data
     const schedules = schedulesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));

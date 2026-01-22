@@ -30,17 +30,12 @@ export default function AdminDashboard() {
   // Fetch dashboard data from backend (all processing done server-side)
   useEffect(() => {
     const fetchData = async () => {
+      console.log('🔄 POLLING EXECUTED: admin/page - fetchData');
       try {
         const response = await api.get('/api/admin/dashboard/stats');
         
         if (response.success) {
           const { privateOffice, virtualOffice, dedicatedDesk, rawData } = response.data;
-          
-          // Debug logs removed - sensitive user data should not be logged
-          // Only log summary in development mode
-          if (process.env.NODE_ENV === 'development') {
-            // Removed: Log (may contain dashboard data)
-          }
           
           // Set processed stats from backend
           setPrivateOfficeStats(privateOffice);
@@ -50,6 +45,8 @@ export default function AdminDashboard() {
           // Set limited raw data for modals
           setRooms(rawData.rooms || []);
           setSchedules(rawData.schedules || []);
+          
+          console.log(`📊 SNAPSHOT: admin/page - Dashboard stats loaded (PO: ${privateOffice?.totalBookings || 0}, VO: ${virtualOffice?.totalClients || 0}, DD: ${dedicatedDesk?.totalAssignments || 0})`);
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -64,41 +61,21 @@ export default function AdminDashboard() {
       }
     };
 
+    // Initial fetch only - AUTO REFRESH DISABLED
+    console.log('📖 AUTO READ: admin/page - Initial fetchData starting...');
     fetchData();
     
-    // Poll for updates every 15 minutes (increased to reduce Firestore reads)
-    // Only poll when tab is visible to reduce unnecessary requests
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        if (dataIntervalRef.current) {
-          clearInterval(dataIntervalRef.current);
-          dataIntervalRef.current = null;
-          console.log('⏸️ POLLING STOPPED: admin/page - fetchData (tab hidden)');
-        }
-      } else {
-        // Only create interval if one doesn't already exist
-        if (!dataIntervalRef.current) {
-          fetchData(); // Fetch immediately when tab becomes visible
-          dataIntervalRef.current = setInterval(fetchData, 900000); // 15 minutes
-          console.log('🔄 POLLING STARTED: admin/page - fetchData (15 min interval)');
-        }
-      }
-    };
-    
-    // Start polling if tab is visible (only if no interval exists)
-    if (!document.hidden && !dataIntervalRef.current) {
-      dataIntervalRef.current = setInterval(fetchData, 900000); // 15 minutes
-      console.log('🔄 POLLING STARTED: admin/page - fetchData (15 min interval)');
-    }
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    // DISABLED: Auto refresh/polling - was causing excessive Firestore reads
+    // Data will only load once on mount, no automatic refresh
+    // const handleVisibilityChange = () => { ... };
+    // document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
       if (dataIntervalRef.current) {
         clearInterval(dataIntervalRef.current);
         dataIntervalRef.current = null;
       }
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      // document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 

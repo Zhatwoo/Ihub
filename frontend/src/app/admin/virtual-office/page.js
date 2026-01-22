@@ -36,10 +36,13 @@ export default function VirtualOffice() {
   // Fetch clients from backend
   useEffect(() => {
     const fetchClients = async () => {
+      console.log('🔄 POLLING EXECUTED: admin/virtual-office - fetchClients');
       try {
         const response = await api.get('/api/admin/virtual-office/clients');
         if (response.success && response.data) {
-          setClients(response.data.clients || []);
+          const clientsData = response.data.clients || [];
+          setClients(clientsData);
+          console.log(`📊 SNAPSHOT: admin/virtual-office - ${clientsData.length} clients loaded`);
         }
       } catch (error) {
         console.error('Error fetching clients:', error);
@@ -47,42 +50,21 @@ export default function VirtualOffice() {
       }
     };
 
-    // Initial fetch
+    // Initial fetch only - AUTO REFRESH DISABLED
+    console.log('📖 AUTO READ: admin/virtual-office - Initial fetchClients starting...');
     fetchClients();
     
-    // Poll for updates every 15 minutes (increased to reduce Firestore reads)
-    // Only poll when tab is visible to reduce unnecessary requests
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        if (clientsIntervalRef.current) {
-          clearInterval(clientsIntervalRef.current);
-          clientsIntervalRef.current = null;
-          console.log('⏸️ POLLING STOPPED: admin/virtual-office - fetchClients (tab hidden)');
-        }
-      } else {
-        // Only create interval if one doesn't already exist
-        if (!clientsIntervalRef.current) {
-          fetchClients(); // Fetch immediately when tab becomes visible
-          clientsIntervalRef.current = setInterval(fetchClients, 900000); // 15 minutes
-          console.log('🔄 POLLING STARTED: admin/virtual-office - fetchClients (15 min interval)');
-        }
-      }
-    };
-    
-    // Start polling if tab is visible (only if no interval exists)
-    if (!document.hidden && !clientsIntervalRef.current) {
-      clientsIntervalRef.current = setInterval(fetchClients, 900000); // 15 minutes
-      console.log('🔄 POLLING STARTED: admin/virtual-office - fetchClients (15 min interval)');
-    }
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    // DISABLED: Auto refresh/polling - was causing excessive Firestore reads
+    // Data will only load once on mount, no automatic refresh
+    // const handleVisibilityChange = () => { ... };
+    // document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
       if (clientsIntervalRef.current) {
         clearInterval(clientsIntervalRef.current);
         clientsIntervalRef.current = null;
       }
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      // document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 

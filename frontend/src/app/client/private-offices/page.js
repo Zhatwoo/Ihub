@@ -92,6 +92,7 @@ export default function PrivateOffices() {
   // Fetch private offices from backend API (which fetches from Firestore database)
   useEffect(() => {
     const fetchRooms = async () => {
+      console.log('🔄 POLLING EXECUTED: private-offices/page - fetchRooms');
       try {
         setRoomsLoading(true);
         // Fetch from backend API endpoint: GET /api/rooms
@@ -105,6 +106,7 @@ export default function PrivateOffices() {
             return room.status !== 'Occupied';
           });
           setRooms(availableRooms);
+          console.log(`📊 SNAPSHOT: private-offices/page - ${availableRooms.length} available rooms loaded`);
         } else {
           console.error('Failed to fetch rooms:', response.message);
           setRooms([]);
@@ -119,42 +121,21 @@ export default function PrivateOffices() {
       }
     };
 
-    // Initial fetch
+    // Initial fetch only - AUTO REFRESH DISABLED
+    console.log('📖 AUTO READ: private-offices/page - Initial fetchRooms starting...');
     fetchRooms();
     
-    // Poll for updates every 15 minutes (increased to reduce Firestore reads)
-    // Only poll when tab is visible to reduce unnecessary requests
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        if (roomsIntervalRef.current) {
-          clearInterval(roomsIntervalRef.current);
-          roomsIntervalRef.current = null;
-          console.log('⏸️ POLLING STOPPED: private-offices/page - fetchRooms (tab hidden)');
-        }
-      } else {
-        // Only create interval if one doesn't already exist
-        if (!roomsIntervalRef.current) {
-          fetchRooms(); // Fetch immediately when tab becomes visible
-          roomsIntervalRef.current = setInterval(fetchRooms, 900000); // 15 minutes
-          console.log('🔄 POLLING STARTED: private-offices/page - fetchRooms (15 min interval)');
-        }
-      }
-    };
-    
-    // Start polling if tab is visible (only if no interval exists)
-    if (!document.hidden && !roomsIntervalRef.current) {
-      roomsIntervalRef.current = setInterval(fetchRooms, 900000); // 15 minutes
-      console.log('🔄 POLLING STARTED: private-offices/page - fetchRooms (15 min interval)');
-    }
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    // DISABLED: Auto refresh/polling - was causing excessive Firestore reads
+    // Data will only load once on mount, no automatic refresh
+    // const handleVisibilityChange = () => { ... };
+    // document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
       if (roomsIntervalRef.current) {
         clearInterval(roomsIntervalRef.current);
         roomsIntervalRef.current = null;
       }
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      // document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 

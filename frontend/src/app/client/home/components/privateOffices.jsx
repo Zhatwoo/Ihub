@@ -11,6 +11,7 @@ export function usePrivateOffices() {
 
   useEffect(() => {
     const fetchRooms = async () => {
+      console.log('🔄 POLLING EXECUTED: privateOffices - fetchRooms');
       try {
         /**
          * IMPORTANT:
@@ -40,6 +41,7 @@ export function usePrivateOffices() {
             }));
 
           setRooms(roomsData);
+          console.log(`📊 SNAPSHOT: privateOffices - ${roomsData.length} available rooms loaded`);
         }
       } catch (error) {
         console.error('Error fetching rooms:', error);
@@ -49,42 +51,21 @@ export function usePrivateOffices() {
       }
     };
 
-    // Initial fetch
+    // Initial fetch only - AUTO REFRESH DISABLED
+    console.log('📖 AUTO READ: privateOffices - Initial fetchRooms starting...');
     fetchRooms();
     
-    // Poll for updates every 15 minutes (increased to reduce Firestore reads)
-    // Only poll when tab is visible to reduce unnecessary requests
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        if (intervalRef.current) {
-          clearInterval(intervalRef.current);
-          intervalRef.current = null;
-          console.log('⏸️ POLLING STOPPED: privateOffices - fetchRooms (tab hidden)');
-        }
-      } else {
-        // Only create interval if one doesn't already exist
-        if (!intervalRef.current) {
-          fetchRooms(); // Fetch immediately when tab becomes visible
-          intervalRef.current = setInterval(fetchRooms, 900000); // 15 minutes
-          console.log('🔄 POLLING STARTED: privateOffices - fetchRooms (15 min interval)');
-        }
-      }
-    };
-    
-    // Start polling if tab is visible (only if no interval exists)
-    if (!document.hidden && !intervalRef.current) {
-      intervalRef.current = setInterval(fetchRooms, 900000); // 15 minutes
-      console.log('🔄 POLLING STARTED: privateOffices - fetchRooms (15 min interval)');
-    }
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+    // DISABLED: Auto refresh/polling - was causing excessive Firestore reads
+    // Data will only load once on mount, no automatic refresh
+    // const handleVisibilityChange = () => { ... };
+    // document.addEventListener('visibilitychange', handleVisibilityChange);
     
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      // document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 

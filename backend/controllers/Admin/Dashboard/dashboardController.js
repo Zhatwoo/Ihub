@@ -17,12 +17,17 @@ export const getDashboardStats = async (req, res) => {
     }
 
     // Fetch all required data (desk requests fetched separately using collection group query)
+    console.log('📖 FIRESTORE READ: Starting dashboard data fetch...');
     const [roomsSnapshot, schedulesSnapshot, virtualOfficeSnapshot, deskAssignmentsSnapshot] = await Promise.all([
       firestore.collection('privateOfficeRooms').doc('data').collection('office').get(),
       firestore.collection('privateOfficeRooms').doc('data').collection('requests').get(),
       firestore.collection('virtual-office-clients').get(),
       firestore.collection('desk-assignments').get()
     ]);
+    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/office - ${roomsSnapshot.docs.length} documents`);
+    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests - ${schedulesSnapshot.docs.length} documents`);
+    console.log(`📖 FIRESTORE READ: virtual-office-clients - ${virtualOfficeSnapshot.docs.length} documents`);
+    console.log(`📖 FIRESTORE READ: desk-assignments - ${deskAssignmentsSnapshot.docs.length} documents`);
 
     // Process rooms data
     const rooms = roomsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -38,12 +43,15 @@ export const getDashboardStats = async (req, res) => {
 
     // OPTIMIZED: Use collection group query to get ALL desk requests in 1 READ!
     // Note: Can't filter by documentId in collection group, so we get all and filter in memory
+    console.log('📖 FIRESTORE READ: collectionGroup("request") - executing query...');
     const deskRequestsSnapshot = await firestore
       .collectionGroup('request')
       .get();
+    console.log(`📖 FIRESTORE READ: collectionGroup("request") - ${deskRequestsSnapshot.docs.length} total documents read`);
     
     // Filter to only get documents with ID 'desk' (in memory - still only 1 read!)
     const deskRequestDocs = deskRequestsSnapshot.docs.filter(doc => doc.id === 'desk');
+    console.log(`📖 FIRESTORE READ: collectionGroup("request") - ${deskRequestDocs.length} desk requests after filtering`);
 
     const deskRequests = [];
     const userIds = new Set();
@@ -86,6 +94,7 @@ export const getDashboardStats = async (req, res) => {
             .collection('users')
             .doc(userId)
             .get();
+      console.log(`📖 FIRESTORE READ: accounts/client/users/${userId} - ${userDoc.exists ? '1 document' : 'not found'}`);
           
           if (userDoc.exists) {
             const userData = userDoc.data();

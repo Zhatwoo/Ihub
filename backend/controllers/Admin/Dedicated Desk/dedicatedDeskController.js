@@ -17,7 +17,9 @@ export const getDeskAssignments = async (req, res) => {
       return sendFirestoreError(res);
     }
 
+    console.log('📖 FIRESTORE READ: desk-assignments - executing query...');
     const assignmentsSnapshot = await firestore.collection('desk-assignments').get();
+    console.log(`📖 FIRESTORE READ: desk-assignments - ${assignmentsSnapshot.docs.length} documents read`);
     let assignments = assignmentsSnapshot.docs.map(doc => {
       const data = doc.data();
       return {
@@ -119,12 +121,15 @@ export const getDeskRequests = async (req, res) => {
     // Path: /accounts/client/users/{userId}/request/desk
     // Collection group ID: 'request' (must match the subcollection name)
     // Note: Can't filter by documentId in collection group, so we get all and filter in memory
+    console.log('📖 FIRESTORE READ: collectionGroup("request") - executing query...');
     const deskRequestsSnapshot = await firestore
       .collectionGroup('request')
       .get();
+    console.log(`📖 FIRESTORE READ: collectionGroup("request") - ${deskRequestsSnapshot.docs.length} total documents read`);
     
     // Filter to only get documents with ID 'desk' (in memory - still only 1 read!)
     const deskRequestDocs = deskRequestsSnapshot.docs.filter(doc => doc.id === 'desk');
+    console.log(`📖 FIRESTORE READ: collectionGroup("request") - ${deskRequestDocs.length} desk requests after filtering`);
 
     // Removed: Log containing request count (may expose data)
 
@@ -168,12 +173,13 @@ export const getDeskRequests = async (req, res) => {
       const userIdsArray = Array.from(userIds);
       const userPromises = userIdsArray.map(async (userId) => {
         try {
-          const userDoc = await firestore
+            const userDoc = await firestore
             .collection('accounts')
             .doc('client')
             .collection('users')
             .doc(userId)
             .get();
+            console.log(`📖 FIRESTORE READ: accounts/client/users/${userId} - ${userDoc.exists ? '1 document' : 'not found'}`);
           
           if (userDoc.exists) {
             return { userId, userData: userDoc.data() };
@@ -296,8 +302,10 @@ export const updateDeskRequestStatus = async (req, res) => {
     }
 
     // Get user data first
+    console.log(`📖 FIRESTORE READ: accounts/client/users/${userId} - executing query...`);
     const userRef = firestore.collection('accounts').doc('client').collection('users').doc(userId);
     const userDoc = await userRef.get();
+    console.log(`📖 FIRESTORE READ: accounts/client/users/${userId} - ${userDoc.exists ? '1 document' : 'not found'}`);
 
     if (!userDoc.exists) {
       return res.status(404).json({
@@ -318,7 +326,9 @@ export const updateDeskRequestStatus = async (req, res) => {
       .collection('request')
       .doc('desk');
       
+    console.log(`📖 FIRESTORE READ: accounts/client/users/${userId}/request/desk - executing query...`);
     const deskRequestDoc = await deskRequestRef.get();
+    console.log(`📖 FIRESTORE READ: accounts/client/users/${userId}/request/desk - ${deskRequestDoc.exists ? '1 document' : 'not found'}`);
 
     if (!deskRequestDoc.exists) {
       return res.status(404).json({
@@ -364,7 +374,9 @@ export const updateDeskRequestStatus = async (req, res) => {
     }
 
     // Verify the update was saved
+    console.log(`📖 FIRESTORE READ: accounts/client/users/${userId}/request/desk - verification read...`);
     const verifyDoc = await deskRequestRef.get();
+    console.log(`📖 FIRESTORE READ: accounts/client/users/${userId}/request/desk - ${verifyDoc.exists ? '1 document verified' : 'not found'}`);
     const verifyData = verifyDoc.data();
 
     res.json({
@@ -396,7 +408,9 @@ export const getOccupantsByPart = async (req, res) => {
     }
 
     // Fetch from desk-assignments collection ONLY
+    console.log('📖 FIRESTORE READ: desk-assignments - executing query...');
     const assignmentsSnapshot = await firestore.collection('desk-assignments').get();
+    console.log(`📖 FIRESTORE READ: desk-assignments - ${assignmentsSnapshot.docs.length} documents read`);
     const assignments = assignmentsSnapshot.docs.map(doc => {
       const data = doc.data();
       return {
@@ -447,7 +461,9 @@ export const getAllDeskAssignments = async (req, res) => {
       return sendFirestoreError(res);
     }
     
+    console.log('📖 FIRESTORE READ: desk-assignments - executing query...');
     const assignmentsSnapshot = await firestore.collection('desk-assignments').get();
+    console.log(`📖 FIRESTORE READ: desk-assignments - ${assignmentsSnapshot.docs.length} documents read`);
     
     const assignments = assignmentsSnapshot.docs.map(doc => {
       const data = doc.data();
@@ -494,7 +510,9 @@ export const getDeskAssignmentById = async (req, res) => {
       return sendFirestoreError(res);
     }
     
+    console.log(`📖 FIRESTORE READ: desk-assignments/${assignmentId} - executing query...`);
     const assignmentDoc = await firestore.collection('desk-assignments').doc(assignmentId).get();
+    console.log(`📖 FIRESTORE READ: desk-assignments/${assignmentId} - ${assignmentDoc.exists ? '1 document' : 'not found'}`);
 
     if (!assignmentDoc.exists) {
       return res.status(404).json({
@@ -555,7 +573,9 @@ export const createDeskAssignment = async (req, res) => {
       });
     }
 
+    console.log(`📖 FIRESTORE READ: desk-assignments/${docId} - verification read...`);
     const newAssignment = await assignmentRef.get();
+    console.log(`📖 FIRESTORE READ: desk-assignments/${docId} - ${newAssignment.exists ? '1 document verified' : 'not found'}`);
 
     res.status(201).json({
       success: true,
@@ -616,7 +636,9 @@ export const updateDeskAssignment = async (req, res) => {
       });
     }
 
+    console.log(`📖 FIRESTORE READ: desk-assignments/${assignmentId} - verification read...`);
     const updatedAssignment = await assignmentRef.get();
+    console.log(`📖 FIRESTORE READ: desk-assignments/${assignmentId} - ${updatedAssignment.exists ? '1 document verified' : 'not found'}`);
 
     res.json({
       success: true,
