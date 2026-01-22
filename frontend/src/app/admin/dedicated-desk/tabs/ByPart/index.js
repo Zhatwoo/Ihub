@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { api } from '@/lib/api';
 import Part1 from "../../components/parts/Part1/index.js";
 import Part2 from "../../components/parts/Part2/index.js";
@@ -40,34 +40,54 @@ export default function ByPartView({
   // Get occupants for the selected part
   // Get occupants for selected part from backend
   const [partOccupants, setPartOccupants] = useState([]);
+  const [isLoadingOccupants, setIsLoadingOccupants] = useState(false);
 
+  // FIXED: Use selectedPart (primitive) instead of selectedPartData (object) to prevent infinite loop
+  // Also use useRef to prevent duplicate calls
+  const fetchInProgressRef = useRef(false);
+  
   useEffect(() => {
+    // Prevent duplicate calls
+    if (fetchInProgressRef.current) {
+      return;
+    }
+
     const fetchPartOccupants = async () => {
-      if (!selectedPartData) {
+      if (!selectedPart) {
+        setPartOccupants([]);
+        return;
+      }
+
+      const partData = parts.find(p => p.number === selectedPart);
+      if (!partData) {
         setPartOccupants([]);
         return;
       }
       
+      fetchInProgressRef.current = true;
+      setIsLoadingOccupants(true);
+      
       try {
-        console.log('🔄 Fetching occupants for part:', selectedPartData.tagPrefix);
-        const response = await api.get(`/api/admin/dedicated-desk/occupants/${selectedPartData.tagPrefix}`, { skipCache: true });
-        console.log('📥 API Response:', response);
+        // Fetch occupants (removed console logs to protect privacy)
+        const response = await api.get(`/api/admin/dedicated-desk/occupants/${partData.tagPrefix}`, { skipCache: true });
+        
         if (response.success && response.data) {
-          console.log('✅ Occupants received:', response.data.occupants?.length || 0);
-          console.log('📋 Occupants data:', response.data.occupants);
           setPartOccupants(response.data.occupants || []);
         } else {
-          console.warn('⚠️ Response not successful:', response);
           setPartOccupants([]);
         }
       } catch (error) {
         console.error('❌ Error fetching part occupants:', error);
         setPartOccupants([]);
+      } finally {
+        setIsLoadingOccupants(false);
+        fetchInProgressRef.current = false;
       }
     };
 
     fetchPartOccupants();
-  }, [selectedPartData]);
+    // FIXED: Depend on selectedPart (number) instead of selectedPartData (object)
+  }, [selectedPart]);
 
   const currentPartOccupants = partOccupants;
 

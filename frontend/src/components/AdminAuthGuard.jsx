@@ -75,14 +75,14 @@ export default function AdminAuthGuard({ children }) {
 
             if (cacheAge < CACHE_DURATION && isAdmin === true) {
               // Cache is valid and user is admin
-              console.log('✅ Admin auth: Using cached result');
+              // Admin auth: Using cached result (removed log for security)
               setIsAuthorized(true);
               setIsLoading(false);
               checkInProgressRef.current = false;
               return;
             } else if (cacheAge < CACHE_DURATION && isAdmin === false) {
               // Cache is valid but user is not admin - check if client or redirect
-              console.log('✅ Admin auth: Using cached result (not admin)');
+              // Admin auth: Using cached result (not admin) (removed log for security)
               // Continue to check if they're a client
             } else {
               // Cache expired - remove it and continue with API call

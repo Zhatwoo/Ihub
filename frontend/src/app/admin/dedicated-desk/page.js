@@ -66,12 +66,14 @@ export default function DedicatedDesk() {
         if (assignmentsIntervalRef.current) {
           clearInterval(assignmentsIntervalRef.current);
           assignmentsIntervalRef.current = null;
+          console.log('⏸️ POLLING STOPPED: admin/dedicated-desk - fetchAssignments (tab hidden)');
         }
       } else {
         // Only create interval if one doesn't already exist
         if (!assignmentsIntervalRef.current) {
           fetchAssignments(); // Fetch immediately when tab becomes visible
           assignmentsIntervalRef.current = setInterval(fetchAssignments, 900000); // 15 minutes
+          console.log('🔄 POLLING STARTED: admin/dedicated-desk - fetchAssignments (15 min interval)');
         }
       }
     };
@@ -79,6 +81,7 @@ export default function DedicatedDesk() {
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !assignmentsIntervalRef.current) {
           assignmentsIntervalRef.current = setInterval(fetchAssignments, 900000); // 15 minutes
+          console.log('🔄 POLLING STARTED: admin/dedicated-desk - fetchAssignments (15 min interval)');
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -149,12 +152,14 @@ export default function DedicatedDesk() {
         if (requestsIntervalRef.current) {
           clearInterval(requestsIntervalRef.current);
           requestsIntervalRef.current = null;
+          console.log('⏸️ POLLING STOPPED: admin/dedicated-desk - fetchRequests (tab hidden or inactive)');
         }
       } else {
         // Only create interval if one doesn't already exist
         if (!requestsIntervalRef.current) {
           fetchRequests(); // Fetch immediately when tab becomes visible
           requestsIntervalRef.current = setInterval(fetchRequests, 900000); // 15 minutes
+          console.log('🔄 POLLING STARTED: admin/dedicated-desk - fetchRequests (15 min interval)');
         }
       }
     };
@@ -162,6 +167,7 @@ export default function DedicatedDesk() {
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !requestsIntervalRef.current) {
       requestsIntervalRef.current = setInterval(fetchRequests, 900000); // 15 minutes
+      console.log('🔄 POLLING STARTED: admin/dedicated-desk - fetchRequests (15 min interval)');
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);

@@ -39,7 +39,7 @@ export default function AdminDashboard() {
           // Debug logs removed - sensitive user data should not be logged
           // Only log summary in development mode
           if (process.env.NODE_ENV === 'development') {
-            console.log('✅ Dashboard data loaded successfully');
+            // Removed: Log (may contain dashboard data)
           }
           
           // Set processed stats from backend
@@ -73,12 +73,14 @@ export default function AdminDashboard() {
         if (dataIntervalRef.current) {
           clearInterval(dataIntervalRef.current);
           dataIntervalRef.current = null;
+          console.log('⏸️ POLLING STOPPED: admin/page - fetchData (tab hidden)');
         }
       } else {
         // Only create interval if one doesn't already exist
         if (!dataIntervalRef.current) {
           fetchData(); // Fetch immediately when tab becomes visible
           dataIntervalRef.current = setInterval(fetchData, 900000); // 15 minutes
+          console.log('🔄 POLLING STARTED: admin/page - fetchData (15 min interval)');
         }
       }
     };
@@ -86,6 +88,7 @@ export default function AdminDashboard() {
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !dataIntervalRef.current) {
       dataIntervalRef.current = setInterval(fetchData, 900000); // 15 minutes
+      console.log('🔄 POLLING STARTED: admin/page - fetchData (15 min interval)');
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);

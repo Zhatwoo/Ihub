@@ -57,12 +57,14 @@ export default function VirtualOffice() {
         if (clientsIntervalRef.current) {
           clearInterval(clientsIntervalRef.current);
           clientsIntervalRef.current = null;
+          console.log('⏸️ POLLING STOPPED: admin/virtual-office - fetchClients (tab hidden)');
         }
       } else {
         // Only create interval if one doesn't already exist
         if (!clientsIntervalRef.current) {
           fetchClients(); // Fetch immediately when tab becomes visible
           clientsIntervalRef.current = setInterval(fetchClients, 900000); // 15 minutes
+          console.log('🔄 POLLING STARTED: admin/virtual-office - fetchClients (15 min interval)');
         }
       }
     };
@@ -70,6 +72,7 @@ export default function VirtualOffice() {
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !clientsIntervalRef.current) {
       clientsIntervalRef.current = setInterval(fetchClients, 900000); // 15 minutes
+      console.log('🔄 POLLING STARTED: admin/virtual-office - fetchClients (15 min interval)');
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);

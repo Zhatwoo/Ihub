@@ -115,22 +115,18 @@ export const getPrivateOfficeRequests = async (req, res) => {
     const schedulesSnapshot = await firestore.collection('privateOfficeRooms').doc('data').collection('requests').get();
     let schedules = schedulesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    console.log('=== DEBUG: All Requests from Firebase ===');
-    console.log('Total requests:', schedules.length);
-    schedules.forEach(s => {
-      console.log(`- ${s.clientName}: status=${s.status}`);
-    });
+    // Removed: Debug logs containing private user data (clientName)
 
     // For Request List, only show pending requests by default
     // Dashboard will show all requests including approved/rejected
     if (!status || status === 'all') {
       // Default: only show pending requests in Request List
       schedules = schedules.filter(s => s.status === 'pending');
-      console.log('Filtered to pending only:', schedules.length);
+      // Removed: Log (may expose request data)
     } else {
       // Apply specific status filter if provided
       schedules = schedules.filter(s => s.status === status);
-      console.log(`Filtered to ${status}:`, schedules.length);
+      // Removed: Log (may expose request data)
     }
 
     // Apply search filter
@@ -199,13 +195,11 @@ export const removeTenant = async (req, res) => {
 
     const roomData = roomDoc.data();
     
-    console.log('=== Removing Tenant ===');
-    console.log('Room ID:', roomId);
-    console.log('Room Data:', {
-      name: roomData.name,
-      status: roomData.status,
-      occupiedBy: roomData.occupiedBy
-    });
+    // Removed: Debug logs containing room and tenant data
+    // Removed: Log containing room data (may contain private info)
+    if (false) { // Disabled log
+      // Removed: Log containing room data
+    }
 
     // Find the associated request for this room
     const requestsSnapshot = await firestore
@@ -230,10 +224,10 @@ export const removeTenant = async (req, res) => {
         adminNotes: 'Tenant removed by admin',
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       });
-      console.log('Request cancelled:', requestDoc.id);
+      // Removed: Log containing request ID
     }
 
-    console.log('Tenant removed successfully');
+    // Tenant removed successfully (removed log for privacy)
 
     res.json({
       success: true,
@@ -279,15 +273,10 @@ export const updateRequestStatus = async (req, res) => {
 
     const currentRequest = requestDoc.data();
     
-    console.log('=== Updating Request Status ===');
-    console.log('Request ID:', requestId);
-    console.log('Current Request:', {
-      clientName: currentRequest.clientName,
-      status: currentRequest.status,
-      roomId: currentRequest.roomId,
-      room: currentRequest.room
-    });
-    console.log('New Status:', status);
+    // Removed: Debug logs containing request data
+    if (false) { // Disabled logs
+    // Removed: Debug logs containing private request data (clientName, roomId, room)
+    } // End disabled logs
     
     // Update request status
     const updateData = {
@@ -339,17 +328,12 @@ export const updateRequestStatus = async (req, res) => {
     // Ensure the update is committed to Firebase
     await requestRef.update(updateData);
 
-    console.log('Request status updated successfully to:', status);
-    console.log('Updated request data:', updateData);
+    // Removed: Log containing request status update
+    // Removed: Log containing request update data (may contain private info)
 
     // Verify the update was saved by reading the document back
     const updatedDoc = await requestRef.get();
-    console.log('Verification - Updated request in Firebase:', {
-      id: updatedDoc.id,
-      status: updatedDoc.data().status,
-      clientName: updatedDoc.data().clientName,
-      room: updatedDoc.data().room
-    });
+    // Removed: Verification log containing private request data (clientName, room)
 
     res.json({
       success: true,

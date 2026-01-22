@@ -16,11 +16,11 @@ export default function RequestList() {
   // Fetch schedules from API
   const fetchSchedules = async () => {
     try {
-      console.log('📥 Fetching requests from /api/admin/private-office/requests');
+      // Removed: Log (may contain request data)
       const response = await api.get('/api/admin/private-office/requests', { skipCache: true });
-      console.log('✅ Requests fetched:', response);
+      // Removed: Log containing request data
       if (response.success && response.data) {
-        console.log('📊 Setting schedules:', response.data.requests?.length || 0, 'requests');
+        // Removed: Log containing request count with data
         setSchedules(response.data.requests || []);
       }
     } catch (error) {
@@ -46,7 +46,7 @@ export default function RequestList() {
       const response = await api.put(`/api/admin/private-office/requests/${id}/status`, { 
         status: 'approved' 
       });
-      console.log('✅ Response received:', response);
+      // Removed: Log containing response data
       if (response.success) {
         setSuccessMessage('Request approved successfully!');
         setShowSuccessModal(true);
@@ -80,7 +80,7 @@ export default function RequestList() {
       const response = await api.put(`/api/admin/private-office/requests/${id}/status`, { 
         status: 'rejected' 
       });
-      console.log('✅ Response received:', response);
+      // Removed: Log containing response data
       if (response.success) {
         setSuccessMessage('Request rejected successfully!');
         setShowSuccessModal(true);

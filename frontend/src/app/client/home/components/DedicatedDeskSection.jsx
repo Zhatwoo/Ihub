@@ -129,12 +129,14 @@ export default function DedicatedDeskSection() {
         if (deskAssignmentsIntervalRef.current) {
           clearInterval(deskAssignmentsIntervalRef.current);
           deskAssignmentsIntervalRef.current = null;
+          console.log('⏸️ POLLING STOPPED: DedicatedDeskSection - fetchDeskAssignments (tab hidden)');
         }
       } else {
         // Only create interval if one doesn't already exist
         if (!deskAssignmentsIntervalRef.current) {
           fetchDeskAssignments(); // Fetch immediately when tab becomes visible
           deskAssignmentsIntervalRef.current = setInterval(fetchDeskAssignments, 900000); // 15 minutes
+          console.log('🔄 POLLING STARTED: DedicatedDeskSection - fetchDeskAssignments (15 min interval)');
         }
       }
     };
@@ -142,6 +144,7 @@ export default function DedicatedDeskSection() {
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !deskAssignmentsIntervalRef.current) {
       deskAssignmentsIntervalRef.current = setInterval(fetchDeskAssignments, 900000); // 15 minutes
+      console.log('🔄 POLLING STARTED: DedicatedDeskSection - fetchDeskAssignments (15 min interval)');
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
