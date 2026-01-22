@@ -23,8 +23,13 @@ import {
 } from '../controllers/Admin/Virtual Office/virtualOfficeController.js';
 import { 
   getBillingDashboard, 
-  getInvoices 
+  getInvoices,
+  getBillingStats
 } from '../controllers/Admin/Billing/billingController.js';
+import {
+  getBillingDetails,
+  updateBillingDetails
+} from '../controllers/Admin/Billing/editBillingController.js';
 
 const router = express.Router();
 
@@ -58,5 +63,8 @@ router.put('/virtual-office/clients/:clientId/status', updateClientStatus);
 // Billing routes
 router.get('/billing/dashboard', getBillingDashboard);
 router.get('/billing/invoices', getInvoices);
+router.get('/billing/stats', getBillingStats);
+router.get('/billing/:serviceType/:billingId/details', getBillingDetails);
+router.put('/billing/:serviceType/:billingId/details', updateBillingDetails);
 
 export default router;
