@@ -377,12 +377,14 @@ export default function Bookings() {
         if (bookingsIntervalRef.current) {
           clearInterval(bookingsIntervalRef.current);
           bookingsIntervalRef.current = null;
+          console.log('⏸️ POLLING STOPPED: bookings/page - fetchBookings (tab hidden)');
         }
       } else {
         // Only create interval if one doesn't already exist
         if (!bookingsIntervalRef.current) {
           fetchBookings(); // Fetch immediately when tab becomes visible
           bookingsIntervalRef.current = setInterval(fetchBookings, 900000); // 15 minutes
+          console.log('🔄 POLLING STARTED: bookings/page - fetchBookings (15 min interval)');
         }
       }
     };
@@ -390,6 +392,7 @@ export default function Bookings() {
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !bookingsIntervalRef.current) {
       bookingsIntervalRef.current = setInterval(fetchBookings, 900000); // 15 minutes
+      console.log('🔄 POLLING STARTED: bookings/page - fetchBookings (15 min interval)');
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -428,12 +431,14 @@ export default function Bookings() {
         if (roomsIntervalRef.current) {
           clearInterval(roomsIntervalRef.current);
           roomsIntervalRef.current = null;
+          console.log('⏸️ POLLING STOPPED: bookings/page - fetchRooms (tab hidden)');
         }
       } else {
         // Only create interval if one doesn't already exist
         if (!roomsIntervalRef.current) {
           fetchRooms(); // Fetch immediately when tab becomes visible
           roomsIntervalRef.current = setInterval(fetchRooms, 900000); // 15 minutes
+          console.log('🔄 POLLING STARTED: bookings/page - fetchRooms (15 min interval)');
         }
       }
     };
@@ -441,6 +446,7 @@ export default function Bookings() {
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !roomsIntervalRef.current) {
       roomsIntervalRef.current = setInterval(fetchRooms, 900000); // 15 minutes
+      console.log('🔄 POLLING STARTED: bookings/page - fetchRooms (15 min interval)');
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);

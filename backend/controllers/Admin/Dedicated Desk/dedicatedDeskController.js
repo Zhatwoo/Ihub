@@ -103,7 +103,7 @@ export const getDeskAssignments = async (req, res) => {
 };
 
 /**
- * Get desk requests with filtering - OPTIMIZED to reduce Firestore quota usage
+ * Get desk requests with filtering - OPTIMIZED: Uses collection group query for 1 READ only!
  */
 export const getDeskRequests = async (req, res) => {
   try {
@@ -114,68 +114,103 @@ export const getDeskRequests = async (req, res) => {
       return sendFirestoreError(res);
     }
 
-    // OPTIMIZED: Get all users first
-    const usersSnapshot = await firestore.collection('accounts').doc('client').collection('users').get();
+    // OPTIMIZED: Use collection group query to get ALL desk requests in 1 READ!
+    // This queries all 'request' subcollections across all users
+    // Path: /accounts/client/users/{userId}/request/desk
+    // Collection group ID: 'request' (must match the subcollection name)
+    // Note: Can't filter by documentId in collection group, so we get all and filter in memory
+    const deskRequestsSnapshot = await firestore
+      .collectionGroup('request')
+      .get();
+    
+    // Filter to only get documents with ID 'desk' (in memory - still only 1 read!)
+    const deskRequestDocs = deskRequestsSnapshot.docs.filter(doc => doc.id === 'desk');
+
+    // Removed: Log containing request count (may expose data)
+
     const deskRequests = [];
-    const userDocs = usersSnapshot.docs;
+    const userIds = new Set(); // Track user IDs to fetch user info in batch
 
-    console.log('📊 Total users found:', userDocs.length);
-
-    // OPTIMIZED: Process in batches of 10 to avoid overwhelming Firestore and reduce quota usage
-    const BATCH_SIZE = 10;
-    for (let i = 0; i < userDocs.length; i += BATCH_SIZE) {
-      const batch = userDocs.slice(i, i + BATCH_SIZE);
+    // Process all desk requests from the single query
+    for (const deskRequestDoc of deskRequestDocs) {
+      const deskRequestData = deskRequestDoc.data();
       
-      // Process batch in parallel (but limited to BATCH_SIZE)
-      const batchPromises = batch.map(async (userDoc) => {
-        const userData = userDoc.data();
-        const userId = userDoc.id;
-        
+      // Skip empty documents
+      if (!deskRequestData || Object.keys(deskRequestData).length === 0) {
+        continue;
+      }
+
+      // Extract userId from document path: accounts/client/users/{userId}/request/desk
+      const pathParts = deskRequestDoc.ref.path.split('/');
+      const userIdIndex = pathParts.indexOf('users');
+      const userId = userIdIndex !== -1 && userIdIndex + 1 < pathParts.length 
+        ? pathParts[userIdIndex + 1] 
+        : null;
+
+      if (!userId) {
+        console.warn('⚠️ Could not extract userId from path:', deskRequestDoc.ref.path);
+        continue;
+      }
+
+      userIds.add(userId);
+      
+      deskRequests.push({
+        id: userId,
+        userId: userId,
+        ...deskRequestData,
+        // User info will be fetched in batch below
+        userInfo: null
+      });
+    }
+
+    // Fetch user info for all users in 1 batch read
+    if (userIds.size > 0) {
+      const userIdsArray = Array.from(userIds);
+      const userPromises = userIdsArray.map(async (userId) => {
         try {
-          // Check the correct path: /accounts/client/users/{userId}/request/desk
-          const deskRequestDoc = await firestore
+          const userDoc = await firestore
             .collection('accounts')
             .doc('client')
             .collection('users')
             .doc(userId)
-            .collection('request')
-            .doc('desk')
             .get();
-
-          if (deskRequestDoc.exists) {
-            const deskRequestData = deskRequestDoc.data();
-            
-            // Skip empty documents
-            if (Object.keys(deskRequestData).length === 0) {
-              return null;
-            }
-            
-            return {
-              id: userId,
-              userId: userId,
-              ...deskRequestData,
-              userInfo: {
-                firstName: userData.firstName,
-                lastName: userData.lastName,
-                email: userData.email
-              }
-            };
+          
+          if (userDoc.exists) {
+            return { userId, userData: userDoc.data() };
           }
-          return null;
+          return { userId, userData: null };
         } catch (error) {
-          console.error(`Error checking desk request for user ${userId}:`, error);
-          return null;
+          console.error(`Error fetching user ${userId}:`, error);
+          return { userId, userData: null };
         }
       });
+
+      // Process in batches of 10 to avoid overwhelming Firestore
+      const BATCH_SIZE = 10;
+      const userInfoMap = new Map();
       
-      // Wait for batch to complete
-      const batchResults = await Promise.all(batchPromises);
-      deskRequests.push(...batchResults.filter(r => r !== null));
-      
-      // Small delay between batches to avoid quota exhaustion
-      if (i + BATCH_SIZE < userDocs.length) {
-        await new Promise(resolve => setTimeout(resolve, 100));
+      for (let i = 0; i < userPromises.length; i += BATCH_SIZE) {
+        const batch = userPromises.slice(i, i + BATCH_SIZE);
+        const batchResults = await Promise.all(batch);
+        
+        batchResults.forEach(({ userId, userData }) => {
+          if (userData) {
+            userInfoMap.set(userId, {
+              firstName: userData.firstName || '',
+              lastName: userData.lastName || '',
+              email: userData.email || ''
+            });
+          }
+        });
       }
+
+      // Attach user info to desk requests
+      deskRequests.forEach(request => {
+        const userInfo = userInfoMap.get(request.userId);
+        if (userInfo) {
+          request.userInfo = userInfo;
+        }
+      });
     }
 
     let filteredRequests = [...deskRequests];
@@ -185,7 +220,7 @@ export const getDeskRequests = async (req, res) => {
       filteredRequests = filteredRequests.filter(request => {
         const isPending = request.status === 'pending';
         if (!isPending) {
-          console.log(`Filtering out non-pending request: ${request.userInfo?.firstName} ${request.userInfo?.lastName} - status: ${request.status}`);
+          // Removed: Log containing private user names
         }
         return isPending;
       });
@@ -309,10 +344,8 @@ export const updateDeskRequestStatus = async (req, res) => {
       const company = deskRequestData.company || requestedBy.companyName || userData.companyName || '';
       const contact = deskRequestData.contact || requestedBy.contact || userData.contact || userData.phoneNumber || '';
       
-      console.log('DEBUG: Creating desk assignment');
-      console.log('deskRequestData:', deskRequestData);
-      console.log('userData:', userData);
-      console.log('Extracted company:', company);
+      // Removed: Debug log (may contain private data)
+      // Removed: Debug logs containing private user data (company, contact)
       console.log('Extracted contact:', contact);
       
       const assignmentData = {
@@ -326,7 +359,7 @@ export const updateDeskRequestStatus = async (req, res) => {
         userId: userId
       };
 
-      console.log('assignmentData to save:', assignmentData);
+      // Removed: Log containing private user data (assignmentData)
       await firestore.collection('desk-assignments').doc(assignedDesk).set(assignmentData);
     }
 

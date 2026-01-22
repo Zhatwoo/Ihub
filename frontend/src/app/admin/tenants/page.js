@@ -56,12 +56,14 @@ export default function Tenants() {
         if (tenantsIntervalRef.current) {
           clearInterval(tenantsIntervalRef.current);
           tenantsIntervalRef.current = null;
+          console.log('⏸️ POLLING STOPPED: admin/tenants - /api/admin/tenants/stats (tab hidden)');
         }
       } else {
         // Only create interval if one doesn't already exist
         if (!tenantsIntervalRef.current) {
           fetchTenants(); // Fetch immediately when tab becomes visible
           tenantsIntervalRef.current = setInterval(() => {
+            console.log('🔄 POLLING EXECUTED: admin/tenants - /api/admin/tenants/stats');
             api.get('/api/admin/tenants/stats').then(response => {
               if (response.success && response.data) {
                 const { stats, tenants } = response.data;
@@ -72,6 +74,7 @@ export default function Tenants() {
               }
             }).catch(error => console.error('Error polling tenants:', error));
           }, 900000); // 15 minutes
+          console.log('🔄 POLLING STARTED: admin/tenants - /api/admin/tenants/stats (15 min interval)');
         }
       }
     };
@@ -79,6 +82,7 @@ export default function Tenants() {
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !tenantsIntervalRef.current) {
       tenantsIntervalRef.current = setInterval(() => {
+        console.log('🔄 POLLING EXECUTED: admin/tenants - /api/admin/tenants/stats');
         api.get('/api/admin/tenants/stats').then(response => {
           if (response.success && response.data) {
             const { stats, tenants } = response.data;
@@ -89,6 +93,7 @@ export default function Tenants() {
           }
         }).catch(error => console.error('Error polling tenants:', error));
       }, 900000); // 15 minutes
+      console.log('🔄 POLLING STARTED: admin/tenants - /api/admin/tenants/stats (15 min interval)');
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);

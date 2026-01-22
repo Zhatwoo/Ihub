@@ -15,14 +15,7 @@ const processPrivateOfficeTenants = (schedules) => {
     .map(request => {
       const companyName = request.companyName || request.company || '';
       
-      console.log('Processing private office request:', {
-        id: request.id,
-        clientName: request.clientName,
-        companyName: companyName,
-        rawCompanyName: request.companyName,
-        rawCompany: request.company,
-        status: request.status
-      });
+      // Removed: Log containing private user data (clientName, companyName)
       
       return {
         id: request.id,
@@ -38,7 +31,7 @@ const processPrivateOfficeTenants = (schedules) => {
       };
     });
 
-  console.log('Processed private office tenants:', privateOfficeTenants);
+  // Removed: Log containing private tenant data
   return privateOfficeTenants;
 };
 
@@ -73,13 +66,7 @@ export const getTenantStats = async (req, res) => {
       };
     });
 
-    console.log('Raw schedules from Firebase:', schedules.map(s => ({
-      id: s.id,
-      clientName: s.clientName,
-      companyName: s.companyName,
-      company: s.company,
-      status: s.status
-    })));
+    // Removed: Log containing private user data (clientName, companyName)
 
     // Process Private Office tenants using dedicated function
     const occupiedPrivateOfficeTenants = processPrivateOfficeTenants(schedules);
@@ -117,10 +104,7 @@ export const getTenantStats = async (req, res) => {
         createdAt: assignment.assignedAt || assignment.createdAt
       }));
 
-    console.log('✅ Processed tenants:');
-    console.log('Private Office:', occupiedPrivateOfficeTenants.length);
-    console.log('Virtual Office:', virtualOfficeTenants.length);
-    console.log('Dedicated Desk:', dedicatedDeskTenants.length);
+    // Removed: Log containing tenant counts (may expose data)
 
     // Calculate counts
     const stats = {

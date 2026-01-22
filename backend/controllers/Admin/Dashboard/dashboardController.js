@@ -2,6 +2,7 @@
 // Handles all admin dashboard operations and statistics
 
 import { getFirestore } from '../../../config/firebase.js';
+import admin from 'firebase-admin';
 import { sendFirestoreError } from '../../../utils/firestoreHelper.js';
 
 /**
@@ -15,13 +16,12 @@ export const getDashboardStats = async (req, res) => {
       return sendFirestoreError(res);
     }
 
-    // Fetch all required data
-    const [roomsSnapshot, schedulesSnapshot, virtualOfficeSnapshot, deskAssignmentsSnapshot, deskRequestsSnapshot] = await Promise.all([
+    // Fetch all required data (desk requests fetched separately using collection group query)
+    const [roomsSnapshot, schedulesSnapshot, virtualOfficeSnapshot, deskAssignmentsSnapshot] = await Promise.all([
       firestore.collection('privateOfficeRooms').doc('data').collection('office').get(),
       firestore.collection('privateOfficeRooms').doc('data').collection('requests').get(),
       firestore.collection('virtual-office-clients').get(),
-      firestore.collection('desk-assignments').get(),
-      firestore.collection('accounts').doc('client').collection('users').get()
+      firestore.collection('desk-assignments').get()
     ]);
 
     // Process rooms data
@@ -36,39 +36,88 @@ export const getDashboardStats = async (req, res) => {
     // Process desk assignments
     const deskAssignments = deskAssignmentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    // Get desk requests from user documents using correct path structure
-    const deskRequests = [];
-    for (const userDoc of deskRequestsSnapshot.docs) {
-      const userData = userDoc.data();
-      const userId = userDoc.id;
-      
-      try {
-        // Check the correct path: /accounts/client/users/{userId}/request/desk
-        const deskRequestDoc = await firestore
-          .collection('accounts')
-          .doc('client')
-          .collection('users')
-          .doc(userId)
-          .collection('request')
-          .doc('desk')
-          .get();
+    // OPTIMIZED: Use collection group query to get ALL desk requests in 1 READ!
+    // Note: Can't filter by documentId in collection group, so we get all and filter in memory
+    const deskRequestsSnapshot = await firestore
+      .collectionGroup('request')
+      .get();
+    
+    // Filter to only get documents with ID 'desk' (in memory - still only 1 read!)
+    const deskRequestDocs = deskRequestsSnapshot.docs.filter(doc => doc.id === 'desk');
 
-        if (deskRequestDoc.exists) {
-          const deskRequestData = deskRequestDoc.data();
-          deskRequests.push({
-            id: userId,
-            userId: userId,
-            ...deskRequestData,
-            userInfo: {
-              firstName: userData.firstName,
-              lastName: userData.lastName,
-              email: userData.email
-            }
-          });
-        }
-      } catch (error) {
-        console.error(`Error checking desk request for user ${userId}:`, error);
+    const deskRequests = [];
+    const userIds = new Set();
+
+    // Process all desk requests from the single query
+    for (const deskRequestDoc of deskRequestDocs) {
+      const deskRequestData = deskRequestDoc.data();
+      
+      if (!deskRequestData || Object.keys(deskRequestData).length === 0) {
+        continue;
       }
+
+      // Extract userId from document path
+      const pathParts = deskRequestDoc.ref.path.split('/');
+      const userIdIndex = pathParts.indexOf('users');
+      const userId = userIdIndex !== -1 && userIdIndex + 1 < pathParts.length 
+        ? pathParts[userIdIndex + 1] 
+        : null;
+
+      if (!userId) continue;
+
+      userIds.add(userId);
+      
+      deskRequests.push({
+        id: userId,
+        userId: userId,
+        ...deskRequestData,
+        userInfo: null
+      });
+    }
+
+    // Fetch user info in batch (only for users that have requests)
+    if (userIds.size > 0) {
+      const userIdsArray = Array.from(userIds);
+      const userPromises = userIdsArray.slice(0, 100).map(async (userId) => { // Limit to 100 for dashboard
+        try {
+          const userDoc = await firestore
+            .collection('accounts')
+            .doc('client')
+            .collection('users')
+            .doc(userId)
+            .get();
+          
+          if (userDoc.exists) {
+            const userData = userDoc.data();
+            return { 
+              userId, 
+              userInfo: {
+                firstName: userData.firstName || '',
+                lastName: userData.lastName || '',
+                email: userData.email || ''
+              }
+            };
+          }
+          return { userId, userInfo: null };
+        } catch (error) {
+          return { userId, userInfo: null };
+        }
+      });
+
+      const userInfoResults = await Promise.all(userPromises);
+      const userInfoMap = new Map();
+      userInfoResults.forEach(({ userId, userInfo }) => {
+        if (userInfo) userInfoMap.set(userId, userInfo);
+      });
+
+      // Attach user info
+      deskRequests.forEach(request => {
+        request.userInfo = userInfoMap.get(request.userId) || {
+          firstName: '',
+          lastName: '',
+          email: ''
+        };
+      });
     }
 
     // Calculate Private Office stats

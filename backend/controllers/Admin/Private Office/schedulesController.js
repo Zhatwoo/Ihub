@@ -201,7 +201,7 @@ export const updateSchedule = async (req, res) => {
               occupiedBy: currentSchedule.clientName,
               updatedAt: admin.firestore.FieldValue.serverTimestamp()
             });
-            console.log(`Room ${currentSchedule.roomId} status updated to Occupied by ${currentSchedule.clientName}`);
+            // Removed: Log containing client name
           }
         } catch (roomError) {
           console.error('Error updating room status:', roomError);
@@ -229,7 +229,7 @@ export const updateSchedule = async (req, res) => {
               ...updateRoomData,
               occupiedBy: admin.firestore.FieldValue.delete()
             });
-            console.log(`Room ${currentSchedule.roomId} status updated to Vacant`);
+            // Removed: Log (may contain schedule data)
           }
         } catch (roomError) {
           console.error('Error updating room status:', roomError);

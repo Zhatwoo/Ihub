@@ -129,12 +129,14 @@ export default function PrivateOffices() {
         if (roomsIntervalRef.current) {
           clearInterval(roomsIntervalRef.current);
           roomsIntervalRef.current = null;
+          console.log('⏸️ POLLING STOPPED: private-offices/page - fetchRooms (tab hidden)');
         }
       } else {
         // Only create interval if one doesn't already exist
         if (!roomsIntervalRef.current) {
           fetchRooms(); // Fetch immediately when tab becomes visible
           roomsIntervalRef.current = setInterval(fetchRooms, 900000); // 15 minutes
+          console.log('🔄 POLLING STARTED: private-offices/page - fetchRooms (15 min interval)');
         }
       }
     };
@@ -142,6 +144,7 @@ export default function PrivateOffices() {
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !roomsIntervalRef.current) {
       roomsIntervalRef.current = setInterval(fetchRooms, 900000); // 15 minutes
+      console.log('🔄 POLLING STARTED: private-offices/page - fetchRooms (15 min interval)');
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -238,7 +241,7 @@ export default function PrivateOffices() {
       return;
     }
     
-    console.log('Opening booking modal for room:', room.name, room.id);
+    // Removed: Log containing room booking data
     setSelectedRoom(room);
     
     // Pre-fill with user info if available
@@ -358,7 +361,7 @@ export default function PrivateOffices() {
         createdAt: new Date().toISOString()
       };
       
-      console.log('Submitting booking for:', reservationData.room, 'ID:', reservationData.roomId);
+      // Removed: Log containing booking data
       
       // Send to backend API endpoint: POST /api/schedules
       // Backend controller saves to Firestore 'schedules' collection
@@ -978,7 +981,7 @@ export default function PrivateOffices() {
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    console.log('Book Now clicked from bottom for:', detailsRoom.name, detailsRoom.id);
+                    // Removed: Log containing room data
                     // Close details modal and open booking modal with current office
                     setShowDetailsModal(false);
                     // Small delay to ensure modal closes before opening new one

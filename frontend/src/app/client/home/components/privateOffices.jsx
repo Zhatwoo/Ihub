@@ -59,12 +59,14 @@ export function usePrivateOffices() {
         if (intervalRef.current) {
           clearInterval(intervalRef.current);
           intervalRef.current = null;
+          console.log('⏸️ POLLING STOPPED: privateOffices - fetchRooms (tab hidden)');
         }
       } else {
         // Only create interval if one doesn't already exist
         if (!intervalRef.current) {
           fetchRooms(); // Fetch immediately when tab becomes visible
           intervalRef.current = setInterval(fetchRooms, 900000); // 15 minutes
+          console.log('🔄 POLLING STARTED: privateOffices - fetchRooms (15 min interval)');
         }
       }
     };
@@ -72,6 +74,7 @@ export function usePrivateOffices() {
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !intervalRef.current) {
       intervalRef.current = setInterval(fetchRooms, 900000); // 15 minutes
+      console.log('🔄 POLLING STARTED: privateOffices - fetchRooms (15 min interval)');
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);

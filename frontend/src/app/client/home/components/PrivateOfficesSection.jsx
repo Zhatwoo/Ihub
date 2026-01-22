@@ -84,7 +84,7 @@ export default function PrivateOfficesSection() {
             // Don't log 401 errors as they might be temporary (cookies still setting)
             // Only log other errors
             if (error.response?.status === 401) {
-              console.warn('⚠️ Authentication check failed, but user cookie exists. This might be a timing issue.');
+              // Authentication check failed (removed log for security)
               // Use basic info from cookie
               setFormData(prev => ({
                 ...prev,
@@ -330,13 +330,7 @@ export default function PrivateOfficesSection() {
         createdAt: new Date().toISOString()
       };
       
-      console.log('Submitting booking:', {
-        room: reservationData.room,
-        roomId: reservationData.roomId,
-        clientName: reservationData.clientName,
-        companyName: reservationData.companyName,
-        fullData: reservationData
-      });
+      // Removed: Log containing private user data (clientName, companyName, fullData)
       
       const response = await api.post('/api/schedules', reservationData);
       
