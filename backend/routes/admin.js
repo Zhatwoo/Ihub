@@ -7,7 +7,8 @@ import { getTenantStats, getFilteredTenants } from '../controllers/Admin/Tenants
 import { 
   getPrivateOfficeDashboard, 
   getPrivateOfficeRequests, 
-  updateRequestStatus 
+  updateRequestStatus,
+  removeTenant
 } from '../controllers/Admin/Private Office/privateOfficeController.js';
 import { 
   getDeskAssignments, 
@@ -41,6 +42,7 @@ router.get('/tenants/filtered', getFilteredTenants);
 router.get('/private-office/dashboard', getPrivateOfficeDashboard);
 router.get('/private-office/requests', getPrivateOfficeRequests);
 router.put('/private-office/requests/:requestId/status', updateRequestStatus);
+router.put('/private-office/rooms/:roomId/remove-tenant', removeTenant);
 
 // Dedicated Desk routes
 router.get('/dedicated-desk/assignments', getDeskAssignments);

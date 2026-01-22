@@ -17,14 +17,24 @@ export const getDeskAssignments = async (req, res) => {
       return sendFirestoreError(res);
     }
 
+    console.log('📋 [getDeskAssignments] Fetching desk assignments from /desk-assignments collection');
     const assignmentsSnapshot = await firestore.collection('desk-assignments').get();
     let assignments = assignmentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    console.log(`✅ [getDeskAssignments] Total assignments in /desk-assignments: ${assignments.length}`);
+    console.log('📊 [getDeskAssignments] Raw assignments:', JSON.stringify(assignments.map(a => ({
+      id: a.id,
+      deskTag: a.deskTag || a.desk,
+      name: a.name,
+      type: a.type
+    })), null, 2));
 
     // Apply part filter
     if (part && part !== 'all') {
       assignments = assignments.filter(assignment => 
         assignment.deskTag && assignment.deskTag.startsWith(part.toUpperCase())
       );
+      console.log(`  Filtered by part ${part}: ${assignments.length} assignments`);
     }
 
     // Apply search filter
@@ -36,6 +46,7 @@ export const getDeskAssignments = async (req, res) => {
         (assignment.deskTag && assignment.deskTag.toLowerCase().includes(searchLower)) ||
         (assignment.company && assignment.company.toLowerCase().includes(searchLower))
       );
+      console.log(`  Filtered by search "${search}": ${assignments.length} assignments`);
     }
 
     // Apply sorting
@@ -74,6 +85,8 @@ export const getDeskAssignments = async (req, res) => {
       };
     });
 
+    console.log('📈 [getDeskAssignments] Stats by part:', statsByPart);
+
     res.json({
       success: true,
       data: {
@@ -83,7 +96,7 @@ export const getDeskAssignments = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get desk assignments error:', error);
+    console.error('❌ [getDeskAssignments] Error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal Server Error',
@@ -320,6 +333,7 @@ export const updateDeskRequestStatus = async (req, res) => {
 
 /**
  * Get occupants by part for floor plan
+ * IMPORTANT: Fetches ONLY from /desk-assignments collection
  */
 export const getOccupantsByPart = async (req, res) => {
   try {
@@ -330,17 +344,51 @@ export const getOccupantsByPart = async (req, res) => {
       return sendFirestoreError(res);
     }
 
+    console.log('🔍 [getOccupantsByPart] Fetching occupants for part:', part);
+    console.log('🔍 [getOccupantsByPart] Collection path: /desk-assignments');
+
+    // Fetch from desk-assignments collection ONLY
     const assignmentsSnapshot = await firestore.collection('desk-assignments').get();
-    const assignments = assignmentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const assignments = assignmentsSnapshot.docs.map(doc => ({ 
+      id: doc.id, 
+      ...doc.data() 
+    }));
+
+    console.log('📊 [getOccupantsByPart] Total documents in /desk-assignments:', assignments.length);
+    console.log('📋 [getOccupantsByPart] All desk assignments:', JSON.stringify(assignments.map(a => ({ 
+      id: a.id, 
+      desk: a.desk, 
+      deskTag: a.deskTag, 
+      name: a.name,
+      type: a.type
+    })), null, 2));
 
     // Filter by part and sort by desk number
     const partOccupants = assignments
-      .filter(assignment => assignment.deskTag && assignment.deskTag.startsWith(part.toUpperCase()))
+      .filter(assignment => {
+        const deskIdentifier = assignment.deskTag || assignment.desk;
+        const matches = deskIdentifier && deskIdentifier.toUpperCase().startsWith(part.toUpperCase());
+        if (!matches) {
+          console.log(`  ❌ Skipping ${assignment.id}: deskIdentifier="${deskIdentifier}" does not start with "${part}"`);
+        }
+        return matches;
+      })
+      .map(assignment => ({
+        ...assignment,
+        deskTag: assignment.deskTag || assignment.desk // Normalize to deskTag
+      }))
       .sort((a, b) => {
         const numA = parseInt(a.deskTag.slice(1)) || 0;
         const numB = parseInt(b.deskTag.slice(1)) || 0;
         return numA - numB;
       });
+
+    console.log(`✅ [getOccupantsByPart] Occupants for part ${part}:`, partOccupants.length);
+    console.log('📍 [getOccupantsByPart] Filtered occupants:', JSON.stringify(partOccupants.map(o => ({ 
+      deskTag: o.deskTag, 
+      name: o.name,
+      type: o.type 
+    })), null, 2));
 
     res.json({
       success: true,
@@ -350,7 +398,7 @@ export const getOccupantsByPart = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Get occupants by part error:', error);
+    console.error('❌ [getOccupantsByPart] Error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal Server Error',
@@ -370,6 +418,7 @@ export const getAllDeskAssignments = async (req, res) => {
       return sendFirestoreError(res);
     }
     
+    console.log('📋 [getAllDeskAssignments] Fetching all desk assignments from /desk-assignments collection');
     const assignmentsSnapshot = await firestore.collection('desk-assignments').get();
     
     const assignments = assignmentsSnapshot.docs.map(doc => ({
@@ -377,12 +426,22 @@ export const getAllDeskAssignments = async (req, res) => {
       ...doc.data()
     }));
 
+    console.log(`✅ [getAllDeskAssignments] Total desk assignments found: ${assignments.length}`);
+    console.log('📊 [getAllDeskAssignments] Desk assignments:', JSON.stringify(assignments.map(a => ({
+      id: a.id,
+      deskTag: a.deskTag || a.desk,
+      name: a.name,
+      email: a.email,
+      type: a.type,
+      company: a.company
+    })), null, 2));
+
     res.json({
       success: true,
       data: assignments
     });
   } catch (error) {
-    console.error('Get all desk assignments error:', error);
+    console.error('❌ [getAllDeskAssignments] Error:', error);
     
     if (error.message && error.message.includes('not initialized')) {
       return res.status(503).json({

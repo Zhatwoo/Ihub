@@ -167,9 +167,15 @@ export default function Tenants() {
     filtered.sort((a, b) => {
       let comparison = 0;
       if (sortBy === 'name') {
-        comparison = (a.name || '').localeCompare(b.name || '');
+        comparison = (a.name || a.clientName || '').localeCompare(b.name || b.clientName || '');
       } else if (sortBy === 'email') {
         comparison = (a.email || '').localeCompare(b.email || '');
+      } else if (sortBy === 'office') {
+        comparison = (a.room || '').localeCompare(b.room || '');
+      } else if (sortBy === 'desk') {
+        comparison = (a.desk || '').localeCompare(b.desk || '');
+      } else if (sortBy === 'company') {
+        comparison = (a.companyName || a.company || '').localeCompare(b.companyName || b.company || '');
       } else if (sortBy === 'type') {
         comparison = (a.type || '').localeCompare(b.type || '');
       } else if (sortBy === 'date') {
@@ -292,9 +298,11 @@ export default function Tenants() {
                 className="flex-1 sm:flex-none px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all"
               >
                 <option value="name">Sort by Name</option>
+                {selectedFilter === 'private-office' && <option value="office">Sort by Office</option>}
+                {selectedFilter === 'private-office' && <option value="company">Sort by Company</option>}
+                {selectedFilter === 'dedicated-desk' && <option value="desk">Sort by Desk</option>}
+                {selectedFilter === 'dedicated-desk' && <option value="company">Sort by Company</option>}
                 <option value="date">Sort by Date</option>
-                <option value="type">Sort by Type</option>
-                <option value="status">Sort by Status</option>
               </select>
               <button
                 onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
@@ -351,6 +359,9 @@ export default function Tenants() {
                   {selectedFilter === 'private-office' && (
                     <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Company</th>
                   )}
+                  {selectedFilter === 'private-office' && (
+                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Office</th>
+                  )}
                   {selectedFilter === 'virtual-office' && (
                     <>
                       <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Company</th>
@@ -360,7 +371,6 @@ export default function Tenants() {
                   {selectedFilter === 'dedicated-desk' && (
                     <>
                       <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Desk</th>
-                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Type</th>
                       <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Company</th>
                     </>
                   )}
@@ -405,6 +415,11 @@ export default function Tenants() {
                         </p>
                       </td>
                     )}
+                    {selectedFilter === 'private-office' && (
+                      <td className="px-4 sm:px-6 py-4">
+                        <p className="text-gray-600 text-sm font-semibold">{tenant.room || 'N/A'}</p>
+                      </td>
+                    )}
                     {selectedFilter === 'virtual-office' && (
                       <>
                         <td className="px-4 sm:px-6 py-4">
@@ -423,9 +438,6 @@ export default function Tenants() {
                       <>
                         <td className="px-4 sm:px-6 py-4">
                           <p className="text-gray-600 text-sm font-semibold">{tenant.desk || 'N/A'}</p>
-                        </td>
-                        <td className="px-4 sm:px-6 py-4">
-                          <p className="text-gray-600 text-sm capitalize">{tenant.occupantType || 'N/A'}</p>
                         </td>
                         <td className="px-4 sm:px-6 py-4">
                           <p className="text-gray-600 text-sm truncate max-w-[150px]" title={tenant.companyName || 'N/A'}>

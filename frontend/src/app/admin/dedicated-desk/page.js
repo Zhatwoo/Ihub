@@ -24,6 +24,8 @@ export default function DedicatedDesk() {
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [selectedUserInfo, setSelectedUserInfo] = useState(null);
   const [showUserInfoModal, setShowUserInfoModal] = useState(false);
+  const [alertModal, setAlertModal] = useState({ show: false, type: 'success', title: '', message: '' });
+  const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null, onCancel: null });
   
   // Use refs to track intervals and prevent multiple intervals
   const assignmentsIntervalRef = useRef(null);
@@ -217,7 +219,29 @@ export default function DedicatedDesk() {
           assignmentsResponse.data.assignments.forEach((assignment) => {
             assignments[assignment.id] = assignment;
           });
-          setDeskAssignments(assignments);
+          
+          if (response.success) {
+            setAlertModal({ show: true, type: 'success', title: 'Success', message: `Request approved successfully! Desk ${request.deskId} has been assigned.` });
+            
+            // Refresh data
+            const updatedRequests = await fetchAllRequests();
+            setRequests(updatedRequests);
+            
+            // Refresh assignments
+            const assignmentsResponse = await api.get('/api/admin/dedicated-desk/assignments');
+            if (assignmentsResponse.success && assignmentsResponse.data) {
+              const assignments = {};
+              assignmentsResponse.data.assignments.forEach((assignment) => {
+                assignments[assignment.id] = assignment;
+              });
+              setDeskAssignments(assignments);
+            }
+          } else {
+            setAlertModal({ show: true, type: 'error', title: 'Error', message: response.message || 'Failed to approve request. Please try again.' });
+          }
+        } catch (error) {
+          console.error('Error accepting request:', error);
+          setAlertModal({ show: true, type: 'error', title: 'Error', message: error.message || 'Failed to approve request. Please try again.' });
         }
       } else {
         showToast(response.message || 'Failed to approve request. Please try again.', 'error');
@@ -529,6 +553,65 @@ export default function DedicatedDesk() {
                     : 'N/A'}
                 </p>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Alert Modal */}
+      {alertModal.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-slideUp">
+            <div className="flex items-center gap-3 mb-4">
+              {alertModal.type === 'success' ? (
+                <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              ) : (
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </div>
+              )}
+              <h3 className="text-lg font-bold text-slate-800">{alertModal.title}</h3>
+            </div>
+            <p className="text-gray-600 mb-6">{alertModal.message}</p>
+            <button
+              onClick={() => setAlertModal({ ...alertModal, show: false })}
+              className={`w-full py-2.5 rounded-lg font-semibold transition-colors ${
+                alertModal.type === 'success'
+                  ? 'bg-teal-600 text-white hover:bg-teal-700'
+                  : 'bg-red-600 text-white hover:bg-red-700'
+              }`}
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Confirm Modal */}
+      {confirmModal.show && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-slideUp">
+            <h3 className="text-lg font-bold text-slate-800 mb-3">{confirmModal.title}</h3>
+            <p className="text-gray-600 mb-6">{confirmModal.message}</p>
+            <div className="flex gap-3">
+              <button
+                onClick={confirmModal.onCancel}
+                className="flex-1 py-2.5 rounded-lg font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmModal.onConfirm}
+                className="flex-1 py-2.5 rounded-lg font-semibold bg-teal-600 text-white hover:bg-teal-700 transition-colors"
+              >
+                Confirm
+              </button>
             </div>
           </div>
         </div>

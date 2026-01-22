@@ -1,63 +1,141 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
+import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 
 export default function RequestList() {
+  const router = useRouter();
   const [schedules, setSchedules] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [mounted, setMounted] = useState(false);
 
   // Fetch schedules from API
-  useEffect(() => {
-    const fetchSchedules = async () => {
-      try {
-        const response = await api.get('/api/admin/private-office/requests');
-        if (response.success && response.data) {
-          setSchedules(response.data.requests || []);
-        }
-      } catch (error) {
-        console.error('Error fetching schedules:', error);
-        setSchedules([]);
+  const fetchSchedules = async () => {
+    try {
+      console.log('📥 Fetching requests from /api/admin/private-office/requests');
+      const response = await api.get('/api/admin/private-office/requests', { skipCache: true });
+      console.log('✅ Requests fetched:', response);
+      if (response.success && response.data) {
+        console.log('📊 Setting schedules:', response.data.requests?.length || 0, 'requests');
+        setSchedules(response.data.requests || []);
       }
-    };
+    } catch (error) {
+      console.error('❌ Error fetching schedules:', error);
+      setSchedules([]);
+    }
+  };
+
+  useEffect(() => {
     fetchSchedules();
   }, []);
 
+  // Mount state for portals
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const handleApprove = async (id) => {
+    setIsLoading(true);
+    console.log('✅ Approving request:', id);
     try {
+      console.log('📤 Sending PUT request to /api/admin/private-office/requests/' + id + '/status');
       const response = await api.put(`/api/admin/private-office/requests/${id}/status`, { 
         status: 'approved' 
       });
+      console.log('✅ Response received:', response);
       if (response.success) {
-        // Refresh schedules
-        const schedulesResponse = await api.get('/api/admin/private-office/requests');
-        if (schedulesResponse.success && schedulesResponse.data) {
-          setSchedules(schedulesResponse.data.requests || []);
-        }
+        setSuccessMessage('Request approved successfully!');
+        setShowSuccessModal(true);
+        
+        // Wait 2.5 seconds to allow Firebase to update
+        await new Promise(resolve => setTimeout(resolve, 2500));
+        
+        // Close modal and refetch requests
+        setShowSuccessModal(false);
+        setIsLoading(false);
+        console.log('🔄 Refetching requests...');
+        await fetchSchedules();
       }
     } catch (error) {
-      console.error('Error approving request:', error);
+      console.error('❌ Error approving request:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response,
+        stack: error.stack
+      });
+      setIsLoading(false);
+      setShowSuccessModal(false);
     }
   };
 
   const handleReject = async (id) => {
+    setIsLoading(true);
+    console.log('🔴 Rejecting request:', id);
     try {
+      console.log('📤 Sending PUT request to /api/admin/private-office/requests/' + id + '/status');
       const response = await api.put(`/api/admin/private-office/requests/${id}/status`, { 
         status: 'rejected' 
       });
+      console.log('✅ Response received:', response);
       if (response.success) {
-        // Refresh schedules
-        const schedulesResponse = await api.get('/api/admin/private-office/requests');
-        if (schedulesResponse.success && schedulesResponse.data) {
-          setSchedules(schedulesResponse.data.requests || []);
-        }
+        setSuccessMessage('Request rejected successfully!');
+        setShowSuccessModal(true);
+        
+        // Wait 2.5 seconds to allow Firebase to update
+        await new Promise(resolve => setTimeout(resolve, 2500));
+        
+        // Close modal and refetch requests
+        setShowSuccessModal(false);
+        setIsLoading(false);
+        console.log('🔄 Refetching requests...');
+        await fetchSchedules();
       }
     } catch (error) {
-      console.error('Error rejecting request:', error);
+      console.error('❌ Error rejecting request:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response,
+        stack: error.stack
+      });
+      setIsLoading(false);
+      setShowSuccessModal(false);
     }
   };
 
   return (
     <div className="flex flex-col gap-4 sm:gap-5 lg:gap-6 animate-fadeIn">
+      {/* Loading Overlay - Using Portal to cover entire page */}
+      {isLoading && mounted && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999]">
+          <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-4">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-600"></div>
+            <p className="text-slate-800 font-semibold">Processing request...</p>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Success Modal - Using Portal to cover entire page */}
+      {showSuccessModal && mounted && createPortal(
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999]">
+          <div className="bg-white rounded-2xl p-8 flex flex-col items-center gap-4 max-w-sm w-full mx-4 animate-[slideUp_0.3s_ease]">
+            <div className="w-16 h-16 bg-teal-100 rounded-full flex items-center justify-center">
+              <svg className="w-8 h-8 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-lg font-bold text-slate-800">Approval Done</h3>
+            <p className="text-gray-600 text-center text-sm">{successMessage}</p>
+            <p className="text-gray-500 text-xs">Refreshing page...</p>
+          </div>
+        </div>,
+        document.body
+      )}
+
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pb-4 border-b border-gray-200 gap-3 sm:gap-0">
         <div>
           <h2 className="text-slate-800 text-lg sm:text-xl font-bold">Pending Requests</h2>
@@ -129,14 +207,16 @@ export default function RequestList() {
                     <td className="px-3 sm:px-4 py-3 sm:py-4">
                       <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap">
                         <button 
-                          onClick={() => handleApprove(request.id)} 
-                          className="px-2 sm:px-3 py-1 sm:py-1.5 bg-green-600 text-white rounded-lg text-[10px] xs:text-xs font-semibold hover:bg-green-700 transition-colors whitespace-nowrap"
+                          onClick={() => handleApprove(request.id)}
+                          disabled={isLoading}
+                          className="px-2 sm:px-3 py-1 sm:py-1.5 bg-green-600 text-white rounded-lg text-[10px] xs:text-xs font-semibold hover:bg-green-700 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           Approve
                         </button>
                         <button 
-                          onClick={() => handleReject(request.id)} 
-                          className="px-2 sm:px-3 py-1 sm:py-1.5 bg-red-600 text-white rounded-lg text-[10px] xs:text-xs font-semibold hover:bg-red-700 transition-colors whitespace-nowrap"
+                          onClick={() => handleReject(request.id)}
+                          disabled={isLoading}
+                          className="px-2 sm:px-3 py-1 sm:py-1.5 bg-red-600 text-white rounded-lg text-[10px] xs:text-xs font-semibold hover:bg-red-700 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           Reject
                         </button>
