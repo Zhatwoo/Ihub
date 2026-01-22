@@ -196,12 +196,46 @@ export default function RequestList() {
                     </td>
                     <td className="px-3 sm:px-4 py-3 sm:py-4">
                       <p className="text-slate-800 font-medium text-xs sm:text-sm whitespace-nowrap">
-                        {request.startDate ? new Date(request.startDate).toLocaleDateString() : 'N/A'}
+                        {request.startDate ? 
+                          (() => {
+                            try {
+                              // Handle Firestore timestamp object
+                              if (typeof request.startDate === 'object' && request.startDate.toDate) {
+                                return request.startDate.toDate().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                              }
+                              // Handle ISO string or regular date
+                              const date = new Date(request.startDate);
+                              if (!isNaN(date.getTime())) {
+                                return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                              }
+                              return 'N/A';
+                            } catch (e) {
+                              return 'N/A';
+                            }
+                          })()
+                          : 'N/A'}
                       </p>
                     </td>
                     <td className="px-3 sm:px-4 py-3 sm:py-4">
                       <p className="text-gray-500 text-xs sm:text-sm whitespace-nowrap">
-                        {new Date(request.createdAt).toLocaleDateString()}
+                        {request.createdAt ? 
+                          (() => {
+                            try {
+                              // Handle Firestore timestamp object
+                              if (typeof request.createdAt === 'object' && request.createdAt.toDate) {
+                                return request.createdAt.toDate().toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                              }
+                              // Handle ISO string or regular date
+                              const date = new Date(request.createdAt);
+                              if (!isNaN(date.getTime())) {
+                                return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                              }
+                              return 'N/A';
+                            } catch (e) {
+                              return 'N/A';
+                            }
+                          })()
+                          : 'N/A'}
                       </p>
                     </td>
                     <td className="px-3 sm:px-4 py-3 sm:py-4">
