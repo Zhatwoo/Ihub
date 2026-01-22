@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { api, getUserFromCookie } from '@/lib/api';
 import { League_Spartan, Roboto } from 'next/font/google';
 import { motion } from 'framer-motion';
+import { showToast } from '@/components/Toast';
 
 const leagueSpartan = League_Spartan({
   subsets: ['latin'],
@@ -383,14 +384,14 @@ export default function Bookings() {
         // Only create interval if one doesn't already exist
         if (!bookingsIntervalRef.current) {
           fetchBookings(); // Fetch immediately when tab becomes visible
-          bookingsIntervalRef.current = setInterval(fetchBookings, 120000); // 2 minutes
+          bookingsIntervalRef.current = setInterval(fetchBookings, 300000); // 5 minutes
         }
       }
     };
     
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !bookingsIntervalRef.current) {
-      bookingsIntervalRef.current = setInterval(fetchBookings, 30000);
+      bookingsIntervalRef.current = setInterval(fetchBookings, 300000); // 5 minutes
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -434,14 +435,14 @@ export default function Bookings() {
         // Only create interval if one doesn't already exist
         if (!roomsIntervalRef.current) {
           fetchRooms(); // Fetch immediately when tab becomes visible
-          roomsIntervalRef.current = setInterval(fetchRooms, 120000); // 2 minutes
+          roomsIntervalRef.current = setInterval(fetchRooms, 300000); // 5 minutes
         }
       }
     };
     
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !roomsIntervalRef.current) {
-      roomsIntervalRef.current = setInterval(fetchRooms, 30000);
+      roomsIntervalRef.current = setInterval(fetchRooms, 300000); // 5 minutes
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -496,7 +497,7 @@ export default function Bookings() {
     // Only allow canceling private room bookings (schedules)
     // Desk assignments and virtual office bookings are managed by admin
     if (booking.type !== 'privateroom') {
-      alert('This booking type cannot be canceled from here. Please contact support.');
+      showToast('This booking type cannot be canceled from here. Please contact support.', 'error');
       return;
     }
 
@@ -524,9 +525,9 @@ export default function Bookings() {
           // Don't show error to user since booking was already removed from UI
         }
         
-        alert('Booking canceled successfully!');
+        showToast('Booking canceled successfully!', 'success');
       } else {
-        alert(response.message || 'Failed to cancel booking. Please try again.');
+        showToast(response.message || 'Failed to cancel booking. Please try again.', 'error');
       }
     } catch (error) {
       console.error('Error canceling booking:', error);
@@ -545,7 +546,7 @@ export default function Bookings() {
         errorMessage = error.message;
       }
       
-      alert(errorMessage);
+      showToast(errorMessage, 'error');
     } finally {
       setDeletingBookingId(null);
     }

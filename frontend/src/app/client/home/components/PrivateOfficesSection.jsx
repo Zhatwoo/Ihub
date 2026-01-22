@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { League_Spartan } from 'next/font/google';
 import { usePrivateOffices } from './privateOffices';
 import { api, getUserFromCookie } from '@/lib/api';
+import { showToast } from '@/components/Toast';
 
 const leagueSpartan = League_Spartan({
   subsets: ['latin'],
@@ -350,14 +351,14 @@ export default function PrivateOfficesSection() {
         // Response not successful - stay on step 3
         console.error('Booking submission failed:', response);
         setBookingLoading(false);
-        alert(response?.message || 'Failed to submit booking. Please try again.');
+        showToast(response?.message || 'Failed to submit booking. Please try again.', 'error');
       }
     } catch (error) {
       console.error('Error submitting booking:', error);
       setBookingLoading(false);
       // Stay on step 3 when there's an error - don't close modal
       const errorMessage = error.message || error.response?.data?.message || 'Failed to submit booking. Please try again.';
-      alert(errorMessage);
+      showToast(errorMessage, 'error');
       // Keep modal open on error
     }
   };

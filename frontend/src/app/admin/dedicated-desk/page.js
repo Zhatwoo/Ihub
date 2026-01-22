@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { api } from '@/lib/api';
+import { showToast } from '@/components/Toast';
 
 // Import tab components
 import FloorPlanView from "./tabs/FloorPlan";
@@ -67,14 +68,14 @@ export default function DedicatedDesk() {
         // Only create interval if one doesn't already exist
         if (!assignmentsIntervalRef.current) {
           fetchAssignments(); // Fetch immediately when tab becomes visible
-          assignmentsIntervalRef.current = setInterval(fetchAssignments, 120000); // 2 minutes
+          assignmentsIntervalRef.current = setInterval(fetchAssignments, 300000); // 5 minutes
         }
       }
     };
     
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !assignmentsIntervalRef.current) {
-      assignmentsIntervalRef.current = setInterval(fetchAssignments, 120000); // 2 minutes
+          assignmentsIntervalRef.current = setInterval(fetchAssignments, 300000); // 5 minutes
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -150,14 +151,14 @@ export default function DedicatedDesk() {
         // Only create interval if one doesn't already exist
         if (!requestsIntervalRef.current) {
           fetchRequests(); // Fetch immediately when tab becomes visible
-          requestsIntervalRef.current = setInterval(fetchRequests, 120000); // 2 minutes
+          requestsIntervalRef.current = setInterval(fetchRequests, 300000); // 5 minutes
         }
       }
     };
     
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !requestsIntervalRef.current) {
-      requestsIntervalRef.current = setInterval(fetchRequests, 120000); // 2 minutes
+      requestsIntervalRef.current = setInterval(fetchRequests, 300000); // 5 minutes
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -188,7 +189,7 @@ export default function DedicatedDesk() {
   // Handle accept request
   const handleAcceptRequest = async (request) => {
     if (!request.deskId) {
-      alert('Error: Desk ID is missing from the request.');
+      showToast('Error: Desk ID is missing from the request.', 'error');
       return;
     }
 
@@ -203,7 +204,7 @@ export default function DedicatedDesk() {
       });
       
       if (response.success) {
-        alert(`Request approved successfully! Desk ${request.deskId} has been assigned.`);
+        showToast(`Request approved successfully! Desk ${request.deskId} has been assigned.`, 'success');
         
         // Refresh data
         const updatedRequests = await fetchAllRequests();
@@ -219,11 +220,11 @@ export default function DedicatedDesk() {
           setDeskAssignments(assignments);
         }
       } else {
-        alert(response.message || 'Failed to approve request. Please try again.');
+        showToast(response.message || 'Failed to approve request. Please try again.', 'error');
       }
     } catch (error) {
       console.error('Error accepting request:', error);
-      alert(error.message || 'Failed to approve request. Please try again.');
+      showToast(error.message || 'Failed to approve request. Please try again.', 'error');
     }
   };
 
@@ -239,17 +240,17 @@ export default function DedicatedDesk() {
       });
       
       if (response.success) {
-        alert('Request rejected successfully!');
+        showToast('Request rejected successfully!', 'success');
         
         // Refresh requests
         const updatedRequests = await fetchAllRequests();
         setRequests(updatedRequests);
       } else {
-        alert(response.message || 'Failed to reject request. Please try again.');
+        showToast(response.message || 'Failed to reject request. Please try again.', 'error');
       }
     } catch (error) {
       console.error('Error rejecting request:', error);
-      alert(error.message || 'Failed to reject request. Please try again.');
+      showToast(error.message || 'Failed to reject request. Please try again.', 'error');
     }
   };
 
@@ -263,17 +264,17 @@ export default function DedicatedDesk() {
       const response = await api.delete(`/api/accounts/client/users/${request.userId}/request/desk`);
       
       if (response.success) {
-        alert('Request deleted successfully!');
+        showToast('Request deleted successfully!', 'success');
         
         // Refresh requests from backend
         const updatedRequests = await fetchAllRequests();
         setRequests(updatedRequests);
       } else {
-        alert(response.message || 'Failed to delete request. Please try again.');
+        showToast(response.message || 'Failed to delete request. Please try again.', 'error');
       }
     } catch (error) {
       console.error('Error deleting request:', error);
-      alert(error.message || 'Failed to delete request. Please try again.');
+      showToast(error.message || 'Failed to delete request. Please try again.', 'error');
     }
   };
 
