@@ -135,7 +135,7 @@ export default function DedicatedDeskSection() {
         // Only create interval if one doesn't already exist
         if (!deskAssignmentsIntervalRef.current) {
           fetchDeskAssignments(); // Fetch immediately when tab becomes visible
-          deskAssignmentsIntervalRef.current = setInterval(fetchDeskAssignments, 30000);
+          deskAssignmentsIntervalRef.current = setInterval(fetchDeskAssignments, 120000); // 2 minutes
         }
       }
     };

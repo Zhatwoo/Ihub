@@ -57,7 +57,7 @@ export default function DedicatedDesk() {
     // Initial fetch
     fetchAssignments();
     
-    // Poll for updates every 30 seconds (reduced from 2 seconds to prevent excessive API calls)
+    // Poll for updates every 2 minutes (increased from 30 seconds to prevent quota exhaustion)
     // Only poll when tab is visible to reduce unnecessary requests
     const handleVisibilityChange = () => {
       if (document.hidden) {
@@ -69,14 +69,14 @@ export default function DedicatedDesk() {
         // Only create interval if one doesn't already exist
         if (!assignmentsIntervalRef.current) {
           fetchAssignments(); // Fetch immediately when tab becomes visible
-          assignmentsIntervalRef.current = setInterval(fetchAssignments, 30000);
+          assignmentsIntervalRef.current = setInterval(fetchAssignments, 120000); // 2 minutes
         }
       }
     };
     
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !assignmentsIntervalRef.current) {
-      assignmentsIntervalRef.current = setInterval(fetchAssignments, 30000);
+      assignmentsIntervalRef.current = setInterval(fetchAssignments, 120000); // 2 minutes
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -140,7 +140,7 @@ export default function DedicatedDesk() {
     // Initial fetch
     fetchRequests();
     
-    // Poll for updates every 30 seconds (reduced from 2 seconds to prevent excessive API calls)
+    // Poll for updates every 2 minutes (increased from 30 seconds to prevent quota exhaustion)
     // Only poll when tab is visible to reduce unnecessary requests
     const handleVisibilityChange = () => {
       if (document.hidden || activeTab !== 'requests') {
@@ -152,14 +152,14 @@ export default function DedicatedDesk() {
         // Only create interval if one doesn't already exist
         if (!requestsIntervalRef.current) {
           fetchRequests(); // Fetch immediately when tab becomes visible
-          requestsIntervalRef.current = setInterval(fetchRequests, 30000);
+          requestsIntervalRef.current = setInterval(fetchRequests, 120000); // 2 minutes
         }
       }
     };
     
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !requestsIntervalRef.current) {
-      requestsIntervalRef.current = setInterval(fetchRequests, 30000);
+      requestsIntervalRef.current = setInterval(fetchRequests, 120000); // 2 minutes
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);

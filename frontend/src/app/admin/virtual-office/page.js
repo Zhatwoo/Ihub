@@ -62,7 +62,7 @@ export default function VirtualOffice() {
         // Only create interval if one doesn't already exist
         if (!clientsIntervalRef.current) {
           fetchClients(); // Fetch immediately when tab becomes visible
-          clientsIntervalRef.current = setInterval(fetchClients, 30000);
+          clientsIntervalRef.current = setInterval(fetchClients, 120000); // 2 minutes
         }
       }
     };

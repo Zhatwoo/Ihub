@@ -7,7 +7,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
 
 // Simple cache for GET requests to reduce API calls
 const requestCache = new Map();
-const CACHE_DURATION = 60 * 1000; // 60 seconds - increased to reduce quota usage
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes - increased to reduce quota usage
 
 // Log API URL in development (only once)
 if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
