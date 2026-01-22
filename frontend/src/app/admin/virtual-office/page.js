@@ -62,14 +62,14 @@ export default function VirtualOffice() {
         // Only create interval if one doesn't already exist
         if (!clientsIntervalRef.current) {
           fetchClients(); // Fetch immediately when tab becomes visible
-          clientsIntervalRef.current = setInterval(fetchClients, 120000); // 2 minutes
+          clientsIntervalRef.current = setInterval(fetchClients, 300000); // 5 minutes
         }
       }
     };
     
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !clientsIntervalRef.current) {
-      clientsIntervalRef.current = setInterval(fetchClients, 30000);
+      clientsIntervalRef.current = setInterval(fetchClients, 300000); // 5 minutes
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);

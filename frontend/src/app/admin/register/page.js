@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { motion } from 'framer-motion';
+import { showToast } from '@/components/Toast';
 
 export default function AdminRegisterPage() {
   const router = useRouter();
@@ -49,7 +50,7 @@ export default function AdminRegisterPage() {
 
       if (response.success) {
         // Success - admin account created, but user needs to log in manually
-        alert('Admin account created successfully! Please log in to continue.');
+        showToast('Admin account created successfully! Please log in to continue.', 'success');
         router.push('/');
       } else {
         setError(response.message || 'Registration failed. Please try again.');

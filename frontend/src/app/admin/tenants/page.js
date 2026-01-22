@@ -71,7 +71,7 @@ export default function Tenants() {
                 setStats(stats);
               }
             }).catch(error => console.error('Error polling tenants:', error));
-          }, 120000); // 2 minutes
+          }, 300000); // 5 minutes
         }
       }
     };
@@ -88,7 +88,7 @@ export default function Tenants() {
             setStats(stats);
           }
         }).catch(error => console.error('Error polling tenants:', error));
-      }, 120000); // 2 minutes
+      }, 300000); // 5 minutes
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);

@@ -78,14 +78,14 @@ export default function AdminDashboard() {
         // Only create interval if one doesn't already exist
         if (!dataIntervalRef.current) {
           fetchData(); // Fetch immediately when tab becomes visible
-          dataIntervalRef.current = setInterval(fetchData, 120000); // 2 minutes
+          dataIntervalRef.current = setInterval(fetchData, 300000); // 5 minutes
         }
       }
     };
     
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !dataIntervalRef.current) {
-      dataIntervalRef.current = setInterval(fetchData, 30000);
+      dataIntervalRef.current = setInterval(fetchData, 300000); // 5 minutes
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);

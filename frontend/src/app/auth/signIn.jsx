@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import { showToast } from '@/components/Toast';
 
 export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
   const router = useRouter();
@@ -56,7 +57,7 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
         onClose();
         
         // Show success message and redirect to landing page
-        alert('Account created successfully! Please log in to continue.');
+        showToast('Account created successfully! Please log in to continue.', 'success');
         router.push('/');
       } else {
         setError(response.message || 'Sign up failed. Please try again.');
