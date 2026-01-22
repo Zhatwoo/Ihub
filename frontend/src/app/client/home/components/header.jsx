@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
+import { api } from '@/lib/api';
 
 // Tailwind CSS classes are validated - no gradient classes in this file
 
@@ -39,18 +40,15 @@ export default function Header() {
     }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     try {
-      // Clear authentication data from localStorage
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('user');
-        localStorage.removeItem('idToken');
-      }
+      // Call logout API to clear cookies
+      await api.logout();
       // Redirect to landing page after logout
       router.push('/');
     } catch (error) {
       console.error('Logout error:', error);
-      // Even if there's an error, redirect to landing page
+      // Even if there's an error, redirect (cookies might still be cleared)
       router.push('/');
     }
   };

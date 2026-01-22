@@ -27,6 +27,41 @@ export default function AdminLayout({ children }) {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   
+  // Clean up old localStorage token and cache data on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    // Remove old token storage from localStorage (now using cookies)
+    const oldTokenKeys = ['idToken', 'refreshToken', 'user'];
+    oldTokenKeys.forEach(key => {
+      if (localStorage.getItem(key)) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    // Remove old admin cache and admin info from localStorage (now using cookies)
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('adminAuth_') || key.startsWith('adminInfo_'))) {
+        localStorage.removeItem(key);
+      }
+    }
+    
+    // Remove other app-related localStorage data
+    const keysToRemove = [
+      'calendar-tasks', 'kanban-columns', 'reports-data', 'currentCompanyId',
+      'userLocationInfo', 'scheduleStart', 'scheduleEnd', 'siteVisitCount',
+      'systemStyle', 'wallpaper', 'weather_cloud_pos', 'websdk_ng_cache_parameter',
+      'websdk_ng_global_parameter', 'websdk_ng_install_id', 'informationReadFilter',
+      'isDockMode', 'shownToastIds', 'advertisementVideoUrl', 'auth_migration_v1_completed'
+    ];
+    keysToRemove.forEach(key => {
+      if (localStorage.getItem(key)) {
+        localStorage.removeItem(key);
+      }
+    });
+  }, []);
+
   // Animation on mount
   useEffect(() => {
     const timer = setTimeout(() => setIsLoaded(true), 50);
@@ -38,23 +73,13 @@ export default function AdminLayout({ children }) {
 
   const handleLogout = async () => {
     try {
-      // Clear localStorage tokens (only in browser)
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('idToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
-      }
-      
+      // Call logout API to clear cookies
+      await api.logout();
       // Redirect to landing page after logout
       router.push('/');
     } catch (error) {
       console.error('Logout error:', error);
-      // Even if there's an error, clear storage and redirect
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('idToken');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
-      }
+      // Even if there's an error, redirect (cookies might still be cleared)
       router.push('/');
     }
   };

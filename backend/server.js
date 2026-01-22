@@ -1,5 +1,6 @@
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import morgan from 'morgan';
 import path from 'path';
@@ -29,10 +30,12 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(cors({
   origin: config.corsOrigin,
-  credentials: true,
+  credentials: true, // Important: Allow cookies to be sent
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Set-Cookie'] // Expose Set-Cookie header for debugging
 }));
+app.use(cookieParser()); // Parse cookies from requests
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));

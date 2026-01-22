@@ -5,22 +5,24 @@ import { getFirebaseAuth, getFirestore } from '../config/firebase.js';
 
 export const authenticate = async (req, res, next) => {
   try {
-    // Get token from Authorization header
-    const authHeader = req.headers.authorization;
+    // Get token from Authorization header OR cookies (cookies are preferred for security)
+    let idToken = null;
     
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ 
-        error: 'Unauthorized', 
-        message: 'No token provided. Please include Authorization: Bearer <token>' 
-      });
+    // First, try to get from Authorization header (for API clients)
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      idToken = authHeader.split('Bearer ')[1];
     }
-
-    const idToken = authHeader.split('Bearer ')[1];
+    
+    // If no token in header, try to get from cookies (for browser requests)
+    if (!idToken && req.cookies && req.cookies.idToken) {
+      idToken = req.cookies.idToken;
+    }
     
     if (!idToken) {
       return res.status(401).json({ 
         error: 'Unauthorized', 
-        message: 'Invalid token format' 
+        message: 'No token provided. Please log in again.' 
       });
     }
 

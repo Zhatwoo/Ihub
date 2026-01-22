@@ -4,7 +4,7 @@ import { useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
 import { League_Spartan } from 'next/font/google';
 import { usePrivateOffices } from './privateOffices';
-import { api } from '@/lib/api';
+import { api, getUserFromCookie } from '@/lib/api';
 
 const leagueSpartan = League_Spartan({
   subsets: ['latin'],
@@ -54,15 +54,15 @@ export default function PrivateOfficesSection() {
     notes: ''
   });
 
-  // Get current user from localStorage and fetch user info from backend
+  // Get current user from cookies and fetch user info from backend
   useEffect(() => {
     const fetchUserData = async () => {
       try {
         if (typeof window === 'undefined') return;
         
-        const userStr = localStorage.getItem('user');
-        if (userStr) {
-          const user = JSON.parse(userStr);
+        // Get user from cookie (tokens are in HttpOnly cookies)
+        const user = getUserFromCookie();
+        if (user && user.uid) {
           setCurrentUser({ uid: user.uid, email: user.email });
           
           // Fetch user details from backend API
@@ -80,14 +80,29 @@ export default function PrivateOfficesSection() {
               }));
             }
           } catch (error) {
-            if (error.response?.status !== 404) {
+            // Don't log 401 errors as they might be temporary (cookies still setting)
+            // Only log other errors
+            if (error.response?.status === 401) {
+              console.warn('⚠️ Authentication check failed, but user cookie exists. This might be a timing issue.');
+              // Use basic info from cookie
+              setFormData(prev => ({
+                ...prev,
+                email: user.email || prev.email
+              }));
+            } else if (error.response?.status !== 404) {
               console.error('Error fetching user info:', error);
+              // Use basic info from cookie if API call fails
+              setFormData(prev => ({
+                ...prev,
+                email: user.email || prev.email
+              }));
+            } else {
+              // 404 is fine - user just hasn't created profile yet
+              setFormData(prev => ({
+                ...prev,
+                email: user.email || prev.email
+              }));
             }
-            // Use basic info from localStorage if API call fails
-            setFormData(prev => ({
-              ...prev,
-              email: user.email || prev.email
-            }));
           }
         }
       } catch (error) {
