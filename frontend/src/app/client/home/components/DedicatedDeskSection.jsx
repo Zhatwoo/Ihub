@@ -233,7 +233,14 @@ export default function DedicatedDeskSection() {
         location: selectedSpace?.location || '',
         requestDate: new Date().toISOString(),
         status: 'pending',
-        // User basic info
+        occupantType: 'Tenant',
+        // User info - flat structure for easy access
+        firstName: userInfo?.firstName || '',
+        lastName: userInfo?.lastName || '',
+        email: userInfo?.email || currentUser.email || '',
+        company: userInfo?.companyName || '',
+        contact: userInfo?.contact || '',
+        // Also include nested requestedBy for backward compatibility
         requestedBy: {
           userId: currentUser.uid,
           firstName: userInfo?.firstName || '',

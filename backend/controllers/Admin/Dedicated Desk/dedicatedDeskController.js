@@ -17,24 +17,24 @@ export const getDeskAssignments = async (req, res) => {
       return sendFirestoreError(res);
     }
 
-    console.log('📋 [getDeskAssignments] Fetching desk assignments from /desk-assignments collection');
     const assignmentsSnapshot = await firestore.collection('desk-assignments').get();
-    let assignments = assignmentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-    console.log(`✅ [getDeskAssignments] Total assignments in /desk-assignments: ${assignments.length}`);
-    console.log('📊 [getDeskAssignments] Raw assignments:', JSON.stringify(assignments.map(a => ({
-      id: a.id,
-      deskTag: a.deskTag || a.desk,
-      name: a.name,
-      type: a.type
-    })), null, 2));
+    let assignments = assignmentsSnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        // Normalize deskTag - use deskTag if available, otherwise use desk, otherwise use document ID
+        deskTag: data.deskTag || data.desk || doc.id,
+        // Convert Firestore timestamp to ISO string for JSON serialization
+        assignedAt: data.assignedAt ? (data.assignedAt.toDate ? data.assignedAt.toDate().toISOString() : data.assignedAt) : null
+      };
+    });
 
     // Apply part filter
     if (part && part !== 'all') {
       assignments = assignments.filter(assignment => 
         assignment.deskTag && assignment.deskTag.startsWith(part.toUpperCase())
       );
-      console.log(`  Filtered by part ${part}: ${assignments.length} assignments`);
     }
 
     // Apply search filter
@@ -46,7 +46,6 @@ export const getDeskAssignments = async (req, res) => {
         (assignment.deskTag && assignment.deskTag.toLowerCase().includes(searchLower)) ||
         (assignment.company && assignment.company.toLowerCase().includes(searchLower))
       );
-      console.log(`  Filtered by search "${search}": ${assignments.length} assignments`);
     }
 
     // Apply sorting
@@ -85,8 +84,6 @@ export const getDeskAssignments = async (req, res) => {
       };
     });
 
-    console.log('📈 [getDeskAssignments] Stats by part:', statsByPart);
-
     res.json({
       success: true,
       data: {
@@ -96,7 +93,7 @@ export const getDeskAssignments = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('❌ [getDeskAssignments] Error:', error);
+    console.error('Get desk assignments error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal Server Error',
@@ -109,26 +106,17 @@ export const getDeskAssignments = async (req, res) => {
  * Get desk requests with filtering
  */
 export const getDeskRequests = async (req, res) => {
-  console.log('🔍 getDeskRequests function called!');
-  
   try {
     const { status, search, sortBy = 'requestDate', sortOrder = 'desc' } = req.query;
     const firestore = getFirestore();
     
-    console.log('🔍 Firestore instance:', !!firestore);
-    
     if (!firestore) {
-      console.log('🔍 No firestore instance - sending error');
       return sendFirestoreError(res);
     }
-
-    console.log('🔍 Starting getDeskRequests with correct path...');
 
     // Get all users first
     const usersSnapshot = await firestore.collection('accounts').doc('client').collection('users').get();
     const deskRequests = [];
-
-    console.log('� Totalo users found:', usersSnapshot.docs.length);
 
     // For each user, check if they have a desk request in the subcollection
     for (const userDoc of usersSnapshot.docs) {
@@ -170,12 +158,19 @@ export const getDeskRequests = async (req, res) => {
       }
     }
 
-
-
     let filteredRequests = [...deskRequests];
 
-    // Apply status filter
-    if (status && status !== 'all') {
+    // Default: only show pending requests (unless status filter is explicitly provided)
+    if (!status || status === 'all') {
+      filteredRequests = filteredRequests.filter(request => {
+        const isPending = request.status === 'pending';
+        if (!isPending) {
+          console.log(`Filtering out non-pending request: ${request.userInfo?.firstName} ${request.userInfo?.lastName} - status: ${request.status}`);
+        }
+        return isPending;
+      });
+    } else {
+      // Apply specific status filter if provided
       filteredRequests = filteredRequests.filter(request => request.status === status);
     }
 
@@ -278,37 +273,49 @@ export const updateDeskRequestStatus = async (req, res) => {
 
     const deskRequestData = deskRequestDoc.data();
 
-    // Update request status in the correct path
-    const updateData = {
-      ...deskRequestData,
-      status,
+    // Update request status in the correct path - only update the status and timestamp
+    await deskRequestRef.update({
+      status: status,
       adminNotes: adminNotes || '',
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    };
+    });
 
     // If approving, create desk assignment
     if (status === 'approved' && assignedDesk) {
+      // Extract company and contact from request data (try multiple locations)
+      const requestedBy = deskRequestData.requestedBy || {};
+      const company = deskRequestData.company || requestedBy.companyName || userData.companyName || '';
+      const contact = deskRequestData.contact || requestedBy.contact || userData.contact || userData.phoneNumber || '';
+      
+      console.log('DEBUG: Creating desk assignment');
+      console.log('deskRequestData:', deskRequestData);
+      console.log('userData:', userData);
+      console.log('Extracted company:', company);
+      console.log('Extracted contact:', contact);
+      
       const assignmentData = {
-        deskTag: assignedDesk,
+        desk: assignedDesk, // Use 'desk' field, not 'deskTag'
         name: `${userData.firstName} ${userData.lastName}`,
         email: userData.email,
-        contactNumber: userData.phoneNumber || '',
+        contactNumber: contact,
         type: deskRequestData.occupantType || 'Tenant',
-        company: deskRequestData.company || '',
+        company: company,
         assignedAt: admin.firestore.FieldValue.serverTimestamp(),
         userId: userId
       };
 
+      console.log('assignmentData to save:', assignmentData);
       await firestore.collection('desk-assignments').doc(assignedDesk).set(assignmentData);
-      updateData.assignedDesk = assignedDesk;
     }
 
-    await deskRequestRef.update(updateData);
+    // Verify the update was saved
+    const verifyDoc = await deskRequestRef.get();
+    const verifyData = verifyDoc.data();
 
     res.json({
       success: true,
       message: `Desk request ${status} successfully`,
-      data: updateData.deskRequest
+      data: verifyData
     });
   } catch (error) {
     console.error('Update desk request status error:', error);
@@ -333,51 +340,29 @@ export const getOccupantsByPart = async (req, res) => {
       return sendFirestoreError(res);
     }
 
-    console.log('🔍 [getOccupantsByPart] Fetching occupants for part:', part);
-    console.log('🔍 [getOccupantsByPart] Collection path: /desk-assignments');
-
     // Fetch from desk-assignments collection ONLY
     const assignmentsSnapshot = await firestore.collection('desk-assignments').get();
-    const assignments = assignmentsSnapshot.docs.map(doc => ({ 
-      id: doc.id, 
-      ...doc.data() 
-    }));
-
-    console.log('📊 [getOccupantsByPart] Total documents in /desk-assignments:', assignments.length);
-    console.log('📋 [getOccupantsByPart] All desk assignments:', JSON.stringify(assignments.map(a => ({ 
-      id: a.id, 
-      desk: a.desk, 
-      deskTag: a.deskTag, 
-      name: a.name,
-      type: a.type
-    })), null, 2));
+    const assignments = assignmentsSnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        // Normalize deskTag - use deskTag if available, otherwise use desk, otherwise use document ID
+        deskTag: data.deskTag || data.desk || doc.id
+      };
+    });
 
     // Filter by part and sort by desk number
     const partOccupants = assignments
       .filter(assignment => {
-        const deskIdentifier = assignment.deskTag || assignment.desk;
-        const matches = deskIdentifier && deskIdentifier.toUpperCase().startsWith(part.toUpperCase());
-        if (!matches) {
-          console.log(`  ❌ Skipping ${assignment.id}: deskIdentifier="${deskIdentifier}" does not start with "${part}"`);
-        }
-        return matches;
+        const deskIdentifier = assignment.deskTag;
+        return deskIdentifier && deskIdentifier.toUpperCase().startsWith(part.toUpperCase());
       })
-      .map(assignment => ({
-        ...assignment,
-        deskTag: assignment.deskTag || assignment.desk // Normalize to deskTag
-      }))
       .sort((a, b) => {
         const numA = parseInt(a.deskTag.slice(1)) || 0;
         const numB = parseInt(b.deskTag.slice(1)) || 0;
         return numA - numB;
       });
-
-    console.log(`✅ [getOccupantsByPart] Occupants for part ${part}:`, partOccupants.length);
-    console.log('📍 [getOccupantsByPart] Filtered occupants:', JSON.stringify(partOccupants.map(o => ({ 
-      deskTag: o.deskTag, 
-      name: o.name,
-      type: o.type 
-    })), null, 2));
 
     res.json({
       success: true,
@@ -387,7 +372,7 @@ export const getOccupantsByPart = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('❌ [getOccupantsByPart] Error:', error);
+    console.error('Get occupants by part error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal Server Error',
@@ -407,30 +392,24 @@ export const getAllDeskAssignments = async (req, res) => {
       return sendFirestoreError(res);
     }
     
-    console.log('📋 [getAllDeskAssignments] Fetching all desk assignments from /desk-assignments collection');
     const assignmentsSnapshot = await firestore.collection('desk-assignments').get();
     
-    const assignments = assignmentsSnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    }));
-
-    console.log(`✅ [getAllDeskAssignments] Total desk assignments found: ${assignments.length}`);
-    console.log('📊 [getAllDeskAssignments] Desk assignments:', JSON.stringify(assignments.map(a => ({
-      id: a.id,
-      deskTag: a.deskTag || a.desk,
-      name: a.name,
-      email: a.email,
-      type: a.type,
-      company: a.company
-    })), null, 2));
+    const assignments = assignmentsSnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        // Normalize deskTag - use deskTag if available, otherwise use desk, otherwise use document ID
+        deskTag: data.deskTag || data.desk || doc.id
+      };
+    });
 
     res.json({
       success: true,
       data: assignments
     });
   } catch (error) {
-    console.error('❌ [getAllDeskAssignments] Error:', error);
+    console.error('Get all desk assignments error:', error);
     
     if (error.message && error.message.includes('not initialized')) {
       return res.status(503).json({

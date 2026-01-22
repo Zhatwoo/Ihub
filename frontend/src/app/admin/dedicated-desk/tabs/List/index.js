@@ -34,7 +34,7 @@ export default function ListView({
               assignmentsList.map((assignment, index) => (
                 <tr key={assignment.id || assignment.deskTag || `assignment-${index}`} className="bg-gray-50 hover:bg-gray-100 transition-colors">
                   <td className="px-4 py-4">
-                    <span className="text-slate-800 font-semibold text-sm">{assignment.deskTag}</span>
+                    <span className="text-slate-800 font-semibold text-sm">{assignment.deskTag || assignment.desk || assignment.id || 'N/A'}</span>
                   </td>
                   <td className="px-4 py-4">
                     <button
@@ -69,13 +69,15 @@ export default function ListView({
                   </td>
                   <td className="px-4 py-4">
                     <span className="text-gray-600 text-sm">
-                      {assignment.assignedAt ? new Date(assignment.assignedAt).toLocaleDateString() : 'N/A'}
+                      {assignment.assignedAt ? 
+                        new Date(assignment.assignedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+                        : 'N/A'}
                     </span>
                   </td>
                   <td className="px-4 py-4">
                     <button
                       onClick={() => {
-                        setSelectedDesk(assignment.deskTag);
+                        setSelectedDesk(assignment.deskTag || assignment.desk || assignment.id);
                         setShowModal(true);
                       }}
                       className="px-3 py-1.5 bg-teal-600 text-white text-xs font-medium rounded-lg hover:bg-teal-700 transition-colors"

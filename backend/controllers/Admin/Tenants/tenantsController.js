@@ -63,7 +63,15 @@ export const getTenantStats = async (req, res) => {
     // Process all data
     const schedules = schedulesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     const virtualOfficeClients = virtualOfficeSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    const deskAssignments = deskAssignmentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const deskAssignments = deskAssignmentsSnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        // Normalize desk - use desk if available, otherwise use document ID
+        desk: data.desk || doc.id
+      };
+    });
 
     console.log('Raw schedules from Firebase:', schedules.map(s => ({
       id: s.id,
@@ -98,13 +106,13 @@ export const getTenantStats = async (req, res) => {
       .map(assignment => ({
         id: assignment.id,
         type: 'dedicated-desk',
-        desk: assignment.desk,
+        desk: assignment.desk, // Use desk field
         clientName: assignment.name,
         email: assignment.email,
         contactNumber: assignment.contactNumber,
         companyName: assignment.company || '',
         occupantType: assignment.type,
-        startDate: assignment.assignedAt,
+        startDate: assignment.assignedAt ? (assignment.assignedAt.toDate ? assignment.assignedAt.toDate().toISOString() : assignment.assignedAt) : null,
         status: 'active',
         createdAt: assignment.assignedAt || assignment.createdAt
       }));
@@ -172,7 +180,15 @@ export const getFilteredTenants = async (req, res) => {
     const virtualOfficeClients = virtualOfficeSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
     // Process desk assignments
-    const deskAssignments = deskAssignmentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const deskAssignments = deskAssignmentsSnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        // Normalize desk - use desk if available, otherwise use document ID
+        desk: data.desk || doc.id
+      };
+    });
 
     // Process rooms data
     const rooms = roomsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -202,13 +218,13 @@ export const getFilteredTenants = async (req, res) => {
       .map(assignment => ({
         id: assignment.id,
         type: 'dedicated-desk',
-        desk: assignment.desk,
+        desk: assignment.desk, // Use desk field
         clientName: assignment.name,
         email: assignment.email,
         contactNumber: assignment.contactNumber,
         companyName: assignment.company || '',
         occupantType: assignment.type,
-        startDate: assignment.assignedAt,
+        startDate: assignment.assignedAt ? (assignment.assignedAt.toDate ? assignment.assignedAt.toDate().toISOString() : assignment.assignedAt) : null,
         status: 'active',
         createdAt: assignment.assignedAt || assignment.createdAt
       }));
