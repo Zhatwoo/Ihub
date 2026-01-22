@@ -50,7 +50,7 @@ export default function VirtualOffice() {
     // Initial fetch
     fetchClients();
     
-    // Poll for updates every 30 seconds
+    // Poll for updates every 10 minutes (increased to reduce Firestore reads)
     // Only poll when tab is visible to reduce unnecessary requests
     const handleVisibilityChange = () => {
       if (document.hidden) {
@@ -62,14 +62,14 @@ export default function VirtualOffice() {
         // Only create interval if one doesn't already exist
         if (!clientsIntervalRef.current) {
           fetchClients(); // Fetch immediately when tab becomes visible
-          clientsIntervalRef.current = setInterval(fetchClients, 300000); // 5 minutes
+          clientsIntervalRef.current = setInterval(fetchClients, 600000); // 10 minutes
         }
       }
     };
     
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !clientsIntervalRef.current) {
-      clientsIntervalRef.current = setInterval(fetchClients, 300000); // 5 minutes
+      clientsIntervalRef.current = setInterval(fetchClients, 600000); // 10 minutes
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
