@@ -49,12 +49,19 @@ export default function ByPartView({
       }
       
       try {
-        const response = await api.get(`/api/admin/dedicated-desk/occupants/${selectedPartData.tagPrefix}`);
+        console.log('🔄 Fetching occupants for part:', selectedPartData.tagPrefix);
+        const response = await api.get(`/api/admin/dedicated-desk/occupants/${selectedPartData.tagPrefix}`, { skipCache: true });
+        console.log('📥 API Response:', response);
         if (response.success && response.data) {
+          console.log('✅ Occupants received:', response.data.occupants?.length || 0);
+          console.log('📋 Occupants data:', response.data.occupants);
           setPartOccupants(response.data.occupants || []);
+        } else {
+          console.warn('⚠️ Response not successful:', response);
+          setPartOccupants([]);
         }
       } catch (error) {
-        console.error('Error fetching part occupants:', error);
+        console.error('❌ Error fetching part occupants:', error);
         setPartOccupants([]);
       }
     };
