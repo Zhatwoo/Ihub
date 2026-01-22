@@ -383,7 +383,7 @@ export default function Bookings() {
         // Only create interval if one doesn't already exist
         if (!bookingsIntervalRef.current) {
           fetchBookings(); // Fetch immediately when tab becomes visible
-          bookingsIntervalRef.current = setInterval(fetchBookings, 30000);
+          bookingsIntervalRef.current = setInterval(fetchBookings, 120000); // 2 minutes
         }
       }
     };
@@ -434,7 +434,7 @@ export default function Bookings() {
         // Only create interval if one doesn't already exist
         if (!roomsIntervalRef.current) {
           fetchRooms(); // Fetch immediately when tab becomes visible
-          roomsIntervalRef.current = setInterval(fetchRooms, 30000);
+          roomsIntervalRef.current = setInterval(fetchRooms, 120000); // 2 minutes
         }
       }
     };

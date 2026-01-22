@@ -93,71 +93,80 @@ export const getDeskAssignments = async (req, res) => {
 };
 
 /**
- * Get desk requests with filtering
+ * Get desk requests with filtering - OPTIMIZED to reduce Firestore quota usage
  */
 export const getDeskRequests = async (req, res) => {
-  console.log('🔍 getDeskRequests function called!');
-  
   try {
     const { status, search, sortBy = 'requestDate', sortOrder = 'desc' } = req.query;
     const firestore = getFirestore();
     
-    console.log('🔍 Firestore instance:', !!firestore);
-    
     if (!firestore) {
-      console.log('🔍 No firestore instance - sending error');
       return sendFirestoreError(res);
     }
 
-    console.log('🔍 Starting getDeskRequests with correct path...');
-
-    // Get all users first
+    // OPTIMIZED: Get all users first
     const usersSnapshot = await firestore.collection('accounts').doc('client').collection('users').get();
     const deskRequests = [];
+    const userDocs = usersSnapshot.docs;
 
-    console.log('� Totalo users found:', usersSnapshot.docs.length);
+    console.log('📊 Total users found:', userDocs.length);
 
-    // For each user, check if they have a desk request in the subcollection
-    for (const userDoc of usersSnapshot.docs) {
-      const userData = userDoc.data();
-      const userId = userDoc.id;
+    // OPTIMIZED: Process in batches of 10 to avoid overwhelming Firestore and reduce quota usage
+    const BATCH_SIZE = 10;
+    for (let i = 0; i < userDocs.length; i += BATCH_SIZE) {
+      const batch = userDocs.slice(i, i + BATCH_SIZE);
       
-      try {
-        // Check the correct path: /accounts/client/users/{userId}/request/desk
-        const deskRequestDoc = await firestore
-          .collection('accounts')
-          .doc('client')
-          .collection('users')
-          .doc(userId)
-          .collection('request')
-          .doc('desk')
-          .get();
+      // Process batch in parallel (but limited to BATCH_SIZE)
+      const batchPromises = batch.map(async (userDoc) => {
+        const userData = userDoc.data();
+        const userId = userDoc.id;
+        
+        try {
+          // Check the correct path: /accounts/client/users/{userId}/request/desk
+          const deskRequestDoc = await firestore
+            .collection('accounts')
+            .doc('client')
+            .collection('users')
+            .doc(userId)
+            .collection('request')
+            .doc('desk')
+            .get();
 
-        if (deskRequestDoc.exists) {
-          const deskRequestData = deskRequestDoc.data();
-          
-          // Skip empty documents
-          if (Object.keys(deskRequestData).length === 0) {
-            continue;
-          }
-          
-          deskRequests.push({
-            id: userId,
-            userId: userId,
-            ...deskRequestData,
-            userInfo: {
-              firstName: userData.firstName,
-              lastName: userData.lastName,
-              email: userData.email
+          if (deskRequestDoc.exists) {
+            const deskRequestData = deskRequestDoc.data();
+            
+            // Skip empty documents
+            if (Object.keys(deskRequestData).length === 0) {
+              return null;
             }
-          });
+            
+            return {
+              id: userId,
+              userId: userId,
+              ...deskRequestData,
+              userInfo: {
+                firstName: userData.firstName,
+                lastName: userData.lastName,
+                email: userData.email
+              }
+            };
+          }
+          return null;
+        } catch (error) {
+          console.error(`Error checking desk request for user ${userId}:`, error);
+          return null;
         }
-      } catch (error) {
-        console.error(`Error checking desk request for user ${userId}:`, error);
+      });
+      
+      // Wait for batch to complete
+      const batchResults = await Promise.all(batchPromises);
+      deskRequests.push(...batchResults.filter(r => r !== null));
+      
+      // Small delay between batches to avoid quota exhaustion
+      if (i + BATCH_SIZE < userDocs.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
       }
     }
-
-
 
     let filteredRequests = [...deskRequests];
 
@@ -180,11 +189,13 @@ export const getDeskRequests = async (req, res) => {
     filteredRequests.sort((a, b) => {
       let comparison = 0;
       if (sortBy === 'requestDate') {
-        comparison = new Date(a.requestDate || a.createdAt || 0) - new Date(b.requestDate || b.createdAt || 0);
+        comparison = new Date(a.requestDate || 0) - new Date(b.requestDate || 0);
       } else if (sortBy === 'name') {
         const nameA = `${a.userInfo?.firstName || ''} ${a.userInfo?.lastName || ''}`.trim();
         const nameB = `${b.userInfo?.firstName || ''} ${b.userInfo?.lastName || ''}`.trim();
         comparison = nameA.localeCompare(nameB);
+      } else if (sortBy === 'email') {
+        comparison = (a.userInfo?.email || '').localeCompare(b.userInfo?.email || '');
       } else if (sortBy === 'status') {
         comparison = (a.status || '').localeCompare(b.status || '');
       }
@@ -295,7 +306,7 @@ export const updateDeskRequestStatus = async (req, res) => {
     res.json({
       success: true,
       message: `Desk request ${status} successfully`,
-      data: updateData.deskRequest
+      data: updateData
     });
   } catch (error) {
     console.error('Update desk request status error:', error);

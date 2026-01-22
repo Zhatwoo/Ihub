@@ -134,7 +134,7 @@ export default function PrivateOffices() {
         // Only create interval if one doesn't already exist
         if (!roomsIntervalRef.current) {
           fetchRooms(); // Fetch immediately when tab becomes visible
-          roomsIntervalRef.current = setInterval(fetchRooms, 30000);
+          roomsIntervalRef.current = setInterval(fetchRooms, 120000); // 2 minutes
         }
       }
     };

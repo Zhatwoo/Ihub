@@ -51,16 +51,13 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
       });
 
       if (response.success && response.data) {
-        // Tokens are now stored in HttpOnly cookies by the backend
-        // No need to store in localStorage - cookies are more secure
-        // User info is in a non-HttpOnly cookie for frontend access
-        
-        // Small delay to ensure cookies are set before redirect
-        await new Promise(resolve => setTimeout(resolve, 100));
-
-        // Success - close modal and redirect to client home
+        // Account created successfully - user needs to log in manually
+        // Close modal and redirect to landing page
         onClose();
-        router.push(response.data.redirectPath || '/client/home');
+        
+        // Show success message and redirect to landing page
+        alert('Account created successfully! Please log in to continue.');
+        router.push('/');
       } else {
         setError(response.message || 'Sign up failed. Please try again.');
       }

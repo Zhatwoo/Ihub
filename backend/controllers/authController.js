@@ -284,49 +284,18 @@ export const signup = async (req, res) => {
       console.warn('   User created in Firebase Auth but profile data not saved');
     }
 
-    // Set HttpOnly cookies for tokens (more secure than localStorage)
-    // Note: For localhost, we don't set domain so cookies work across ports
-    // In production, you may need to set domain: '.yourdomain.com'
-    const cookieOptions = {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' needed for cross-origin in production
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: '/',
-      // Don't set domain for localhost - allows cookies to work across ports
-      // In production, you might need: domain: '.yourdomain.com'
-    };
-
-    // Set idToken cookie
-    res.cookie('idToken', data.idToken, cookieOptions);
-    
-    // Set refreshToken cookie (longer expiry)
-    res.cookie('refreshToken', data.refreshToken, {
-      ...cookieOptions,
-      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
-    });
-
-    // Set user info cookie (non-sensitive data only)
-    res.cookie('user', JSON.stringify({
-      uid,
-      email: data.email,
-      role: 'client'
-    }), {
-      ...cookieOptions,
-      httpOnly: false // Allow frontend to read user info
-    });
+    // Don't set cookies on signup - user needs to log in manually
+    // This is more secure and gives user control over their session
 
     res.status(201).json({
       success: true,
-      message: 'User created successfully',
+      message: 'Account created successfully. Please log in to continue.',
       data: {
         uid,
         email: data.email,
         role: 'client',
-        redirectPath: '/client/home',
-        expiresIn: data.expiresIn,
-        userData: userDoc
-        // Tokens are now in cookies, not in response
+        redirectPath: '/', // Redirect to landing page to log in
+        // No tokens - user must log in manually
       }
     });
   } catch (error) {
