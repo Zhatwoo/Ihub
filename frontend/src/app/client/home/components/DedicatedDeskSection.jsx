@@ -93,10 +93,8 @@ export default function DedicatedDeskSection() {
 
     fetchUserData();
     
-    // Listen for storage changes (e.g., logout in another tab)
-    const handleStorageChange = () => {
-      fetchUserData();
-    };
+    // REMOVED: Storage change listener - was causing excessive API calls
+    // User data is now cached and only fetched once on mount
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
@@ -124,7 +122,7 @@ export default function DedicatedDeskSection() {
     // Initial fetch
     fetchDeskAssignments();
     
-    // Poll for updates every 10 minutes (increased to reduce Firestore reads)
+    // Poll for updates every 15 minutes (increased to reduce Firestore reads)
     // Only poll when tab is visible to reduce unnecessary requests
     const handleVisibilityChange = () => {
       if (document.hidden) {
@@ -136,14 +134,14 @@ export default function DedicatedDeskSection() {
         // Only create interval if one doesn't already exist
         if (!deskAssignmentsIntervalRef.current) {
           fetchDeskAssignments(); // Fetch immediately when tab becomes visible
-          deskAssignmentsIntervalRef.current = setInterval(fetchDeskAssignments, 600000); // 10 minutes
+          deskAssignmentsIntervalRef.current = setInterval(fetchDeskAssignments, 900000); // 15 minutes
         }
       }
     };
     
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !deskAssignmentsIntervalRef.current) {
-      deskAssignmentsIntervalRef.current = setInterval(fetchDeskAssignments, 600000); // 10 minutes
+      deskAssignmentsIntervalRef.current = setInterval(fetchDeskAssignments, 900000); // 15 minutes
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
