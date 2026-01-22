@@ -4,7 +4,7 @@ import { useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
 import { League_Spartan } from 'next/font/google';
 import { availableSpaces } from './DidicatedDesk';
-import { api } from '@/lib/api';
+import { api, getUserFromCookie } from '@/lib/api';
 import Part1 from '@/app/admin/dedicated-desk/components/parts/Part1';
 import Part2 from '@/app/admin/dedicated-desk/components/parts/Part2';
 import Part3 from '@/app/admin/dedicated-desk/components/parts/Part3';
@@ -52,14 +52,13 @@ export default function DedicatedDeskSection() {
     return () => window.removeEventListener('resize', updateScale);
   }, []);
 
-  // Get current user from localStorage and fetch user info from backend
+  // Get current user from cookies and fetch user info from backend
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // Get user info from localStorage (set during login)
-        const userStr = localStorage.getItem('user');
-        if (userStr) {
-          const user = JSON.parse(userStr);
+        // Get user from cookie (tokens are in HttpOnly cookies)
+        const user = getUserFromCookie();
+        if (user && user.uid) {
           setCurrentUser({ uid: user.uid, email: user.email });
           
           // Fetch user details from backend API

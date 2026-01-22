@@ -4,23 +4,21 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { api } from '@/lib/api';
 
 export default function VirtualOfficeHeader() {
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     try {
-      // Clear authentication data from localStorage
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('user');
-        localStorage.removeItem('idToken');
-      }
+      // Call logout API to clear cookies
+      await api.logout();
       // Redirect to landing page after logout
       router.push('/');
     } catch (error) {
       console.error('Logout error:', error);
-      // Even if there's an error, redirect to landing page
+      // Even if there's an error, redirect (cookies might still be cleared)
       router.push('/');
     }
   };

@@ -36,9 +36,11 @@ export default function AdminDashboard() {
         if (response.success) {
           const { privateOffice, virtualOffice, dedicatedDesk, rawData } = response.data;
           
-          console.log('🔍 Frontend Debug - Virtual Office Data:');
-          console.log('virtualOffice:', virtualOffice);
-          console.log('allTenants:', virtualOffice.allTenants);
+          // Debug logs removed - sensitive user data should not be logged
+          // Only log summary in development mode
+          if (process.env.NODE_ENV === 'development') {
+            console.log('✅ Dashboard data loaded successfully');
+          }
           
           // Set processed stats from backend
           setPrivateOfficeStats(privateOffice);

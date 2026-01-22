@@ -104,10 +104,11 @@ export const getDashboardStats = async (req, res) => {
       })).sort((a, b) => new Date(b.startDate || 0) - new Date(a.startDate || 0)).slice(0, 10) // Limit for performance
     };
 
-    console.log('🔍 Backend Debug - Virtual Office Only:');
-    console.log('Virtual Office Clients Raw:', virtualOfficeClients);
-    console.log('Virtual Office Stats:', virtualOfficeStats);
-    console.log('All Tenants (should be VO clients only):', virtualOfficeStats.allTenants);
+    // Debug logs removed - sensitive user data should not be logged
+    // Only log in development mode if needed
+    if (process.env.NODE_ENV === 'development') {
+      console.log('✅ Dashboard stats fetched successfully');
+    }
 
     // Calculate Dedicated Desk stats
     const dedicatedDeskStats = {

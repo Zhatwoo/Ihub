@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { api } from '@/lib/api';
+import { api, getUserFromCookie } from '@/lib/api';
 
 export default function ProfileModal({ isOpen, onClose }) {
   const [adminData, setAdminData] = useState(null);
@@ -25,16 +25,9 @@ export default function ProfileModal({ isOpen, onClose }) {
     setError('');
     
     try {
-      // Get user from localStorage
-      const userStr = localStorage.getItem('user');
-      if (!userStr) {
-        setError('User not authenticated');
-        setLoading(false);
-        return;
-      }
-
-      const user = JSON.parse(userStr);
-      if (!user?.uid) {
+      // Get user from cookie (tokens are in HttpOnly cookies)
+      const user = getUserFromCookie();
+      if (!user || !user.uid) {
         setError('User not authenticated');
         setLoading(false);
         return;
@@ -76,14 +69,9 @@ export default function ProfileModal({ isOpen, onClose }) {
     setError('');
 
     try {
-      // Get user from localStorage
-      const userStr = localStorage.getItem('user');
-      if (!userStr) {
-        throw new Error('User not authenticated');
-      }
-
-      const user = JSON.parse(userStr);
-      if (!user?.uid) {
+      // Get user from cookie (tokens are in HttpOnly cookies)
+      const user = getUserFromCookie();
+      if (!user || !user.uid) {
         throw new Error('User not authenticated');
       }
 

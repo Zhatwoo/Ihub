@@ -51,16 +51,12 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
       });
 
       if (response.success && response.data) {
-        // Store tokens in localStorage
-        if (response.data.idToken) {
-          localStorage.setItem('idToken', response.data.idToken);
-          localStorage.setItem('refreshToken', response.data.refreshToken);
-          localStorage.setItem('user', JSON.stringify({
-            uid: response.data.uid,
-            email: response.data.email,
-            role: response.data.role,
-          }));
-        }
+        // Tokens are now stored in HttpOnly cookies by the backend
+        // No need to store in localStorage - cookies are more secure
+        // User info is in a non-HttpOnly cookie for frontend access
+        
+        // Small delay to ensure cookies are set before redirect
+        await new Promise(resolve => setTimeout(resolve, 100));
 
         // Success - close modal and redirect to client home
         onClose();
