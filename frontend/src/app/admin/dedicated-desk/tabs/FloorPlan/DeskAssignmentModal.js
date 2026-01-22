@@ -341,12 +341,10 @@ export default function DeskAssignmentModal({
                 <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Email</label>
                 <div className="w-full px-3 sm:px-4 py-2.5 sm:py-3.5 border-2 border-gray-200 rounded-xl text-sm sm:text-base text-slate-900 bg-gray-50">{existingAssignment.email || "N/A"}</div>
               </div>
-              {existingAssignment.type === "Tenant" && existingAssignment.company ? (
-                <div>
-                  <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Company</label>
-                  <div className="w-full px-3 sm:px-4 py-2.5 sm:py-3.5 border-2 border-gray-200 rounded-xl text-sm sm:text-base text-slate-900 bg-gray-50">{existingAssignment.company}</div>
-                </div>
-              ) : <div></div>}
+              <div>
+                <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Company</label>
+                <div className="w-full px-3 sm:px-4 py-2.5 sm:py-3.5 border-2 border-gray-200 rounded-xl text-sm sm:text-base text-slate-900 bg-gray-50">{existingAssignment.company || "N/A"}</div>
+              </div>
             </div>
           </div>
         ) : isEditMode ? (
@@ -379,12 +377,10 @@ export default function DeskAssignmentModal({
                 <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Email <span className="text-red-500">*</span></label>
                 <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Enter email address" required disabled={loading} className="w-full px-3 sm:px-4 py-2.5 sm:py-3.5 border-2 border-gray-200 rounded-xl text-sm sm:text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed" />
               </div>
-              {formData.type === "Tenant" ? (
-                <div>
-                  <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Company</label>
-                  <input type="text" name="company" value={formData.company} onChange={handleChange} placeholder="Enter company name (optional)" disabled={loading} className="w-full px-3 sm:px-4 py-2.5 sm:py-3.5 border-2 border-gray-200 rounded-xl text-sm sm:text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed" />
-                </div>
-              ) : <div></div>}
+              <div>
+                <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Company</label>
+                <input type="text" name="company" value={formData.company} onChange={handleChange} placeholder="Enter company name (optional)" disabled={loading} className="w-full px-3 sm:px-4 py-2.5 sm:py-3.5 border-2 border-gray-200 rounded-xl text-sm sm:text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed" />
+              </div>
             </div>
           </form>
         ) : (
@@ -417,12 +413,10 @@ export default function DeskAssignmentModal({
                 <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Email <span className="text-red-500">*</span></label>
                 <input type="email" name="email" value={formData.email} onChange={handleChange} placeholder="Enter email address" required disabled={loading} className="w-full px-3 sm:px-4 py-2.5 sm:py-3.5 border-2 border-gray-200 rounded-xl text-sm sm:text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed" />
               </div>
-              {formData.type === "Tenant" ? (
-                <div>
-                  <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Company</label>
-                  <input type="text" name="company" value={formData.company} onChange={handleChange} placeholder="Enter company name (optional)" disabled={loading} className="w-full px-3 sm:px-4 py-2.5 sm:py-3.5 border-2 border-gray-200 rounded-xl text-sm sm:text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed" />
-                </div>
-              ) : <div></div>}
+              <div>
+                <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Company</label>
+                <input type="text" name="company" value={formData.company} onChange={handleChange} placeholder="Enter company name (optional)" disabled={loading} className="w-full px-3 sm:px-4 py-2.5 sm:py-3.5 border-2 border-gray-200 rounded-xl text-sm sm:text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed" />
+              </div>
             </div>
           </form>
         )}

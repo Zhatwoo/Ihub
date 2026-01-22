@@ -355,11 +355,11 @@ export const updateDeskRequest = async (req, res) => {
     // Create user document if it doesn't exist (with minimal info from request)
     if (!userDoc.exists) {
       await userRef.set({
-        email: updateData.requestedBy?.email || updateData.email || '',
-        firstName: updateData.requestedBy?.firstName || '',
-        lastName: updateData.requestedBy?.lastName || '',
-        companyName: updateData.requestedBy?.companyName || '',
-        contact: updateData.requestedBy?.contact || '',
+        email: updateData.email || updateData.requestedBy?.email || '',
+        firstName: updateData.firstName || updateData.requestedBy?.firstName || '',
+        lastName: updateData.lastName || updateData.requestedBy?.lastName || '',
+        companyName: updateData.company || updateData.companyName || updateData.requestedBy?.companyName || '',
+        contact: updateData.contact || updateData.requestedBy?.contact || '',
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       });

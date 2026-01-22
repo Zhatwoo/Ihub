@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { api } from '@/lib/api';
 import { showToast } from '@/components/Toast';
 
@@ -41,7 +42,7 @@ export default function DedicatedDesk() {
   useEffect(() => {
     const fetchAssignments = async () => {
       try {
-        const response = await api.get('/api/admin/dedicated-desk/assignments');
+        const response = await api.get('/api/admin/dedicated-desk/assignments', { skipCache: true });
         if (response.success && response.data) {
           const assignments = {};
           response.data.assignments.forEach((assignment) => {
@@ -94,7 +95,7 @@ export default function DedicatedDesk() {
   // Helper function to fetch all requests from backend
   const fetchAllRequests = async () => {
     try {
-      const response = await api.get('/api/admin/dedicated-desk/requests');
+      const response = await api.get('/api/admin/dedicated-desk/requests', { skipCache: true });
       
       if (response.success && response.data) {
         return response.data.requests || [];
@@ -228,7 +229,7 @@ export default function DedicatedDesk() {
             setRequests(updatedRequests);
             
             // Refresh assignments
-            const assignmentsResponse = await api.get('/api/admin/dedicated-desk/assignments');
+            const assignmentsResponse = await api.get('/api/admin/dedicated-desk/assignments', { skipCache: true });
             if (assignmentsResponse.success && assignmentsResponse.data) {
               const assignments = {};
               assignmentsResponse.data.assignments.forEach((assignment) => {
@@ -236,6 +237,11 @@ export default function DedicatedDesk() {
               });
               setDeskAssignments(assignments);
             }
+            
+            // Switch to List tab to show the newly added occupant
+            setTimeout(() => {
+              setActiveTab('list');
+            }, 1500);
           } else {
             setAlertModal({ show: true, type: 'error', title: 'Error', message: response.message || 'Failed to approve request. Please try again.' });
           }
@@ -349,7 +355,7 @@ export default function DedicatedDesk() {
       
       // Immediately refresh assignments for real-time update
       try {
-        const assignmentsResponse = await api.get('/api/desk-assignments');
+        const assignmentsResponse = await api.get('/api/desk-assignments', { skipCache: true });
         if (assignmentsResponse.success && assignmentsResponse.data) {
           const assignments = {};
           assignmentsResponse.data.forEach((assignment) => {
@@ -372,7 +378,7 @@ export default function DedicatedDesk() {
   useEffect(() => {
     const fetchAssignmentsList = async () => {
       try {
-        const response = await api.get('/api/admin/dedicated-desk/assignments');
+        const response = await api.get('/api/admin/dedicated-desk/assignments', { skipCache: true });
         if (response.success && response.data) {
           setAssignmentsList(response.data.assignments || []);
         }
@@ -478,7 +484,7 @@ export default function DedicatedDesk() {
       />
 
       {/* User Info Modal */}
-      {showUserInfoModal && selectedUserInfo && (
+      {showUserInfoModal && selectedUserInfo && createPortal(
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
           onClick={() => setShowUserInfoModal(false)}
@@ -555,11 +561,12 @@ export default function DedicatedDesk() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Alert Modal */}
-      {alertModal.show && (
+      {alertModal.show && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-slideUp">
             <div className="flex items-center gap-3 mb-4">
@@ -590,11 +597,12 @@ export default function DedicatedDesk() {
               OK
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Confirm Modal */}
-      {confirmModal.show && (
+      {confirmModal.show && createPortal(
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-slideUp">
             <h3 className="text-lg font-bold text-slate-800 mb-3">{confirmModal.title}</h3>
@@ -614,7 +622,8 @@ export default function DedicatedDesk() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
