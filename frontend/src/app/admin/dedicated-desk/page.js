@@ -192,33 +192,20 @@ export default function DedicatedDesk() {
   // Handle accept request
   const handleAcceptRequest = async (request) => {
     if (!request.deskId) {
-      showToast('Error: Desk ID is missing from the request.', 'error');
+      setAlertModal({ show: true, type: 'error', title: 'Error', message: 'Desk ID is missing from the request.' });
       return;
     }
 
-    if (!confirm(`Are you sure you want to approve the desk request for ${request.userInfo?.firstName || ''} ${request.userInfo?.lastName || ''}? Desk ${request.deskId} will be assigned.`)) {
-      return;
-    }
-    
-    try {
-      const response = await api.put(`/api/admin/dedicated-desk/requests/${request.userId}/status`, {
-        status: 'approved',
-        assignedDesk: request.deskId
-      });
-      
-      if (response.success) {
-        showToast(`Request approved successfully! Desk ${request.deskId} has been assigned.`, 'success');
-        
-        // Refresh data
-        const updatedRequests = await fetchAllRequests();
-        setRequests(updatedRequests);
-        
-        // Refresh assignments
-        const assignmentsResponse = await api.get('/api/admin/dedicated-desk/assignments');
-        if (assignmentsResponse.success && assignmentsResponse.data) {
-          const assignments = {};
-          assignmentsResponse.data.assignments.forEach((assignment) => {
-            assignments[assignment.id] = assignment;
+    setConfirmModal({
+      show: true,
+      title: 'Approve Desk Request',
+      message: `Are you sure you want to approve the desk request for ${request.userInfo?.firstName || ''} ${request.userInfo?.lastName || ''}? Desk ${request.deskId} will be assigned.`,
+      onConfirm: async () => {
+        setConfirmModal({ ...confirmModal, show: false });
+        try {
+          const response = await api.put(`/api/admin/dedicated-desk/requests/${request.userId}/status`, {
+            status: 'approved',
+            assignedDesk: request.deskId
           });
           
           if (response.success) {
@@ -249,13 +236,9 @@ export default function DedicatedDesk() {
           console.error('Error accepting request:', error);
           setAlertModal({ show: true, type: 'error', title: 'Error', message: error.message || 'Failed to approve request. Please try again.' });
         }
-      } else {
-        showToast(response.message || 'Failed to approve request. Please try again.', 'error');
-      }
-    } catch (error) {
-      console.error('Error accepting request:', error);
-      showToast(error.message || 'Failed to approve request. Please try again.', 'error');
-    }
+      },
+      onCancel: () => setConfirmModal({ ...confirmModal, show: false })
+    });
   };
 
   // Handle reject request
