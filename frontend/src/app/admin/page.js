@@ -66,7 +66,7 @@ export default function AdminDashboard() {
 
     fetchData();
     
-    // Poll for updates every 10 minutes (increased to reduce Firestore reads)
+    // Poll for updates every 15 minutes (increased to reduce Firestore reads)
     // Only poll when tab is visible to reduce unnecessary requests
     const handleVisibilityChange = () => {
       if (document.hidden) {
@@ -78,14 +78,14 @@ export default function AdminDashboard() {
         // Only create interval if one doesn't already exist
         if (!dataIntervalRef.current) {
           fetchData(); // Fetch immediately when tab becomes visible
-          dataIntervalRef.current = setInterval(fetchData, 600000); // 10 minutes
+          dataIntervalRef.current = setInterval(fetchData, 900000); // 15 minutes
         }
       }
     };
     
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !dataIntervalRef.current) {
-      dataIntervalRef.current = setInterval(fetchData, 600000); // 10 minutes
+      dataIntervalRef.current = setInterval(fetchData, 900000); // 15 minutes
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
