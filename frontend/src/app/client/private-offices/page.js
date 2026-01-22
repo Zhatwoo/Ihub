@@ -122,7 +122,7 @@ export default function PrivateOffices() {
     // Initial fetch
     fetchRooms();
     
-    // Poll for updates every 30 seconds
+    // Poll for updates every 10 minutes (increased to reduce Firestore reads)
     // Only poll when tab is visible to reduce unnecessary requests
     const handleVisibilityChange = () => {
       if (document.hidden) {
@@ -134,14 +134,14 @@ export default function PrivateOffices() {
         // Only create interval if one doesn't already exist
         if (!roomsIntervalRef.current) {
           fetchRooms(); // Fetch immediately when tab becomes visible
-          roomsIntervalRef.current = setInterval(fetchRooms, 300000); // 5 minutes
+          roomsIntervalRef.current = setInterval(fetchRooms, 600000); // 10 minutes
         }
       }
     };
     
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !roomsIntervalRef.current) {
-      roomsIntervalRef.current = setInterval(fetchRooms, 300000); // 5 minutes
+      roomsIntervalRef.current = setInterval(fetchRooms, 600000); // 10 minutes
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);

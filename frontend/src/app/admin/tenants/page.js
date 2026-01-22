@@ -49,7 +49,7 @@ export default function Tenants() {
 
     fetchTenants();
     
-    // Poll for updates every 60 seconds (reduced from 30 to save quota)
+    // Poll for updates every 10 minutes (increased to reduce Firestore reads)
     // Only poll when tab is visible to reduce unnecessary requests
     const handleVisibilityChange = () => {
       if (document.hidden) {
@@ -71,7 +71,7 @@ export default function Tenants() {
                 setStats(stats);
               }
             }).catch(error => console.error('Error polling tenants:', error));
-          }, 300000); // 5 minutes
+          }, 600000); // 10 minutes
         }
       }
     };
@@ -88,7 +88,7 @@ export default function Tenants() {
             setStats(stats);
           }
         }).catch(error => console.error('Error polling tenants:', error));
-      }, 300000); // 5 minutes
+      }, 600000); // 10 minutes
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);

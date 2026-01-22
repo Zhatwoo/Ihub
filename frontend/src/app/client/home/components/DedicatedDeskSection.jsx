@@ -124,7 +124,7 @@ export default function DedicatedDeskSection() {
     // Initial fetch
     fetchDeskAssignments();
     
-    // Poll for updates every 30 seconds
+    // Poll for updates every 10 minutes (increased to reduce Firestore reads)
     // Only poll when tab is visible to reduce unnecessary requests
     const handleVisibilityChange = () => {
       if (document.hidden) {
@@ -136,14 +136,14 @@ export default function DedicatedDeskSection() {
         // Only create interval if one doesn't already exist
         if (!deskAssignmentsIntervalRef.current) {
           fetchDeskAssignments(); // Fetch immediately when tab becomes visible
-          deskAssignmentsIntervalRef.current = setInterval(fetchDeskAssignments, 300000); // 5 minutes
+          deskAssignmentsIntervalRef.current = setInterval(fetchDeskAssignments, 600000); // 10 minutes
         }
       }
     };
     
     // Start polling if tab is visible (only if no interval exists)
     if (!document.hidden && !deskAssignmentsIntervalRef.current) {
-      deskAssignmentsIntervalRef.current = setInterval(fetchDeskAssignments, 300000); // 5 minutes
+      deskAssignmentsIntervalRef.current = setInterval(fetchDeskAssignments, 600000); // 10 minutes
     }
     
     document.addEventListener('visibilitychange', handleVisibilityChange);
