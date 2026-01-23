@@ -88,7 +88,7 @@ export default function HeroSection() {
         <div className="text-center text-white py-12">
           <h1 className={`${leagueSpartan.className} text-5xl lg:text-6xl font-bold mb-6 drop-shadow-lg`}>Find Your Perfect Meeting Space</h1>
           <p className="text-xl lg:text-2xl text-gray-100 mb-10 max-w-3xl mx-auto drop-shadow-md">Book premium private offices and event spaces at Inspire Hub. Professional environments for your business needs.</p>
-          <Link href="/client/private-offices" className="inline-block px-8 py-4 bg-linear-to-r from-teal-500 to-teal-600 text-white rounded-xl font-semibold text-lg shadow-lg shadow-teal-600/30 hover:-translate-y-1 hover:shadow-xl transition-all">
+          <Link href="/landingpage/contacts?returnTo=/client/home" className="inline-block px-8 py-4 bg-linear-to-r from-teal-500 to-teal-600 text-white rounded-xl font-semibold text-lg shadow-lg shadow-teal-600/30 hover:-translate-y-1 hover:shadow-xl transition-all">
             Inquire
           </Link>
         </div>
