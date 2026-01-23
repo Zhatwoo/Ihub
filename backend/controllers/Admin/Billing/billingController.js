@@ -1,9 +1,47 @@
 // Admin Billing controller
-// Handles billing, invoices, and revenue calculations
+// Handles billing records for all service types
 
 import { getFirestore } from '../../../config/firebase.js';
 import admin from 'firebase-admin';
 import { sendFirestoreError } from '../../../utils/firestoreHelper.js';
+
+/**
+ * Convert Firestore timestamps to ISO strings
+ */
+const convertTimestamps = (obj) => {
+  if (!obj) return obj;
+  
+  const converted = { ...obj };
+  
+  // Convert startDate
+  if (converted.startDate) {
+    if (typeof converted.startDate === 'object' && converted.startDate.toDate) {
+      converted.startDate = converted.startDate.toDate().toISOString();
+    } else if (!(typeof converted.startDate === 'string')) {
+      converted.startDate = new Date(converted.startDate).toISOString();
+    }
+  }
+  
+  // Convert createdAt
+  if (converted.createdAt) {
+    if (typeof converted.createdAt === 'object' && converted.createdAt.toDate) {
+      converted.createdAt = converted.createdAt.toDate().toISOString();
+    } else if (!(typeof converted.createdAt === 'string')) {
+      converted.createdAt = new Date(converted.createdAt).toISOString();
+    }
+  }
+  
+  // Convert assignedAt
+  if (converted.assignedAt) {
+    if (typeof converted.assignedAt === 'object' && converted.assignedAt.toDate) {
+      converted.assignedAt = converted.assignedAt.toDate().toISOString();
+    } else if (!(typeof converted.assignedAt === 'string')) {
+      converted.assignedAt = new Date(converted.assignedAt).toISOString();
+    }
+  }
+  
+  return converted;
+};
 
 /**
  * Get billing dashboard data
@@ -16,94 +54,17 @@ export const getBillingDashboard = async (req, res) => {
       return sendFirestoreError(res);
     }
 
-    // Fetch all revenue-generating data
-    const [schedulesSnapshot, virtualOfficeSnapshot, deskAssignmentsSnapshot] = await Promise.all([
-      firestore.collection('privateOfficeRooms').doc('data').collection('requests').get(),
-      firestore.collection('virtual-office-clients').get(),
-      firestore.collection('desk-assignments').get()
-    ]);
-
-    const schedules = schedulesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    const virtualOfficeClients = virtualOfficeSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-    const deskAssignments = deskAssignmentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-    // Calculate revenue from private office bookings
-    const privateOfficeRevenue = schedules
-      .filter(s => s.status === 'completed' || s.status === 'active')
-      .reduce((sum, s) => sum + (s.totalAmount || 0), 0);
-
-    // Calculate revenue from virtual office (dummy calculation)
-    const virtualOfficeRevenue = virtualOfficeClients
-      .filter(c => c.status === 'active')
-      .reduce((sum, c) => sum + (c.monthlyFee || 2500), 0);
-
-    // Calculate revenue from dedicated desks (dummy calculation)
-    const dedicatedDeskRevenue = deskAssignments
-      .reduce((sum, d) => sum + (d.monthlyFee || 3000), 0);
-
-    const totalRevenue = privateOfficeRevenue + virtualOfficeRevenue + dedicatedDeskRevenue;
-
-    // Calculate monthly revenue for the last 6 months
-    const monthlyRevenue = [];
-    const now = new Date();
-    
-    for (let i = 5; i >= 0; i--) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
-      const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
-      
-      // Calculate revenue for this month (simplified)
-      const monthRevenue = schedules
-        .filter(s => {
-          const scheduleDate = new Date(s.startDate || s.createdAt);
-          return scheduleDate >= monthStart && scheduleDate <= monthEnd && 
-                 (s.status === 'completed' || s.status === 'active');
-        })
-        .reduce((sum, s) => sum + (s.totalAmount || 0), 0);
-
-      monthlyRevenue.push({
-        month: date.toLocaleDateString('en-US', { month: 'short' }),
-        revenue: monthRevenue,
-        privateOffice: monthRevenue * 0.6, // Assume 60% from private office
-        virtualOffice: monthRevenue * 0.25, // 25% from virtual office
-        dedicatedDesk: monthRevenue * 0.15  // 15% from dedicated desk
-      });
-    }
-
-    // Generate dummy invoice data
-    const dummyInvoices = [
-      { id: 'INV-2024-001', client: 'Tech Corp Ltd.', amount: 15000, status: 'Paid', dueDate: '2024-01-15', service: 'Private Office' },
-      { id: 'INV-2024-002', client: 'StartUp Inc.', amount: 8500, status: 'Pending', dueDate: '2024-01-20', service: 'Virtual Office' },
-      { id: 'INV-2024-003', client: 'Design Studio', amount: 12000, status: 'Paid', dueDate: '2024-01-10', service: 'Dedicated Desk' },
-      { id: 'INV-2024-004', client: 'Marketing Agency', amount: 20000, status: 'Overdue', dueDate: '2024-01-05', service: 'Private Office' },
-      { id: 'INV-2024-005', client: 'Consulting Firm', amount: 6500, status: 'Paid', dueDate: '2024-01-25', service: 'Virtual Office' }
-    ];
-
-    const revenueStats = {
-      total: totalRevenue,
-      privateOffice: privateOfficeRevenue,
-      virtualOffice: virtualOfficeRevenue,
-      dedicatedDesk: dedicatedDeskRevenue,
-      monthlyGrowth: monthlyRevenue.length > 1 ? 
-        ((monthlyRevenue[5].revenue - monthlyRevenue[4].revenue) / monthlyRevenue[4].revenue * 100) : 0
-    };
-
-    const invoiceStats = {
-      total: dummyInvoices.length,
-      paid: dummyInvoices.filter(i => i.status === 'Paid').length,
-      pending: dummyInvoices.filter(i => i.status === 'Pending').length,
-      overdue: dummyInvoices.filter(i => i.status === 'Overdue').length,
-      totalAmount: dummyInvoices.reduce((sum, i) => sum + i.amount, 0),
-      paidAmount: dummyInvoices.filter(i => i.status === 'Paid').reduce((sum, i) => sum + i.amount, 0)
-    };
-
+    // For now, return empty dashboard data
     res.json({
       success: true,
       data: {
-        revenueStats,
-        invoiceStats,
-        monthlyRevenue,
-        recentInvoices: dummyInvoices.slice(0, 10)
+        revenueStats: {
+          total: 0,
+          pending: 0,
+          overdue: 0
+        },
+        monthlyRevenue: [],
+        recentInvoices: []
       }
     });
   } catch (error) {
@@ -121,57 +82,12 @@ export const getBillingDashboard = async (req, res) => {
  */
 export const getInvoices = async (req, res) => {
   try {
-    const { status, search, sortBy = 'dueDate', sortOrder = 'desc' } = req.query;
-    
-    // Generate dummy invoice data (in real app, fetch from invoices collection)
-    const dummyInvoices = [
-      { id: 'INV-2024-001', client: 'Tech Corp Ltd.', amount: 15000, status: 'Paid', dueDate: '2024-01-15', service: 'Private Office', createdAt: '2024-01-01' },
-      { id: 'INV-2024-002', client: 'StartUp Inc.', amount: 8500, status: 'Pending', dueDate: '2024-01-20', service: 'Virtual Office', createdAt: '2024-01-02' },
-      { id: 'INV-2024-003', client: 'Design Studio', amount: 12000, status: 'Paid', dueDate: '2024-01-10', service: 'Dedicated Desk', createdAt: '2024-01-03' },
-      { id: 'INV-2024-004', client: 'Marketing Agency', amount: 20000, status: 'Overdue', dueDate: '2024-01-05', service: 'Private Office', createdAt: '2024-01-04' },
-      { id: 'INV-2024-005', client: 'Consulting Firm', amount: 6500, status: 'Paid', dueDate: '2024-01-25', service: 'Virtual Office', createdAt: '2024-01-05' },
-      { id: 'INV-2024-006', client: 'Law Firm LLC', amount: 18000, status: 'Pending', dueDate: '2024-01-30', service: 'Private Office', createdAt: '2024-01-06' },
-      { id: 'INV-2024-007', client: 'Creative Agency', amount: 9500, status: 'Paid', dueDate: '2024-01-12', service: 'Dedicated Desk', createdAt: '2024-01-07' },
-      { id: 'INV-2024-008', client: 'Finance Corp', amount: 25000, status: 'Overdue', dueDate: '2024-01-08', service: 'Private Office', createdAt: '2024-01-08' }
-    ];
-
-    let filteredInvoices = [...dummyInvoices];
-
-    // Apply status filter
-    if (status && status !== 'all') {
-      filteredInvoices = filteredInvoices.filter(invoice => invoice.status === status);
-    }
-
-    // Apply search filter
-    if (search) {
-      const searchLower = search.toLowerCase();
-      filteredInvoices = filteredInvoices.filter(invoice =>
-        invoice.id.toLowerCase().includes(searchLower) ||
-        invoice.client.toLowerCase().includes(searchLower) ||
-        invoice.service.toLowerCase().includes(searchLower)
-      );
-    }
-
-    // Apply sorting
-    filteredInvoices.sort((a, b) => {
-      let comparison = 0;
-      if (sortBy === 'dueDate') {
-        comparison = new Date(a.dueDate) - new Date(b.dueDate);
-      } else if (sortBy === 'amount') {
-        comparison = a.amount - b.amount;
-      } else if (sortBy === 'client') {
-        comparison = a.client.localeCompare(b.client);
-      } else if (sortBy === 'status') {
-        comparison = a.status.localeCompare(b.status);
-      }
-      return sortOrder === 'desc' ? -comparison : comparison;
-    });
-
+    // For now, return empty invoices
     res.json({
       success: true,
       data: {
-        invoices: filteredInvoices,
-        totalCount: filteredInvoices.length
+        invoices: [],
+        totalCount: 0
       }
     });
   } catch (error) {
@@ -180,6 +96,131 @@ export const getInvoices = async (req, res) => {
       success: false,
       error: 'Internal Server Error',
       message: error.message || 'Failed to fetch invoices'
+    });
+  }
+};
+
+/**
+ * Get billing stats and records for all service types
+ */
+export const getBillingStats = async (req, res) => {
+  try {
+    const firestore = getFirestore();
+    
+    if (!firestore) {
+      return sendFirestoreError(res);
+    }
+
+    console.log('📖 FIRESTORE READ: Fetching billing data from all collections...');
+
+    // Fetch all billing data from different collections
+    const [privateOfficeSnapshot, virtualOfficeSnapshot, deskAssignmentsSnapshot] = await Promise.all([
+      firestore.collection('privateOfficeRooms').doc('data').collection('requests').get(),
+      firestore.collection('virtual-office-clients').get(),
+      firestore.collection('desk-assignments').get()
+    ]);
+
+    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests - ${privateOfficeSnapshot.docs.length} documents`);
+    console.log(`📖 FIRESTORE READ: virtual-office-clients - ${virtualOfficeSnapshot.docs.length} documents`);
+    console.log(`📖 FIRESTORE READ: desk-assignments - ${deskAssignmentsSnapshot.docs.length} documents`);
+
+    // Process Private Office billing - ONLY approved/active tenants
+    const privateOfficeBilling = privateOfficeSnapshot.docs
+      .map(doc => {
+        const data = doc.data();
+        return convertTimestamps({
+          id: doc.id,
+          ...data,
+          type: 'private-office',
+          clientName: data.clientName || data.name || data.fullName || 'Unknown',
+          email: data.email || data.emailAddress || '',
+          contactNumber: data.contactNumber || data.phone || data.phoneNumber || data.contact || '',
+          companyName: data.companyName || data.company || data.businessName || '',
+          room: data.room || data.roomName || data.office || '',
+          status: data.status || 'pending',
+          amount: data.amount || data.totalAmount || data.price || 0,
+          paymentStatus: data.paymentStatus || 'unpaid',
+          startDate: data.startDate || data.createdAt || data.registeredAt || null
+        });
+      })
+      .filter(record => record.status === 'approved' || record.status === 'active' || record.status === 'ongoing');
+
+    console.log(`✅ Processed ${privateOfficeBilling.length} Private Office billing records (tenants only)`);
+
+    // Process Virtual Office billing - ONLY active tenants
+    const virtualOfficeBilling = virtualOfficeSnapshot.docs
+      .map(doc => {
+        const data = doc.data();
+        return convertTimestamps({
+          id: doc.id,
+          ...data,
+          type: 'virtual-office',
+          clientName: data.clientName || data.name || data.fullName || 'Unknown',
+          email: data.email || data.emailAddress || '',
+          contactNumber: data.contactNumber || data.phone || data.phoneNumber || data.contact || '',
+          companyName: data.companyName || data.company || data.businessName || '',
+          position: data.position || data.jobTitle || '',
+          status: data.status || 'active',
+          amount: data.amount || data.monthlyFee || data.price || 0,
+          paymentStatus: data.paymentStatus || 'unpaid',
+          startDate: data.startDate || data.createdAt || data.registeredAt || null
+        });
+      })
+      .filter(record => record.status === 'active' || record.status === 'approved');
+
+    console.log(`✅ Processed ${virtualOfficeBilling.length} Virtual Office billing records (tenants only)`);
+
+    // Process Dedicated Desk billing - ONLY tenants (not employees)
+    const dedicatedDeskBilling = deskAssignmentsSnapshot.docs
+      .map(doc => {
+        const data = doc.data();
+        return convertTimestamps({
+          id: doc.id,
+          ...data,
+          type: 'dedicated-desk',
+          clientName: data.name || data.fullName || data.clientName || 'Unknown',
+          email: data.email || data.emailAddress || '',
+          contactNumber: data.contactNumber || data.phone || data.phoneNumber || data.contact || '',
+          companyName: data.company || data.companyName || data.businessName || '',
+          desk: data.desk || data.deskTag || doc.id,
+          status: 'active',
+          amount: data.amount || data.monthlyFee || data.price || 0,
+          paymentStatus: data.paymentStatus || 'unpaid',
+          occupantType: data.type || 'Tenant', // Track if it's Employee or Tenant
+          startDate: data.assignedAt || data.startDate || data.createdAt || null // Use assignedAt for desk assignments
+        });
+      })
+      .filter(record => record.occupantType === 'Tenant' || !record.occupantType); // Only show Tenants, exclude Employees
+
+    console.log(`✅ Processed ${dedicatedDeskBilling.length} Dedicated Desk billing records (tenants only, employees excluded)`);
+
+    // Calculate stats
+    const stats = {
+      privateOffice: privateOfficeBilling.length,
+      virtualOffice: virtualOfficeBilling.length,
+      dedicatedDesk: dedicatedDeskBilling.length,
+      total: privateOfficeBilling.length + virtualOfficeBilling.length + dedicatedDeskBilling.length
+    };
+
+    console.log(`📊 Billing Stats:`, stats);
+
+    res.json({
+      success: true,
+      data: {
+        stats,
+        billing: {
+          privateOffice: privateOfficeBilling,
+          virtualOffice: virtualOfficeBilling,
+          dedicatedDesk: dedicatedDeskBilling
+        }
+      }
+    });
+  } catch (error) {
+    console.error('❌ Get billing stats error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal Server Error',
+      message: error.message || 'Failed to fetch billing stats'
     });
   }
 };
