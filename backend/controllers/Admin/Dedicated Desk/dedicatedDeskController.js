@@ -417,7 +417,9 @@ export const getOccupantsByPart = async (req, res) => {
         id: doc.id,
         ...data,
         // Normalize deskTag - use deskTag if available, otherwise use desk, otherwise use document ID
-        deskTag: data.deskTag || data.desk || doc.id
+        deskTag: data.deskTag || data.desk || doc.id,
+        // Convert Firestore timestamp to ISO string for JSON serialization
+        assignedAt: data.assignedAt ? (data.assignedAt.toDate ? data.assignedAt.toDate().toISOString() : data.assignedAt) : null
       };
     });
 

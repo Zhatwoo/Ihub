@@ -250,7 +250,7 @@ export const api = {
    */
   get: async (endpoint, options = {}) => {
     // Never cache dashboard or requests endpoints
-    const noCacheEndpoints = ['/api/admin/private-office/dashboard', '/api/admin/private-office/requests', '/api/admin/dedicated-desk/requests', '/api/admin/dedicated-desk/assignments'];
+    const noCacheEndpoints = ['/api/admin/private-office/dashboard', '/api/admin/private-office/requests', '/api/admin/dedicated-desk/requests', '/api/admin/dedicated-desk/assignments', '/api/admin/billing/stats', '/api/admin/tenants/stats'];
     const shouldSkipCache = options.skipCache || noCacheEndpoints.some(ep => endpoint.includes(ep));
     
     // Check cache first (skip cache if explicitly disabled or for no-cache endpoints)
