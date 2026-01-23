@@ -4,13 +4,12 @@ import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '@/lib/api';
 
-export default function EditBillingModal({ isOpen, onClose, billingId, serviceType, onSave }) {
+export default function EditPrivateOfficeModal({ isOpen, onClose, billingId, onSave }) {
   const [activeTab, setActiveTab] = useState('tenant-info');
   const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [tenantInfo, setTenantInfo] = useState(null);
   const [formData, setFormData] = useState({
-    amount: 0,
     notes: '',
     rentFee: 0,
     rentFeePeriod: 'Monthly',
@@ -23,22 +22,20 @@ export default function EditBillingModal({ isOpen, onClose, billingId, serviceTy
     setMounted(true);
   }, []);
 
-  // Fetch billing details when modal opens
   useEffect(() => {
-    if (isOpen && billingId && serviceType) {
+    if (isOpen && billingId) {
       fetchBillingDetails();
     }
-  }, [isOpen, billingId, serviceType]);
+  }, [isOpen, billingId]);
 
   const fetchBillingDetails = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/api/admin/billing/${serviceType}/${billingId}/details`, { skipCache: true });
+      const response = await api.get(`/api/admin/billing/private-office/${billingId}/details`, { skipCache: true });
       
       if (response.success && response.data) {
         setTenantInfo(response.data.tenantInfo);
         setFormData({
-          amount: response.data.billingDetails.amount || 0,
           notes: response.data.billingDetails.notes || '',
           rentFee: response.data.billingDetails.rentFee || 0,
           rentFeePeriod: response.data.billingDetails.rentFeePeriod || 'Monthly',
@@ -56,7 +53,7 @@ export default function EditBillingModal({ isOpen, onClose, billingId, serviceTy
   const handleSave = async () => {
     try {
       setIsSaving(true);
-      const response = await api.put(`/api/admin/billing/${serviceType}/${billingId}/details`, formData);
+      const response = await api.put(`/api/admin/billing/private-office/${billingId}/details`, formData);
       
       if (response.success) {
         onSave?.();
@@ -94,18 +91,41 @@ export default function EditBillingModal({ isOpen, onClose, billingId, serviceTy
             transform: scale(1);
           }
         }
+        @keyframes slideInRight {
+          from {
+            opacity: 0;
+            transform: translateX(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        @keyframes slideOutLeft {
+          from {
+            opacity: 1;
+            transform: translateX(0);
+          }
+          to {
+            opacity: 0;
+            transform: translateX(-20px);
+          }
+        }
         .modal-enter {
           animation: slideInUp 0.3s ease-out;
         }
         .tab-content-enter {
-          animation: fadeInScale 0.2s ease-out;
+          animation: slideInRight 0.3s ease-out;
+        }
+        .tab-content-exit {
+          animation: slideOutLeft 0.2s ease-in;
         }
       `}</style>
       <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col modal-enter">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-slate-50 to-white">
           <div>
-            <h2 className="text-2xl font-bold text-slate-800">Edit Billing</h2>
+            <h2 className="text-2xl font-bold text-slate-800">Edit Billing - Private Office</h2>
             <p className="text-sm text-gray-500 mt-1">Manage billing information and details</p>
           </div>
           <div className="flex items-center gap-3">
@@ -177,7 +197,7 @@ export default function EditBillingModal({ isOpen, onClose, billingId, serviceTy
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-teal-600"></div>
             </div>
           ) : (
-            <div className="tab-content-enter">
+            <div key={activeTab} className="tab-content-enter">
               {/* Tenant Information Tab */}
               {activeTab === 'tenant-info' && tenantInfo && (
                 <div className="space-y-4">
@@ -203,26 +223,10 @@ export default function EditBillingModal({ isOpen, onClose, billingId, serviceTy
                     </div>
                   </div>
 
-                  {(tenantInfo.room || tenantInfo.desk || tenantInfo.position) && (
-                    <div className="grid grid-cols-2 gap-4">
-                      {tenantInfo.room && (
-                        <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-xl p-4 border border-teal-100">
-                          <label className="block text-xs font-semibold text-teal-700 uppercase tracking-wide mb-2">Office/Room</label>
-                          <p className="text-sm font-semibold text-teal-900">{tenantInfo.room}</p>
-                        </div>
-                      )}
-                      {tenantInfo.desk && (
-                        <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-xl p-4 border border-teal-100">
-                          <label className="block text-xs font-semibold text-teal-700 uppercase tracking-wide mb-2">Desk</label>
-                          <p className="text-sm font-semibold text-teal-900">{tenantInfo.desk}</p>
-                        </div>
-                      )}
-                      {tenantInfo.position && (
-                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-4 border border-blue-100">
-                          <label className="block text-xs font-semibold text-blue-700 uppercase tracking-wide mb-2">Position</label>
-                          <p className="text-sm font-semibold text-blue-900">{tenantInfo.position}</p>
-                        </div>
-                      )}
+                  {tenantInfo.room && (
+                    <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-xl p-4 border border-teal-100">
+                      <label className="block text-xs font-semibold text-teal-700 uppercase tracking-wide mb-2">Office/Room</label>
+                      <p className="text-sm font-semibold text-teal-900">{tenantInfo.room}</p>
                     </div>
                   )}
                 </div>
@@ -231,48 +235,35 @@ export default function EditBillingModal({ isOpen, onClose, billingId, serviceTy
               {/* Billing Details Tab */}
               {activeTab === 'billing-details' && (
                 <div className="space-y-5">
-                  {/* Row 1: Type and Desk/Office */}
+                  {/* Row 1: Type and Office */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">Type</label>
-                      <div className="px-4 py-3 border-2 border-gray-200 rounded-xl text-slate-900 bg-gray-50">
-                        <p className="font-semibold">
-                          {serviceType === 'private-office' ? 'Private Office' : serviceType === 'virtual-office' ? 'Virtual Office' : 'Dedicated Desk'}
-                        </p>
+                      <div className="px-4 py-3 border-2 border-gray-300 rounded-xl text-slate-900 bg-gray-200">
+                        <p className="font-semibold">Private Office</p>
                       </div>
                     </div>
-                    {serviceType === 'dedicated-desk' && (
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">Desk</label>
-                        <div className="px-4 py-3 border-2 border-gray-200 rounded-xl text-slate-900 bg-gray-50">
-                          <p className="font-semibold">{tenantInfo?.desk || 'N/A'}</p>
-                        </div>
-                      </div>
-                    )}
-                    {serviceType === 'private-office' && (
+                    {tenantInfo?.room && (
                       <div>
                         <label className="block text-sm font-semibold text-gray-700 mb-2">Office Name</label>
-                        <div className="px-4 py-3 border-2 border-gray-200 rounded-xl text-slate-900 bg-gray-50">
-                          <p className="font-semibold">{tenantInfo?.room || 'N/A'}</p>
+                        <div className="px-4 py-3 border-2 border-gray-300 rounded-xl text-slate-900 bg-gray-200">
+                          <p className="font-semibold">{tenantInfo.room}</p>
                         </div>
                       </div>
-                    )}
-                    {serviceType === 'virtual-office' && (
-                      <div></div>
                     )}
                   </div>
 
-                  {/* Row 2: Amount and Fee Period */}
+                  {/* Row 2: Amount and Fee Period (Uneditable) */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">Amount (₱)</label>
-                      <div className="px-4 py-3 border-2 border-gray-200 rounded-xl text-slate-900 bg-gray-50">
-                        <p className="font-semibold">₱{formData.amount.toLocaleString()}</p>
+                      <div className="px-4 py-3 border-2 border-gray-300 rounded-xl text-slate-900 bg-gray-200">
+                        <p className="font-semibold">₱{formData.rentFee.toLocaleString()}</p>
                       </div>
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">Fee Period</label>
-                      <div className="px-4 py-3 border-2 border-gray-200 rounded-xl text-slate-900 bg-gray-50">
+                      <div className="px-4 py-3 border-2 border-gray-300 rounded-xl text-slate-900 bg-gray-200">
                         <p className="font-semibold">{formData.rentFeePeriod}</p>
                       </div>
                     </div>
@@ -281,7 +272,25 @@ export default function EditBillingModal({ isOpen, onClose, billingId, serviceTy
                   {/* Row 3: CUSA Fee and Parking Fee */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">CUSA Fee (₱)</label>
+                      <div className="flex items-center gap-2 mb-2">
+                        <label className="block text-sm font-semibold text-gray-700">CUSA Fee (₱)</label>
+                        <div className="group relative">
+                          <button
+                            type="button"
+                            className="w-5 h-5 rounded-full bg-gray-300 text-gray-700 flex items-center justify-center text-xs font-bold hover:bg-gray-400 transition-colors"
+                            title="Common Use Service Area"
+                          >
+                            ?
+                          </button>
+                          <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 hidden group-hover:block z-50">
+                            <div className="bg-slate-800 text-white text-xs rounded-lg p-3 w-48 shadow-lg">
+                              <p className="font-bold mb-1">Common Use Service Area</p>
+                              <p>It is an additional fee tenants pay on top of their base rental cost to cover the maintenance and operational expenses of a building's shared or common areas</p>
+                              <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-slate-800"></div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                       <div className="relative">
                         <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-semibold">₱</span>
                         <input
@@ -326,52 +335,37 @@ export default function EditBillingModal({ isOpen, onClose, billingId, serviceTy
               {activeTab === 'billing-preview' && (
                 <div className="space-y-4">
                   <div className="bg-gradient-to-br from-teal-50 to-cyan-50 rounded-xl p-6 border border-teal-100 space-y-4">
-                    {/* Type and Desk/Office */}
                     <div className="flex items-center justify-between pb-4 border-b border-teal-200">
                       <span className="text-gray-700 font-semibold">Type</span>
-                      <span className="text-teal-700 font-semibold">
-                        {serviceType === 'private-office' ? 'Private Office' : serviceType === 'virtual-office' ? 'Virtual Office' : 'Dedicated Desk'}
-                        {serviceType === 'dedicated-desk' && ` - Desk ${tenantInfo?.desk}`}
-                        {serviceType === 'private-office' && ` - ${tenantInfo?.room}`}
-                      </span>
+                      <span className="text-teal-700 font-semibold">Private Office - {tenantInfo?.room}</span>
                     </div>
 
-                    {/* Amount */}
                     <div className="flex items-center justify-between pb-4 border-b border-teal-200">
                       <span className="text-gray-700 font-semibold">Amount</span>
-                      <span className="text-3xl font-bold text-teal-700">₱{formData.amount.toLocaleString()}</span>
+                      <span className="text-3xl font-bold text-teal-700">₱{formData.rentFee.toLocaleString()}</span>
                     </div>
 
-                    {/* Fee Period */}
                     <div className="flex items-center justify-between pb-4 border-b border-teal-200">
                       <span className="text-gray-700 font-semibold">Fee Period</span>
                       <span className="text-slate-800 font-medium">{formData.rentFeePeriod}</span>
                     </div>
 
-                    {/* CUSA Fee */}
-                    {formData.cusaFee > 0 && (
-                      <div className="flex items-center justify-between pb-4 border-b border-teal-200">
-                        <span className="text-gray-700 font-semibold">CUSA Fee</span>
-                        <span className="text-slate-800 font-medium">₱{formData.cusaFee.toLocaleString()}</span>
-                      </div>
-                    )}
+                    <div className="flex items-center justify-between pb-4 border-b border-teal-200">
+                      <span className="text-gray-700 font-semibold">CUSA Fee</span>
+                      <span className="text-slate-800 font-medium">₱{formData.cusaFee.toLocaleString()}</span>
+                    </div>
 
-                    {/* Parking Fee */}
-                    {formData.parkingFee > 0 && (
-                      <div className="flex items-center justify-between pb-4 border-b border-teal-200">
-                        <span className="text-gray-700 font-semibold">Parking Fee</span>
-                        <span className="text-slate-800 font-medium">₱{formData.parkingFee.toLocaleString()}</span>
-                      </div>
-                    )}
+                    <div className="flex items-center justify-between pb-4 border-b border-teal-200">
+                      <span className="text-gray-700 font-semibold">Parking Fee</span>
+                      <span className="text-slate-800 font-medium">₱{formData.parkingFee.toLocaleString()}</span>
+                    </div>
 
-                    {/* Total */}
                     <div className="flex items-center justify-between pt-2">
                       <span className="text-gray-700 font-bold text-lg">Total</span>
-                      <span className="text-3xl font-bold text-teal-700">₱{(formData.amount + formData.cusaFee + formData.parkingFee).toLocaleString()}</span>
+                      <span className="text-3xl font-bold text-teal-700">₱{(formData.rentFee + formData.cusaFee + formData.parkingFee).toLocaleString()}</span>
                     </div>
                   </div>
 
-                  {/* Notes */}
                   {formData.notes && (
                     <div className="bg-blue-50 rounded-xl p-6 border border-blue-100">
                       <h4 className="text-sm font-semibold text-blue-900 mb-2">Notes</h4>
@@ -383,9 +377,6 @@ export default function EditBillingModal({ isOpen, onClose, billingId, serviceTy
             </div>
           )}
         </div>
-
-        {/* Footer */}
-        {/* Removed - Save button moved to header */}
       </div>
     </div>,
     document.body
