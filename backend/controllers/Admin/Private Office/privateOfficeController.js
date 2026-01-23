@@ -339,9 +339,9 @@ export const updateRequestStatus = async (req, res) => {
       if (currentRequest.roomId && currentRequest.clientName) {
         try {
           const roomRef = firestore.collection('privateOfficeRooms').doc('data').collection('office').doc(currentRequest.roomId);
-          console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/office/${roomId} - executing query...`);
-    const roomDoc = await roomRef.get();
-    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/office/${roomId} - ${roomDoc.exists ? '1 document' : 'not found'}`);
+          console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/office/${currentRequest.roomId} - executing query...`);
+          const roomDoc = await roomRef.get();
+          console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/office/${currentRequest.roomId} - ${roomDoc.exists ? '1 document' : 'not found'}`);
           
           if (roomDoc.exists) {
             await roomRef.update({
@@ -349,6 +349,7 @@ export const updateRequestStatus = async (req, res) => {
               occupiedBy: currentRequest.clientName,
               updatedAt: admin.firestore.FieldValue.serverTimestamp()
             });
+            console.log(`✅ Room ${currentRequest.roomId} status updated to Occupied (request approved)`);
           }
         } catch (roomError) {
           console.error('Error updating room status:', roomError);
@@ -361,9 +362,9 @@ export const updateRequestStatus = async (req, res) => {
       if (currentRequest.roomId) {
         try {
           const roomRef = firestore.collection('privateOfficeRooms').doc('data').collection('office').doc(currentRequest.roomId);
-          console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/office/${roomId} - executing query...`);
-    const roomDoc = await roomRef.get();
-    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/office/${roomId} - ${roomDoc.exists ? '1 document' : 'not found'}`);
+          console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/office/${currentRequest.roomId} - executing query...`);
+          const roomDoc = await roomRef.get();
+          console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/office/${currentRequest.roomId} - ${roomDoc.exists ? '1 document' : 'not found'}`);
           
           if (roomDoc.exists) {
             await roomRef.update({
@@ -371,6 +372,7 @@ export const updateRequestStatus = async (req, res) => {
               occupiedBy: admin.firestore.FieldValue.delete(),
               updatedAt: admin.firestore.FieldValue.serverTimestamp()
             });
+            console.log(`✅ Room ${currentRequest.roomId} status updated to Vacant (request rejected)`);
           }
         } catch (roomError) {
           console.error('Error updating room status:', roomError);
