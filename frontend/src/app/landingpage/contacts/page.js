@@ -4,7 +4,7 @@ import { useState, useRef, Suspense } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { League_Spartan, Roboto } from 'next/font/google';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import LandingPageHeader from '../components/header.jsx';
 import ClientHeader from '@/app/client/home/components/header.jsx';
 import Footer from '../components/footer.jsx';
@@ -22,6 +22,7 @@ const roboto = Roboto({
 });
 
 function ContactsContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const returnTo = searchParams.get('returnTo');
   const isFromClient = returnTo && returnTo.includes('/client');
@@ -30,6 +31,14 @@ function ContactsContent() {
   const formRef = useRef(null);
   const isSectionInView = useInView(sectionRef, { once: true, amount: 0.2 });
   const isFormInView = useInView(formRef, { once: true, amount: 0.2 });
+
+  const handleBack = () => {
+    if (returnTo) {
+      router.push(returnTo);
+    } else {
+      router.back();
+    }
+  };
 
   const [formData, setFormData] = useState({
     name: '',
@@ -136,11 +145,23 @@ function ContactsContent() {
       {isFromClient ? <ClientHeader /> : <LandingPageHeader />}
       <motion.div 
         ref={sectionRef}
-        className="w-full bg-[#0F766E] py-16 lg:py-24"
+        className="w-full bg-[#0F766E] py-16 lg:py-24 relative"
         initial={{ opacity: 0, y: -50 }}
         animate={isSectionInView ? { opacity: 1, y: 0 } : { opacity: 0, y: -50 }}
         transition={{ duration: 0.8, ease: 'easeOut' }}
       >
+        {isFromClient && (
+          <button
+            onClick={handleBack}
+            className="absolute top-6 left-6 lg:left-12 flex items-center gap-2 text-white hover:text-gray-200 transition-colors"
+            aria-label="Go back"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            <span className={`${roboto.className} font-medium`}>Back</span>
+          </button>
+        )}
         <div className="max-w-7xl mx-auto px-6 lg:px-8 text-center">
           <h1 className={`${leagueSpartan.className} text-4xl lg:text-5xl font-bold text-white mb-4`}>
             Contact Us
