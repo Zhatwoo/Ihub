@@ -38,12 +38,14 @@ export default function RequestList() {
     setMounted(true);
   }, []);
 
-  const handleApprove = async (id) => {
+  const handleApprove = async (request) => {
     setIsLoading(true);
-    console.log('✅ Approving request:', id);
+    const userId = request.userId;
+    const bookingId = request.id;
+    console.log('✅ Approving request for user:', userId, 'booking:', bookingId);
     try {
-      console.log('📤 Sending PUT request to /api/admin/private-office/requests/' + id + '/status');
-      const response = await api.put(`/api/admin/private-office/requests/${id}/status`, { 
+      console.log('📤 Sending PUT request to /api/admin/private-office/requests/' + userId + '/' + bookingId + '/status');
+      const response = await api.put(`/api/admin/private-office/requests/${userId}/${bookingId}/status`, { 
         status: 'approved' 
       });
       // Removed: Log containing response data
@@ -72,12 +74,14 @@ export default function RequestList() {
     }
   };
 
-  const handleReject = async (id) => {
+  const handleReject = async (request) => {
     setIsLoading(true);
-    console.log('🔴 Rejecting request:', id);
+    const userId = request.userId;
+    const bookingId = request.id;
+    console.log('🔴 Rejecting request for user:', userId, 'booking:', bookingId);
     try {
-      console.log('📤 Sending PUT request to /api/admin/private-office/requests/' + id + '/status');
-      const response = await api.put(`/api/admin/private-office/requests/${id}/status`, { 
+      console.log('📤 Sending PUT request to /api/admin/private-office/requests/' + userId + '/' + bookingId + '/status');
+      const response = await api.put(`/api/admin/private-office/requests/${userId}/${bookingId}/status`, { 
         status: 'rejected' 
       });
       // Removed: Log containing response data
@@ -241,14 +245,14 @@ export default function RequestList() {
                     <td className="px-3 sm:px-4 py-3 sm:py-4">
                       <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap">
                         <button 
-                          onClick={() => handleApprove(request.id)}
+                          onClick={() => handleApprove(request)}
                           disabled={isLoading}
                           className="px-2 sm:px-3 py-1 sm:py-1.5 bg-green-600 text-white rounded-lg text-[10px] xs:text-xs font-semibold hover:bg-green-700 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           Approve
                         </button>
                         <button 
-                          onClick={() => handleReject(request.id)}
+                          onClick={() => handleReject(request)}
                           disabled={isLoading}
                           className="px-2 sm:px-3 py-1 sm:py-1.5 bg-red-600 text-white rounded-lg text-[10px] xs:text-xs font-semibold hover:bg-red-700 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
                         >

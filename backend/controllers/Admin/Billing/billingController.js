@@ -114,17 +114,42 @@ export const getBillingStats = async (req, res) => {
     console.log('📖 FIRESTORE READ: Fetching billing data from all collections...');
 
     // Fetch all billing data from different collections
-    const [privateOfficeSnapshot, virtualOfficeSnapshot, deskAssignmentsSnapshot] = await Promise.all([
-      firestore.collection('privateOfficeRooms').doc('data').collection('requests').get(),
-      firestore.collection('virtual-office-clients').get(),
-      firestore.collection('desk-assignments').get()
-    ]);
+    let privateOfficeSnapshot, newPrivateOfficeSnapshot, virtualOfficeSnapshot, deskAssignmentsSnapshot;
+    
+    try {
+      privateOfficeSnapshot = await firestore.collection('privateOfficeRooms').doc('data').collection('requests').get();
+      console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests - ${privateOfficeSnapshot.docs.length} documents`);
+    } catch (err) {
+      console.warn('⚠️ Could not fetch privateOfficeRooms/data/requests:', err.message);
+      privateOfficeSnapshot = { docs: [] };
+    }
 
-    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests - ${privateOfficeSnapshot.docs.length} documents`);
-    console.log(`📖 FIRESTORE READ: virtual-office-clients - ${virtualOfficeSnapshot.docs.length} documents`);
-    console.log(`📖 FIRESTORE READ: desk-assignments - ${deskAssignmentsSnapshot.docs.length} documents`);
+    // Fetch from new private office path using collection group
+    try {
+      newPrivateOfficeSnapshot = await firestore.collectionGroup('bookings').get();
+      console.log(`📖 FIRESTORE READ: collectionGroup("bookings") - ${newPrivateOfficeSnapshot.docs.length} total documents`);
+    } catch (err) {
+      console.warn('⚠️ Could not fetch new private office bookings path:', err.message);
+      newPrivateOfficeSnapshot = { docs: [] };
+    }
 
-    // Process Private Office billing - ONLY approved/active tenants
+    try {
+      virtualOfficeSnapshot = await firestore.collection('virtual-office-clients').get();
+      console.log(`📖 FIRESTORE READ: virtual-office-clients - ${virtualOfficeSnapshot.docs.length} documents`);
+    } catch (err) {
+      console.warn('⚠️ Could not fetch virtual-office-clients:', err.message);
+      virtualOfficeSnapshot = { docs: [] };
+    }
+
+    try {
+      deskAssignmentsSnapshot = await firestore.collection('desk-assignments').get();
+      console.log(`📖 FIRESTORE READ: desk-assignments - ${deskAssignmentsSnapshot.docs.length} documents`);
+    } catch (err) {
+      console.warn('⚠️ Could not fetch desk-assignments:', err.message);
+      deskAssignmentsSnapshot = { docs: [] };
+    }
+
+    // Process Private Office billing from OLD path - ONLY approved/active tenants
     const privateOfficeBilling = privateOfficeSnapshot.docs
       .map(doc => {
         const data = doc.data();
@@ -145,7 +170,38 @@ export const getBillingStats = async (req, res) => {
       })
       .filter(record => record.status === 'approved' || record.status === 'active' || record.status === 'ongoing');
 
-    console.log(`✅ Processed ${privateOfficeBilling.length} Private Office billing records (tenants only)`);
+    console.log(`✅ Processed ${privateOfficeBilling.length} Private Office billing records from old path (tenants only)`);
+
+    // Process Private Office billing from NEW path - ONLY approved/active tenants
+    const newPrivateOfficeBilling = newPrivateOfficeSnapshot.docs
+      .map(doc => {
+        // Extract userId from path: /accounts/client/users/{userId}/request/office/bookings/{bookingId}
+        const pathParts = doc.ref.path.split('/');
+        const userId = pathParts[3];
+        
+        const data = doc.data();
+        return convertTimestamps({
+          id: doc.id,
+          userId,
+          ...data,
+          type: 'private-office',
+          clientName: data.clientName || data.name || data.fullName || 'Unknown',
+          email: data.email || data.emailAddress || '',
+          contactNumber: data.contactNumber || data.phone || data.phoneNumber || data.contact || '',
+          companyName: data.companyName || data.company || data.businessName || '',
+          room: data.room || data.roomName || data.office || '',
+          status: data.status || 'pending',
+          amount: data.amount || data.totalAmount || data.price || 0,
+          paymentStatus: data.paymentStatus || 'unpaid',
+          startDate: data.startDate || data.createdAt || data.registeredAt || null
+        });
+      })
+      .filter(record => record.status === 'approved' || record.status === 'active' || record.status === 'ongoing');
+
+    console.log(`✅ Processed ${newPrivateOfficeBilling.length} Private Office billing records from new path (tenants only)`);
+
+    // Combine private office billing from both paths
+    const allPrivateOfficeBilling = [...privateOfficeBilling, ...newPrivateOfficeBilling];
 
     // Process Virtual Office billing - ONLY active tenants
     const virtualOfficeBilling = virtualOfficeSnapshot.docs
@@ -155,15 +211,15 @@ export const getBillingStats = async (req, res) => {
           id: doc.id,
           ...data,
           type: 'virtual-office',
-          clientName: data.clientName || data.name || data.fullName || 'Unknown',
+          clientName: data.fullName || data.clientName || data.name || 'Unknown',
           email: data.email || data.emailAddress || '',
-          contactNumber: data.contactNumber || data.phone || data.phoneNumber || data.contact || '',
-          companyName: data.companyName || data.company || data.businessName || '',
+          contactNumber: data.phoneNumber || data.contactNumber || data.phone || data.contact || '',
+          companyName: data.company || data.companyName || data.businessName || '',
           position: data.position || data.jobTitle || '',
           status: data.status || 'active',
           amount: data.amount || data.monthlyFee || data.price || 0,
           paymentStatus: data.paymentStatus || 'unpaid',
-          startDate: data.startDate || data.createdAt || data.registeredAt || null
+          startDate: data.dateStart || data.preferredStartDate || data.startDate || data.createdAt || null
         });
       })
       .filter(record => record.status === 'active' || record.status === 'approved');
@@ -196,10 +252,10 @@ export const getBillingStats = async (req, res) => {
 
     // Calculate stats
     const stats = {
-      privateOffice: privateOfficeBilling.length,
+      privateOffice: allPrivateOfficeBilling.length,
       virtualOffice: virtualOfficeBilling.length,
       dedicatedDesk: dedicatedDeskBilling.length,
-      total: privateOfficeBilling.length + virtualOfficeBilling.length + dedicatedDeskBilling.length
+      total: allPrivateOfficeBilling.length + virtualOfficeBilling.length + dedicatedDeskBilling.length
     };
 
     console.log(`📊 Billing Stats:`, stats);
@@ -209,7 +265,7 @@ export const getBillingStats = async (req, res) => {
       data: {
         stats,
         billing: {
-          privateOffice: privateOfficeBilling,
+          privateOffice: allPrivateOfficeBilling,
           virtualOffice: virtualOfficeBilling,
           dedicatedDesk: dedicatedDeskBilling
         }

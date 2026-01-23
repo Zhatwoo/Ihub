@@ -48,14 +48,31 @@ export const getTenantStats = async (req, res) => {
 
     // Fetch all data in parallel to reduce latency
     console.log('📖 FIRESTORE READ: Starting tenants stats fetch...');
-    const [schedulesSnapshot, virtualOfficeSnapshot, deskAssignmentsSnapshot] = await Promise.all([
-      firestore.collection('privateOfficeRooms').doc('data').collection('requests').get(),
-      firestore.collection('virtual-office-clients').get(),
-      firestore.collection('desk-assignments').get()
-    ]);
-    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests - ${schedulesSnapshot.docs.length} documents`);
-    console.log(`📖 FIRESTORE READ: virtual-office-clients - ${virtualOfficeSnapshot.docs.length} documents`);
-    console.log(`📖 FIRESTORE READ: desk-assignments - ${deskAssignmentsSnapshot.docs.length} documents`);
+    let schedulesSnapshot, virtualOfficeSnapshot, deskAssignmentsSnapshot;
+    
+    try {
+      schedulesSnapshot = await firestore.collection('privateOfficeRooms').doc('data').collection('requests').get();
+      console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests - ${schedulesSnapshot.docs.length} documents`);
+    } catch (err) {
+      console.warn('⚠️ Could not fetch privateOfficeRooms/data/requests:', err.message);
+      schedulesSnapshot = { docs: [] };
+    }
+
+    try {
+      virtualOfficeSnapshot = await firestore.collection('virtual-office-clients').get();
+      console.log(`📖 FIRESTORE READ: virtual-office-clients - ${virtualOfficeSnapshot.docs.length} documents`);
+    } catch (err) {
+      console.warn('⚠️ Could not fetch virtual-office-clients:', err.message);
+      virtualOfficeSnapshot = { docs: [] };
+    }
+
+    try {
+      deskAssignmentsSnapshot = await firestore.collection('desk-assignments').get();
+      console.log(`📖 FIRESTORE READ: desk-assignments - ${deskAssignmentsSnapshot.docs.length} documents`);
+    } catch (err) {
+      console.warn('⚠️ Could not fetch desk-assignments:', err.message);
+      deskAssignmentsSnapshot = { docs: [] };
+    }
 
     // Process all data
     const schedules = schedulesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -70,25 +87,52 @@ export const getTenantStats = async (req, res) => {
       };
     });
 
-    // Removed: Log containing private user data (clientName, companyName)
+    // Also fetch from new path for private office tenants
+    let newSchedulesSnapshot;
+    try {
+      newSchedulesSnapshot = await firestore.collectionGroup('bookings').get();
+      console.log(`📖 FIRESTORE READ: collectionGroup("bookings") - ${newSchedulesSnapshot.docs.length} total documents`);
+    } catch (err) {
+      console.warn('⚠️ Could not fetch new requests path:', err.message);
+      newSchedulesSnapshot = { docs: [] };
+    }
+
+    // Process new path schedules - extract userId from path
+    const newSchedules = newSchedulesSnapshot.docs
+      .map(doc => {
+        // Extract userId from path: /accounts/client/users/{userId}/request/office/bookings/{bookingId}
+        const pathParts = doc.ref.path.split('/');
+        const userId = pathParts[3];
+        
+        return {
+          id: doc.id,
+          userId,
+          ...doc.data()
+        };
+      });
+    
+    console.log(`📖 FIRESTORE READ: collectionGroup("bookings") - ${newSchedules.length} office bookings after extraction`);
+
+    // Combine schedules from both paths
+    const allSchedules = [...schedules, ...newSchedules];
 
     // Process Private Office tenants using dedicated function
-    const occupiedPrivateOfficeTenants = processPrivateOfficeTenants(schedules);
+    const occupiedPrivateOfficeTenants = processPrivateOfficeTenants(allSchedules);
 
-    // Process Virtual Office tenants
+    // Process Virtual Office tenants - ONLY exclude cancelled/rejected (include all other statuses)
     const virtualOfficeTenants = virtualOfficeClients
-      .filter(c => c.status !== 'inquiry')
+      .filter(c => !['cancelled', 'rejected'].includes(c.status))
       .map(c => ({
         id: c.id,
         type: 'virtual-office',
-        clientName: c.fullName,
-        email: c.email,
-        contactNumber: c.phoneNumber,
+        clientName: c.fullName || c.name || 'Unknown',
+        email: c.email || null,
+        contactNumber: c.phoneNumber || null,
         companyName: c.company || '',
-        position: c.position,
-        startDate: c.dateStart || c.preferredStartDate,
+        position: c.position || null,
+        startDate: c.dateStart || c.preferredStartDate || c.createdAt || null,
         status: c.status || 'active',
-        createdAt: c.createdAt
+        createdAt: c.createdAt || null
       }));
 
     // Process Dedicated Desk tenants - ONLY show "Tenant" type, exclude "Employee" type
@@ -98,17 +142,15 @@ export const getTenantStats = async (req, res) => {
         id: assignment.id,
         type: 'dedicated-desk',
         desk: assignment.desk, // Use desk field
-        clientName: assignment.name,
-        email: assignment.email,
-        contactNumber: assignment.contactNumber,
+        clientName: assignment.name || 'Unknown',
+        email: assignment.email || null,
+        contactNumber: assignment.contactNumber || null,
         companyName: assignment.company || '',
         occupantType: assignment.type,
-        startDate: assignment.assignedAt ? (assignment.assignedAt.toDate ? assignment.assignedAt.toDate().toISOString() : assignment.assignedAt) : null,
+        startDate: assignment.assignedAt ? (typeof assignment.assignedAt === 'object' && assignment.assignedAt.toDate ? assignment.assignedAt.toDate().toISOString() : assignment.assignedAt) : null,
         status: 'active',
-        createdAt: assignment.assignedAt || assignment.createdAt
+        createdAt: assignment.assignedAt || assignment.createdAt || null
       }));
-
-    // Removed: Log containing tenant counts (may expose data)
 
     // Calculate counts
     const stats = {
@@ -155,19 +197,71 @@ export const getFilteredTenants = async (req, res) => {
 
     // Get tenant data first by calling getTenantStats function logic
     console.log('📖 FIRESTORE READ: Starting filtered tenants fetch...');
-    const [schedulesSnapshot, virtualOfficeSnapshot, deskAssignmentsSnapshot, roomsSnapshot] = await Promise.all([
-      firestore.collection('privateOfficeRooms').doc('data').collection('requests').get(),
-      firestore.collection('virtual-office-clients').get(),
-      firestore.collection('desk-assignments').get(),
-      firestore.collection('privateOfficeRooms').doc('data').collection('office').get()
-    ]);
-    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests - ${schedulesSnapshot.docs.length} documents`);
-    console.log(`📖 FIRESTORE READ: virtual-office-clients - ${virtualOfficeSnapshot.docs.length} documents`);
-    console.log(`📖 FIRESTORE READ: desk-assignments - ${deskAssignmentsSnapshot.docs.length} documents`);
-    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/office - ${roomsSnapshot.docs.length} documents`);
+    let schedulesSnapshot, virtualOfficeSnapshot, deskAssignmentsSnapshot, roomsSnapshot;
+    
+    try {
+      schedulesSnapshot = await firestore.collection('privateOfficeRooms').doc('data').collection('requests').get();
+      console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests - ${schedulesSnapshot.docs.length} documents`);
+    } catch (err) {
+      console.warn('⚠️ Could not fetch privateOfficeRooms/data/requests:', err.message);
+      schedulesSnapshot = { docs: [] };
+    }
+
+    try {
+      virtualOfficeSnapshot = await firestore.collection('virtual-office-clients').get();
+      console.log(`📖 FIRESTORE READ: virtual-office-clients - ${virtualOfficeSnapshot.docs.length} documents`);
+    } catch (err) {
+      console.warn('⚠️ Could not fetch virtual-office-clients:', err.message);
+      virtualOfficeSnapshot = { docs: [] };
+    }
+
+    try {
+      deskAssignmentsSnapshot = await firestore.collection('desk-assignments').get();
+      console.log(`📖 FIRESTORE READ: desk-assignments - ${deskAssignmentsSnapshot.docs.length} documents`);
+    } catch (err) {
+      console.warn('⚠️ Could not fetch desk-assignments:', err.message);
+      deskAssignmentsSnapshot = { docs: [] };
+    }
+
+    try {
+      roomsSnapshot = await firestore.collection('privateOfficeRooms').doc('data').collection('office').get();
+      console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/office - ${roomsSnapshot.docs.length} documents`);
+    } catch (err) {
+      console.warn('⚠️ Could not fetch privateOfficeRooms/data/office:', err.message);
+      roomsSnapshot = { docs: [] };
+    }
 
     // Process schedules data
     const schedules = schedulesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    // Also fetch from new path for private office tenants
+    let newSchedulesSnapshot;
+    try {
+      newSchedulesSnapshot = await firestore.collectionGroup('bookings').get();
+      console.log(`📖 FIRESTORE READ: collectionGroup("bookings") - ${newSchedulesSnapshot.docs.length} total documents`);
+    } catch (err) {
+      console.warn('⚠️ Could not fetch new requests path:', err.message);
+      newSchedulesSnapshot = { docs: [] };
+    }
+
+    // Process new path schedules - extract userId from path
+    const newSchedules = newSchedulesSnapshot.docs
+      .map(doc => {
+        // Extract userId from path: /accounts/client/users/{userId}/request/office/bookings/{bookingId}
+        const pathParts = doc.ref.path.split('/');
+        const userId = pathParts[3];
+        
+        return {
+          id: doc.id,
+          userId,
+          ...doc.data()
+        };
+      });
+    
+    console.log(`📖 FIRESTORE READ: collectionGroup("bookings") - ${newSchedules.length} office bookings after extraction`);
+
+    // Combine schedules from both paths
+    const allSchedules = [...schedules, ...newSchedules];
 
     // Process virtual office data
     const virtualOfficeClients = virtualOfficeSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -187,22 +281,22 @@ export const getFilteredTenants = async (req, res) => {
     const rooms = roomsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
     // Process Private Office tenants using the same helper function as getTenantStats
-    const occupiedPrivateOfficeTenants = processPrivateOfficeTenants(schedules);
+    const occupiedPrivateOfficeTenants = processPrivateOfficeTenants(allSchedules);
 
-    // Process Virtual Office tenants
+    // Process Virtual Office tenants - ONLY exclude cancelled/rejected (include all other statuses)
     const virtualOfficeTenants = virtualOfficeClients
-      .filter(c => c.status !== 'inquiry')
+      .filter(c => !['cancelled', 'rejected'].includes(c.status))
       .map(c => ({
         id: c.id,
         type: 'virtual-office',
-        clientName: c.fullName,
-        email: c.email,
-        contactNumber: c.phoneNumber,
+        clientName: c.fullName || c.name || 'Unknown',
+        email: c.email || null,
+        contactNumber: c.phoneNumber || null,
         companyName: c.company || '',
-        position: c.position,
-        startDate: c.dateStart || c.preferredStartDate,
+        position: c.position || null,
+        startDate: c.dateStart || c.preferredStartDate || c.createdAt || null,
         status: c.status || 'active',
-        createdAt: c.createdAt
+        createdAt: c.createdAt || null
       }));
 
     // Process Dedicated Desk tenants - ONLY show "Tenant" type, exclude "Employee" type
@@ -212,14 +306,14 @@ export const getFilteredTenants = async (req, res) => {
         id: assignment.id,
         type: 'dedicated-desk',
         desk: assignment.desk, // Use desk field
-        clientName: assignment.name,
-        email: assignment.email,
-        contactNumber: assignment.contactNumber,
+        clientName: assignment.name || 'Unknown',
+        email: assignment.email || null,
+        contactNumber: assignment.contactNumber || null,
         companyName: assignment.company || '',
         occupantType: assignment.type,
-        startDate: assignment.assignedAt ? (assignment.assignedAt.toDate ? assignment.assignedAt.toDate().toISOString() : assignment.assignedAt) : null,
+        startDate: assignment.assignedAt ? (typeof assignment.assignedAt === 'object' && assignment.assignedAt.toDate ? assignment.assignedAt.toDate().toISOString() : assignment.assignedAt) : null,
         status: 'active',
-        createdAt: assignment.assignedAt || assignment.createdAt
+        createdAt: assignment.assignedAt || assignment.createdAt || null
       }));
 
     let allTenants = [...occupiedPrivateOfficeTenants, ...virtualOfficeTenants, ...dedicatedDeskTenants];

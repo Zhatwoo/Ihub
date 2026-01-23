@@ -18,22 +18,56 @@ export const getDashboardStats = async (req, res) => {
 
     // Fetch all required data (desk requests fetched separately using collection group query)
     console.log('📖 FIRESTORE READ: Starting dashboard data fetch...');
-    const [roomsSnapshot, schedulesSnapshot, virtualOfficeSnapshot, deskAssignmentsSnapshot] = await Promise.all([
+    const [roomsSnapshot, oldSchedulesSnapshot, virtualOfficeSnapshot, deskAssignmentsSnapshot] = await Promise.all([
       firestore.collection('privateOfficeRooms').doc('data').collection('office').get(),
       firestore.collection('privateOfficeRooms').doc('data').collection('requests').get(),
       firestore.collection('virtual-office-clients').get(),
       firestore.collection('desk-assignments').get()
     ]);
     console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/office - ${roomsSnapshot.docs.length} documents`);
-    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests - ${schedulesSnapshot.docs.length} documents`);
+    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests - ${oldSchedulesSnapshot.docs.length} documents`);
     console.log(`📖 FIRESTORE READ: virtual-office-clients - ${virtualOfficeSnapshot.docs.length} documents`);
     console.log(`📖 FIRESTORE READ: desk-assignments - ${deskAssignmentsSnapshot.docs.length} documents`);
 
     // Process rooms data
     const rooms = roomsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-    // Process schedules data
-    const schedules = schedulesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    // Process schedules data from old path
+    let schedules = oldSchedulesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    // Fetch from new path - query all users and their office bookings
+    try {
+      console.log('📖 FIRESTORE READ: Fetching all users from accounts/client/users...');
+      const usersSnapshot = await firestore.collection('accounts').doc('client').collection('users').get();
+      console.log(`📖 FIRESTORE READ: Found ${usersSnapshot.docs.length} users`);
+      
+      for (const userDoc of usersSnapshot.docs) {
+        const userId = userDoc.id;
+        try {
+          const bookingsSnapshot = await firestore
+            .collection('accounts')
+            .doc('client')
+            .collection('users')
+            .doc(userId)
+            .collection('request')
+            .doc('office')
+            .collection('bookings')
+            .get();
+          
+          console.log(`📖 FIRESTORE READ: accounts/client/users/${userId}/request/office/bookings - ${bookingsSnapshot.docs.length} documents`);
+          
+          const userBookings = bookingsSnapshot.docs.map(doc => 
+            ({ id: doc.id, userId, ...doc.data() })
+          );
+          
+          schedules = [...schedules, ...userBookings];
+        } catch (err) {
+          console.warn(`⚠️ Could not fetch bookings for user ${userId}:`, err.message);
+        }
+      }
+    } catch (err) {
+      console.warn('⚠️ Could not fetch new requests path:', err.message);
+    }
 
     // Process virtual office data
     const virtualOfficeClients = virtualOfficeSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
