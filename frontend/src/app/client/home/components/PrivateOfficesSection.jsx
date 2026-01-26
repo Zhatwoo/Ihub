@@ -146,13 +146,6 @@ export default function PrivateOfficesSection() {
     } else if (step === 2) {
       if (!formData.startDate) {
         errors.startDate = 'Start date is required';
-      } else {
-        const startDate = new Date(formData.startDate);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        if (startDate < today) {
-          errors.startDate = 'Start date cannot be in the past';
-        }
       }
       if (formData.endDate) {
         if (formData.endDate < formData.startDate) {
@@ -760,7 +753,6 @@ export default function PrivateOfficesSection() {
                           name="startDate"
                           value={formData.startDate}
                           onChange={handleChange}
-                          min={new Date().toISOString().split('T')[0]}
                           required
                           className={`w-full px-4 py-3 border rounded-lg text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900 focus:border-transparent transition-all ${
                             formErrors.startDate ? 'border-red-300 focus:ring-red-500' : 'border-gray-200'
