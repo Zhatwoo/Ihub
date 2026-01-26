@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import ConfirmationModal from '@/app/landingpage/components/ConfirmationModal';
+import { api } from '@/lib/api';
 
 export default function InquiryForm() {
   const formRef = useRef(null);
@@ -50,35 +51,29 @@ export default function InquiryForm() {
         return;
       }
 
-      const res = await fetch('/api/inquiry', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
+      const response = await api.post('/api/emails/inquiry', formData);
 
-      const data = await res.json();
+      if (response.success) {
+        // Success
+        setModal({
+          isOpen: true,
+          type: 'success',
+          title: 'Inquiry Sent Successfully!',
+          message: response.message || 'Thank you for your interest in our Virtual Office solution! We have received your inquiry and will get back to you soon.',
+        });
 
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to send inquiry');
+        // Reset form
+        setFormData({
+          fullName: '',
+          email: '',
+          phoneNumber: '',
+          company: '',
+          position: '',
+          preferredStartDate: ''
+        });
+      } else {
+        throw new Error(response.message || 'Failed to send inquiry');
       }
-
-      // Success
-      setModal({
-        isOpen: true,
-        type: 'success',
-        title: 'Inquiry Sent Successfully!',
-        message: 'Thank you for your interest in our Virtual Office solution! We have received your inquiry and will get back to you soon.',
-      });
-
-      // Reset form
-      setFormData({
-        fullName: '',
-        email: '',
-        phoneNumber: '',
-        company: '',
-        position: '',
-        preferredStartDate: ''
-      });
     } catch (error) {
       console.error('Error submitting inquiry:', error);
       setModal({
@@ -154,12 +149,12 @@ export default function InquiryForm() {
                 animate={isFormInView ? { opacity: 1 } : { opacity: 0 }}
                 transition={{ duration: 0.4, delay: 0.6 }}
               >
-                <label htmlFor="email" className="block text-white text-sm sm:text-base md:text-[1.1571875rem] font-medium mb-1 sm:mb-[0.2645rem]">
+                <label htmlFor="inquiry-email" className="block text-white text-sm sm:text-base md:text-[1.1571875rem] font-medium mb-1 sm:mb-[0.2645rem]">
                   Email Address<span className="text-red-400 ml-1 sm:ml-[0.13225rem]">*</span>
                 </label>
                 <input
                   type="email"
-                  id="email"
+                  id="inquiry-email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}

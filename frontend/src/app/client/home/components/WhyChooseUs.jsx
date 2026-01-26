@@ -1,7 +1,7 @@
 'use client';
 
-import Image from 'next/image';
 import { League_Spartan } from 'next/font/google';
+import Image from 'next/image';
 
 const leagueSpartan = League_Spartan({
   subsets: ['latin'],
@@ -44,42 +44,38 @@ export default function WhyChooseUs() {
 
         {/* Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
-          {/* Images */}
+          {/* Images (videos not available, using images instead) */}
           <div className="grid grid-cols-2 gap-4">
             <div className="relative h-48 rounded-lg overflow-hidden">
               <Image
-                src="/images/IMG_5337.jpg"
-                alt="Team collaboration"
+                src="/bg/Why you choose uu/Why you choose us video.png"
+                alt="Why choose us"
                 fill
                 className="object-cover"
-                unoptimized
               />
             </div>
             <div className="relative h-48 rounded-lg overflow-hidden">
               <Image
-                src="/images/IMG_5335.jpg"
+                src="/bg/Why you choose uu/why video 2.png"
                 alt="Modern workspace"
                 fill
                 className="object-cover"
-                unoptimized
               />
             </div>
             <div className="relative h-48 rounded-lg overflow-hidden">
               <Image
-                src="/images/IMG_5334.jpg"
+                src="/bg/Why you choose uu/Why video 3.png"
                 alt="Meeting room"
                 fill
                 className="object-cover"
-                unoptimized
               />
             </div>
             <div className="relative h-48 rounded-lg overflow-hidden">
               <Image
-                src="/images/IMG_5333.jpg"
+                src="/bg/Why you choose uu/Why video 4.png"
                 alt="Office space"
                 fill
                 className="object-cover"
-                unoptimized
               />
             </div>
           </div>

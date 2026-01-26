@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { api } from '@/lib/api';
+import { api, getUserFromCookie } from '@/lib/api';
 import { useRouter } from 'next/navigation';
 
 export default function ProfileCard({ onClick }) {
@@ -12,27 +12,34 @@ export default function ProfileCard({ onClick }) {
   useEffect(() => {
     const fetchAdminData = async () => {
       try {
-        // Get user from localStorage
-        const userStr = localStorage.getItem('user');
-        if (!userStr) {
-          setLoading(false);
-          return;
-        }
-
-        const user = JSON.parse(userStr);
-        if (!user?.uid) {
+        // Get user from cookie (tokens are in HttpOnly cookies)
+        const user = getUserFromCookie();
+        if (!user || !user.uid) {
           setLoading(false);
           return;
         }
 
         // Fetch admin data from backend
-        const response = await api.get(`/api/accounts/admin/users/${user.uid}`);
-        
-        if (response.success && response.data) {
-          setAdminData(response.data);
+        try {
+          const response = await api.get(`/api/accounts/admin/users/${user.uid}`);
+          
+          if (response.success && response.data) {
+            setAdminData(response.data);
+          }
+        } catch (error) {
+          // Handle 404 (admin user not found) gracefully - this is expected for new admins
+          // Admin may be authenticated but not yet have a document in accounts/admin/users
+          if (error.response?.status === 404) {
+            // Admin user not found in accounts collection - use basic info from cookie
+            // This is fine, the ProfileCard will use default values
+            setAdminData(null);
+          } else {
+            // Log other errors but don't break the UI
+            console.error('Error fetching admin data:', error);
+          }
         }
       } catch (error) {
-        console.error('Error fetching admin data:', error);
+        console.error('Error parsing user data:', error);
       } finally {
         setLoading(false);
       }
@@ -41,7 +48,27 @@ export default function ProfileCard({ onClick }) {
     fetchAdminData();
   }, []);
 
-  const firstName = adminData?.firstName || 'Admin';
+  // Get user info from cookie as fallback
+  const getUserInfo = () => {
+    try {
+      const user = getUserFromCookie();
+      if (user) {
+        return {
+          email: user.email || '',
+          displayName: user.displayName || ''
+        };
+      }
+    } catch (error) {
+      console.error('Error getting user from cookie:', error);
+    }
+    return { email: '', displayName: '' };
+  };
+
+  const userInfo = getUserInfo();
+  const firstName = adminData?.firstName || 
+                    userInfo.displayName?.split(' ')[0] || 
+                    userInfo.email?.split('@')[0] || 
+                    'Admin';
   const profilePicture = adminData?.profilePicture || null;
 
   if (loading) {

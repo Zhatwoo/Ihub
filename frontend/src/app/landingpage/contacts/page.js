@@ -4,11 +4,12 @@ import { useState, useRef, Suspense } from 'react';
 import { motion, useInView } from 'framer-motion';
 import { League_Spartan, Roboto } from 'next/font/google';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import LandingPageHeader from '../components/header';
-import ClientHeader from '@/app/client/home/components/header';
-import Footer from '../components/footer';
-import ConfirmationModal from '../components/ConfirmationModal';
+import { useSearchParams, useRouter } from 'next/navigation';
+import LandingPageHeader from '../components/header.jsx';
+import ClientHeader from '@/app/client/home/components/header.jsx';
+import Footer from '../components/footer.jsx';
+import ConfirmationModal from '../components/ConfirmationModal.jsx';
+import { api } from '@/lib/api';
 
 const leagueSpartan = League_Spartan({
   subsets: ['latin'],
@@ -21,6 +22,7 @@ const roboto = Roboto({
 });
 
 function ContactsContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const returnTo = searchParams.get('returnTo');
   const isFromClient = returnTo && returnTo.includes('/client');
@@ -29,6 +31,14 @@ function ContactsContent() {
   const formRef = useRef(null);
   const isSectionInView = useInView(sectionRef, { once: true, amount: 0.2 });
   const isFormInView = useInView(formRef, { once: true, amount: 0.2 });
+
+  const handleBack = () => {
+    if (returnTo) {
+      router.push(returnTo);
+    } else {
+      router.back();
+    }
+  };
 
   const [formData, setFormData] = useState({
     name: '',
@@ -57,34 +67,28 @@ function ContactsContent() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/contact', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
+      const response = await api.post('/api/emails/contact', formData);
 
-      const data = await res.json();
+      if (response.success) {
+        // Success
+        setModal({
+          isOpen: true,
+          type: 'success',
+          title: 'Message Sent Successfully!',
+          message: response.message || 'Thank you for contacting us! We have received your message and will get back to you soon.',
+        });
 
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to send message');
+        // Reset form
+        setFormData({
+          name: '',
+          email: '',
+          phone: '',
+          subject: '',
+          message: '',
+        });
+      } else {
+        throw new Error(response.message || 'Failed to send message');
       }
-
-      // Success
-      setModal({
-        isOpen: true,
-        type: 'success',
-        title: 'Message Sent Successfully!',
-        message: 'Thank you for contacting us! We have received your message and will get back to you soon.',
-      });
-
-      // Reset form
-      setFormData({
-        name: '',
-        email: '',
-        phone: '',
-        subject: '',
-        message: '',
-      });
     } catch (error) {
       console.error('Error sending message:', error);
       setModal({
@@ -141,11 +145,23 @@ function ContactsContent() {
       {isFromClient ? <ClientHeader /> : <LandingPageHeader />}
       <motion.div 
         ref={sectionRef}
-        className="w-full bg-[#0F766E] py-16 lg:py-24"
+        className="w-full bg-[#0F766E] py-16 lg:py-24 relative"
         initial={{ opacity: 0, y: -50 }}
         animate={isSectionInView ? { opacity: 1, y: 0 } : { opacity: 0, y: -50 }}
         transition={{ duration: 0.8, ease: 'easeOut' }}
       >
+        {isFromClient && (
+          <button
+            onClick={handleBack}
+            className="absolute top-6 left-6 lg:left-12 flex items-center gap-2 text-white hover:text-gray-200 transition-colors"
+            aria-label="Go back"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            <span className={`${roboto.className} font-medium`}>Back</span>
+          </button>
+        )}
         <div className="max-w-7xl mx-auto px-6 lg:px-8 text-center">
           <h1 className={`${leagueSpartan.className} text-4xl lg:text-5xl font-bold text-white mb-4`}>
             Contact Us
@@ -273,12 +289,12 @@ function ContactsContent() {
                 animate={isFormInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
                 transition={{ duration: 0.6, delay: 0.4 }}
               >
-                <label htmlFor="email" className={`block ${roboto.className} text-white text-base font-medium mb-2`}>
+                <label htmlFor="contact-email" className={`block ${roboto.className} text-white text-base font-medium mb-2`}>
                   Email Address<span className="text-red-400 ml-1">*</span>
                 </label>
                 <input
                   type="email"
-                  id="email"
+                  id="contact-email"
                   name="email"
                   value={formData.email}
                   onChange={handleChange}

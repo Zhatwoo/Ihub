@@ -3,9 +3,8 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
 import { useState } from 'react';
+import { api } from '@/lib/api';
 
 export default function VirtualOfficeHeader() {
   const router = useRouter();
@@ -13,14 +12,13 @@ export default function VirtualOfficeHeader() {
 
   const handleLogout = async () => {
     try {
-      if (auth) {
-        await signOut(auth);
-      }
+      // Call logout API to clear cookies
+      await api.logout();
       // Redirect to landing page after logout
       router.push('/');
     } catch (error) {
       console.error('Logout error:', error);
-      // Even if there's an error, redirect to landing page
+      // Even if there's an error, redirect (cookies might still be cleared)
       router.push('/');
     }
   };

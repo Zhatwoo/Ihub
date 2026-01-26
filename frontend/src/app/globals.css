@@ -289,6 +289,12 @@ input[type="number"] {
   animation: modalContentEnter 0.3s ease-out;
 }
 
+/* Modal backdrop blur */
+.modal-backdrop-blur {
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
 /* Zoom slider styling */
 input[type="range"].slider {
   -webkit-appearance: none;

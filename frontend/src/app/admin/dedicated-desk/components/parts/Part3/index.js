@@ -1,9 +1,12 @@
-"use client";
-
+import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import DeskWithChair from "../../furnitures/DeskWithChair";
 import Wall from "../../furnitures/Wall";
 
 export default function Part3({ onDeskClick, startX = 0, tagPrefix = "C", deskAssignments = {}, zoom = 1, isStandalone = false, showPrivateInfo = true }) {
+  const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipPosition, setTooltipPosition] = useState({ top: 0, left: 0 });
+  const customDeskRef = useRef(null);
   const deskHeight = 80;
   const verticalPairWidth = 156;
   const verticalContainerWidth = 90;
@@ -12,6 +15,39 @@ export default function Part3({ onDeskClick, startX = 0, tagPrefix = "C", deskAs
   const baseX = isStandalone ? 0 : startX;
 
   const getTag = (deskNumber) => `${tagPrefix}${deskNumber}`;
+
+  // Calculate tooltip position for custom desk C32 (same logic as DeskWithChair)
+  useEffect(() => {
+    if (showTooltip && customDeskRef.current) {
+      const updateTooltipPosition = () => {
+        const rect = customDeskRef.current.getBoundingClientRect();
+        const tooltipWidth = 50;
+        const tooltipHeight = 24;
+        
+        setTooltipPosition({
+          top: rect.top - tooltipHeight - 3,
+          left: rect.left + (rect.width / 2) - (tooltipWidth / 2)
+        });
+      };
+      
+      updateTooltipPosition();
+      window.addEventListener('scroll', updateTooltipPosition, true);
+      window.addEventListener('resize', updateTooltipPosition);
+      
+      return () => {
+        window.removeEventListener('scroll', updateTooltipPosition, true);
+        window.removeEventListener('resize', updateTooltipPosition);
+      };
+    }
+  }, [showTooltip]);
+
+  // Tooltip styling (same as DeskWithChair)
+  const tooltipScale = zoom < 1 ? Math.min(1 / zoom, 2) : 1;
+  const clampedScale = tooltipScale;
+  const isByPartView = Number(zoom) === 1;
+  const basePadding = isByPartView ? '10px 16px' : '3px 6px';
+  const baseNameSize = isByPartView ? '16px' : '9px';
+  const baseTypeSize = isByPartView ? '12px' : '8px';
 
   const VerticalPair = ({ x, y, deskNumber }) => {
     const leftTag = getTag(deskNumber);
@@ -103,9 +139,16 @@ export default function Part3({ onDeskClick, startX = 0, tagPrefix = "C", deskAs
             showPrivateInfo={showPrivateInfo}
           />
           <div 
+            ref={customDeskRef}
             className="relative cursor-pointer transition-transform hover:scale-105" 
-            style={{ marginLeft: "-24px" }}
+            style={{ 
+              marginLeft: "-24px",
+              width: "110px", 
+              height: "90px"
+            }}
             onClick={() => onDeskClick(getTag(32))}
+            onMouseEnter={() => deskAssignments[getTag(32)] && setShowTooltip(true)}
+            onMouseLeave={() => setShowTooltip(false)}
           >
             <div className="relative" style={{ width: "40px", height: "90px" }}>
               <div className="absolute top-1/2 -translate-y-1/2 rounded-sm bg-black" style={{ width: "40px", height: "80px", left: "0px" }}>
@@ -118,8 +161,14 @@ export default function Part3({ onDeskClick, startX = 0, tagPrefix = "C", deskAs
             <div className="absolute rounded-full bg-black" style={{ width: "20px", height: "20px", left: "65px", top: "25px" }} />
             {deskAssignments[getTag(32)] && (
               <div 
-                className={`absolute inset-0 ${deskAssignments[getTag(32)]?.type === "Tenant" ? "bg-blue-500" : "bg-red-500"} rounded-sm z-10 pointer-events-none`}
-                style={{ opacity: 0.35 }}
+                className={`absolute ${deskAssignments[getTag(32)]?.type === "Tenant" ? "bg-blue-500" : "bg-red-500"} rounded-sm z-10 pointer-events-none`}
+                style={{ 
+                  opacity: 0.35,
+                  top: '0px',
+                  left: '0px',
+                  width: '110px',
+                  height: '90px'
+                }}
               />
             )}
           </div>
@@ -158,6 +207,49 @@ export default function Part3({ onDeskClick, startX = 0, tagPrefix = "C", deskAs
       }}>
         <div className="bg-white border-2 border-black rounded-sm" style={{ width: "60px", height: "30px" }} />
       </div>
+
+      {/* Custom Desk C32 Tooltip - Same as DeskWithChair */}
+      {deskAssignments[getTag(32)] && showTooltip && typeof window !== 'undefined' ? createPortal(
+        <div 
+          className="fixed pointer-events-none z-99999"
+          style={{ 
+            top: `${tooltipPosition.top}px`,
+            left: `${tooltipPosition.left}px`,
+            transform: `scale(${clampedScale})`,
+            transformOrigin: 'bottom center'
+          }}
+        >
+          <div 
+            className="bg-slate-800 text-white rounded shadow-lg text-center border border-slate-700 whitespace-nowrap"
+            style={{
+              padding: basePadding,
+              minWidth: isByPartView ? '80px' : '30px',
+              maxWidth: isByPartView ? '160px' : '60px',
+              lineHeight: 1
+            }}
+          >
+            {showPrivateInfo && deskAssignments[getTag(32)]?.name ? (
+              <>
+                <div className="font-medium" style={{ fontSize: baseNameSize, marginBottom: 0, lineHeight: 1 }}>
+                  {deskAssignments[getTag(32)].name}
+                </div>
+                <div className={`px-0.5 py-0 rounded-full inline-block ${
+                  deskAssignments[getTag(32)].type === "Tenant" 
+                    ? "bg-blue-500/30 text-blue-200" 
+                    : "bg-red-500/30 text-red-200"
+                }`} style={{ fontSize: baseTypeSize, lineHeight: 1, marginTop: 0 }}>
+                  {deskAssignments[getTag(32)].type || 'Employee'}
+                </div>
+              </>
+            ) : (
+              <div className="font-medium" style={{ fontSize: baseNameSize, lineHeight: 1 }}>Occupied</div>
+            )}
+          </div>
+          {/* Tooltip arrow */}
+          <div className="absolute top-full left-1/2 -translate-x-1/2 w-0 h-0 border-l-2 border-r-2 border-t-2 border-transparent border-t-slate-800"></div>
+        </div>,
+        document.body
+      ) : null}
     </>
   );
 }

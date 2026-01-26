@@ -1,7 +1,9 @@
 'use client';
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { api } from '@/lib/api';
+import { showToast } from '@/components/Toast';
 
 // Import tab components
 import FloorPlanView from "./tabs/FloorPlan";
@@ -23,6 +25,12 @@ export default function DedicatedDesk() {
   const [loadingRequests, setLoadingRequests] = useState(false);
   const [selectedUserInfo, setSelectedUserInfo] = useState(null);
   const [showUserInfoModal, setShowUserInfoModal] = useState(false);
+  const [alertModal, setAlertModal] = useState({ show: false, type: 'success', title: '', message: '' });
+  const [confirmModal, setConfirmModal] = useState({ show: false, title: '', message: '', onConfirm: null, onCancel: null });
+  
+  // Use refs to track intervals and prevent multiple intervals
+  const assignmentsIntervalRef = useRef(null);
+  const requestsIntervalRef = useRef(null);
   
   // Animation on mount
   useEffect(() => {
@@ -30,97 +38,49 @@ export default function DedicatedDesk() {
     return () => clearTimeout(timer);
   }, []);
   
-  // Fetch desk assignments from backend
+  // Fetch desk assignments from backend with real-time updates
   useEffect(() => {
     const fetchAssignments = async () => {
       try {
-        const response = await api.get('/api/desk-assignments');
+        const response = await api.get('/api/admin/dedicated-desk/assignments', { skipCache: true });
         if (response.success && response.data) {
           const assignments = {};
-          response.data.forEach((assignment) => {
+          response.data.assignments.forEach((assignment) => {
             assignments[assignment.id] = assignment;
           });
           setDeskAssignments(assignments);
         }
       } catch (error) {
         console.error('Error fetching desk assignments:', error);
+        setDeskAssignments({});
       }
     };
 
+    // Initial fetch only - AUTO REFRESH DISABLED
     fetchAssignments();
     
-    // Poll for updates every 30 seconds
-    const interval = setInterval(fetchAssignments, 30000);
-    return () => clearInterval(interval);
+    // DISABLED: Auto refresh/polling - was causing excessive Firestore reads
+    // Data will only load once on mount, no automatic refresh
+    // const handleVisibilityChange = () => { ... };
+    // document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      if (assignmentsIntervalRef.current) {
+        clearInterval(assignmentsIntervalRef.current);
+        assignmentsIntervalRef.current = null;
+      }
+      // document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   // Helper function to fetch all requests from backend
   const fetchAllRequests = async () => {
     try {
-      const response = await api.get('/api/accounts/desk-requests');
+      const response = await api.get('/api/admin/dedicated-desk/requests', { skipCache: true });
       
       if (response.success && response.data) {
-        const isValidValue = (value) => {
-          if (value === null || value === undefined) return false;
-          const strValue = String(value).trim();
-          if (strValue === '') return false;
-          if (strValue.toUpperCase() === 'N/A') return false;
-          if (strValue.toUpperCase() === 'NA') return false;
-          if (strValue.toLowerCase() === 'null') return false;
-          if (strValue.toLowerCase() === 'undefined') return false;
-          return true;
-        };
-        
-        // Get user info for each request
-        const allRequests = [];
-        for (const request of response.data) {
-          const requestData = request;
-          const deskId = requestData.deskId;
-          const section = requestData.section;
-          const location = requestData.location;
-          
-          const hasDeskId = isValidValue(deskId);
-          const hasSection = isValidValue(section);
-          const hasLocation = isValidValue(location);
-          const isDeskIdNA = deskId && String(deskId).trim().toUpperCase() === 'N/A';
-          const isDeskRequest = requestData.requestType !== 'privateroom' && 
-                                 (!requestData.requestType || requestData.requestType === 'desk');
-          const isNotApproved = requestData.status !== 'approved';
-          
-          if (!isDeskIdNA && hasDeskId && hasSection && hasLocation && isDeskRequest && isNotApproved) {
-            // Fetch user info
-            try {
-              const userResponse = await api.get(`/api/accounts/client/users/${request.userId}`);
-              if (userResponse.success && userResponse.data) {
-                allRequests.push({
-                  id: `${request.userId}-desk`,
-                  userId: request.userId,
-                  requestType: 'desk',
-                  ...requestData,
-                  userInfo: {
-                    firstName: userResponse.data.firstName || '',
-                    lastName: userResponse.data.lastName || '',
-                    email: userResponse.data.email || '',
-                    companyName: userResponse.data.companyName || '',
-                    contact: userResponse.data.contact || '',
-                  }
-                });
-              }
-            } catch (error) {
-              console.error('Error fetching user info:', error);
-            }
-          }
-        }
-        
-        allRequests.sort((a, b) => {
-          const dateA = new Date(a.requestDate || a.createdAt || 0);
-          const dateB = new Date(b.requestDate || b.createdAt || 0);
-          return dateB - dateA;
-        });
-        
-        return allRequests;
+        return response.data.requests || [];
       }
-      
       return [];
     } catch (error) {
       console.error('Error fetching requests:', error);
@@ -128,15 +88,21 @@ export default function DedicatedDesk() {
     }
   };
 
-  // Fetch all user requests from backend
+  // Fetch all user requests from backend with real-time updates
   useEffect(() => {
-    if (activeTab !== 'requests') return;
+    if (activeTab !== 'requests') {
+      setLoadingRequests(false);
+      return;
+    }
     
     const fetchRequests = async () => {
-      setLoadingRequests(true);
+      // Only show loading on initial fetch
+      if (requests.length === 0) {
+        setLoadingRequests(true);
+      }
       try {
-        const requests = await fetchAllRequests();
-        setRequests(requests);
+        const requestsData = await fetchAllRequests();
+        setRequests(requestsData);
       } catch (error) {
         console.error('Error fetching requests:', error);
       } finally {
@@ -144,7 +110,31 @@ export default function DedicatedDesk() {
       }
     };
     
+    // Only poll if requests tab is active
+    if (activeTab !== 'requests') {
+      // Clear interval if tab is not active
+      if (requestsIntervalRef.current) {
+        clearInterval(requestsIntervalRef.current);
+        requestsIntervalRef.current = null;
+      }
+      return;
+    }
+    
+    // Initial fetch only - AUTO REFRESH DISABLED
     fetchRequests();
+    
+    // DISABLED: Auto refresh/polling - was causing excessive Firestore reads
+    // Data will only load once on mount, no automatic refresh
+    // const handleVisibilityChange = () => { ... };
+    // document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      if (requestsIntervalRef.current) {
+        clearInterval(requestsIntervalRef.current);
+        requestsIntervalRef.current = null;
+      }
+      // document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [activeTab]);
   
   // Zoom handlers
@@ -164,80 +154,82 @@ export default function DedicatedDesk() {
   // Handle accept request
   const handleAcceptRequest = async (request) => {
     if (!request.deskId) {
-      alert('Error: Desk ID is missing from the request.');
+      setAlertModal({ show: true, type: 'error', title: 'Error', message: 'Desk ID is missing from the request.' });
       return;
     }
-    
-    try {
-      // Update request status via backend (need to implement this endpoint)
-      // For now, create/update desk assignment directly
-      const deskTag = request.deskId;
-      
-      const fullName = `${request.userInfo?.firstName || ''} ${request.userInfo?.lastName || ''}`.trim();
-      const assignmentData = {
-        desk: deskTag,
-        name: fullName || 'Unknown',
-        type: 'Tenant',
-        email: request.userInfo?.email || request.requestedBy?.email || '',
-        contactNumber: request.userInfo?.contact || request.requestedBy?.contact || '',
-        company: request.userInfo?.companyName || request.requestedBy?.companyName || '',
-        assignedAt: new Date().toISOString()
-      };
-      
-      // Create or update desk assignment
-      const assignmentResponse = await api.post('/api/desk-assignments', assignmentData);
-      
-      if (assignmentResponse.success) {
-        // Refresh requests and assignments
-        const requests = await fetchAllRequests();
-        setRequests(requests);
-        
-        // Refresh assignments
-        const assignmentsResponse = await api.get('/api/desk-assignments');
-        if (assignmentsResponse.success && assignmentsResponse.data) {
-          const assignments = {};
-          assignmentsResponse.data.forEach((assignment) => {
-            assignments[assignment.id] = assignment;
+
+    setConfirmModal({
+      show: true,
+      title: 'Approve Desk Request',
+      message: `Are you sure you want to approve the desk request for ${request.userInfo?.firstName || ''} ${request.userInfo?.lastName || ''}? Desk ${request.deskId} will be assigned.`,
+      onConfirm: async () => {
+        setConfirmModal({ ...confirmModal, show: false });
+        try {
+          const response = await api.put(`/api/admin/dedicated-desk/requests/${request.userId}/${request.id}/status`, {
+            status: 'approved',
+            assignedDesk: request.deskId
           });
-          setDeskAssignments(assignments);
+          
+          if (response.success) {
+            setAlertModal({ show: true, type: 'success', title: 'Success', message: `Request approved successfully! Desk ${request.deskId} has been assigned.` });
+            
+            // Refresh data
+            const updatedRequests = await fetchAllRequests();
+            setRequests(updatedRequests);
+            
+            // Refresh assignments
+            const assignmentsResponse = await api.get('/api/admin/dedicated-desk/assignments', { skipCache: true });
+            if (assignmentsResponse.success && assignmentsResponse.data) {
+              const assignments = {};
+              assignmentsResponse.data.assignments.forEach((assignment) => {
+                assignments[assignment.id] = assignment;
+              });
+              setDeskAssignments(assignments);
+            }
+            
+            // Switch to List tab to show the newly added occupant
+            setTimeout(() => {
+              setActiveTab('list');
+            }, 1500);
+          } else {
+            setAlertModal({ show: true, type: 'error', title: 'Error', message: response.message || 'Failed to approve request. Please try again.' });
+          }
+        } catch (error) {
+          console.error('Error accepting request:', error);
+          setAlertModal({ show: true, type: 'error', title: 'Error', message: error.message || 'Failed to approve request. Please try again.' });
         }
-        
-        alert(`Request approved successfully! Desk ${deskTag} has been assigned to ${fullName}.`);
-      } else {
-        alert(assignmentResponse.message || 'Failed to approve request. Please try again.');
-      }
-    } catch (error) {
-      console.error('Error accepting request:', error);
-      alert(error.message || 'Failed to approve request. Please try again.');
-    }
+      },
+      onCancel: () => setConfirmModal({ ...confirmModal, show: false })
+    });
   };
 
   // Handle reject request
   const handleRejectRequest = async (request) => {
-    if (!confirm(`Are you sure you want to reject the desk request for ${request.userInfo?.firstName} ${request.userInfo?.lastName}?`)) {
+    if (!confirm(`Are you sure you want to reject the desk request for ${request.userInfo?.firstName || ''} ${request.userInfo?.lastName || ''}?`)) {
       return;
     }
     
     try {
-      const response = await api.put(`/api/accounts/client/users/${request.userId}/request/desk`, {
-        status: 'rejected',
-        rejectedAt: new Date().toISOString()
+      const response = await api.put(`/api/admin/dedicated-desk/requests/${request.userId}/${request.id}/status`, {
+        status: 'rejected'
       });
       
       if (response.success) {
-        const requests = await fetchAllRequests();
-        setRequests(requests);
-        alert('Request rejected successfully!');
+        showToast('Request rejected successfully!', 'success');
+        
+        // Refresh requests
+        const updatedRequests = await fetchAllRequests();
+        setRequests(updatedRequests);
       } else {
-        alert(response.message || 'Failed to reject request. Please try again.');
+        showToast(response.message || 'Failed to reject request. Please try again.', 'error');
       }
     } catch (error) {
       console.error('Error rejecting request:', error);
-      alert(error.message || 'Failed to reject request. Please try again.');
+      showToast(error.message || 'Failed to reject request. Please try again.', 'error');
     }
   };
 
-  // Handle delete request
+  // Remove optimistic UI update - let backend handle it
   const handleDeleteRequest = async (request) => {
     if (!confirm(`Are you sure you want to delete the rejected request for ${request.userInfo?.firstName} ${request.userInfo?.lastName}? This action cannot be undone.`)) {
       return;
@@ -247,15 +239,17 @@ export default function DedicatedDesk() {
       const response = await api.delete(`/api/accounts/client/users/${request.userId}/request/desk`);
       
       if (response.success) {
-        const requests = await fetchAllRequests();
-        setRequests(requests);
-        alert('Request deleted successfully!');
+        showToast('Request deleted successfully!', 'success');
+        
+        // Refresh requests from backend
+        const updatedRequests = await fetchAllRequests();
+        setRequests(updatedRequests);
       } else {
-        alert(response.message || 'Failed to delete request. Please try again.');
+        showToast(response.message || 'Failed to delete request. Please try again.', 'error');
       }
     } catch (error) {
       console.error('Error deleting request:', error);
-      alert(error.message || 'Failed to delete request. Please try again.');
+      showToast(error.message || 'Failed to delete request. Please try again.', 'error');
     }
   };
 
@@ -272,6 +266,13 @@ export default function DedicatedDesk() {
         if (!response.success) {
           throw new Error(response.message || 'Failed to delete assignment');
         }
+        
+        // Immediately remove from UI (optimistic update)
+        setDeskAssignments(prevAssignments => {
+          const updated = { ...prevAssignments };
+          delete updated[deskTag];
+          return updated;
+        });
       } else {
         // Create or update assignment
         const assignmentPayload = {
@@ -295,9 +296,11 @@ export default function DedicatedDesk() {
         if (!response.success) {
           throw new Error(response.message || 'Failed to save assignment');
         }
-        
-        // Refresh assignments
-        const assignmentsResponse = await api.get('/api/desk-assignments');
+      }
+      
+      // Immediately refresh assignments for real-time update
+      try {
+        const assignmentsResponse = await api.get('/api/desk-assignments', { skipCache: true });
         if (assignmentsResponse.success && assignmentsResponse.data) {
           const assignments = {};
           assignmentsResponse.data.forEach((assignment) => {
@@ -305,6 +308,8 @@ export default function DedicatedDesk() {
           });
           setDeskAssignments(assignments);
         }
+      } catch (error) {
+        console.error('Error refreshing assignments:', error);
       }
     } catch (error) {
       console.error("Error saving desk assignment:", error);
@@ -312,18 +317,10 @@ export default function DedicatedDesk() {
     }
   };
 
-  // Convert deskAssignments object to array for list view
-  const assignmentsList = Object.keys(deskAssignments).map(deskTag => ({
-    deskTag,
-    ...deskAssignments[deskTag]
-  })).sort((a, b) => {
-    const partA = a.deskTag.charAt(0);
-    const partB = b.deskTag.charAt(0);
-    if (partA !== partB) return partA.localeCompare(partB);
-    const numA = parseInt(a.deskTag.slice(1)) || 0;
-    const numB = parseInt(b.deskTag.slice(1)) || 0;
-    return numA - numB;
-  });
+  // Get assignments list - derive from deskAssignments instead of fetching again
+  // This prevents double fetching when deskAssignments changes
+  // FIXED: Removed duplicate useEffect that was calling /api/admin/dedicated-desk/assignments
+  const assignmentsList = Object.values(deskAssignments);
 
   return (
     <div className={`w-full relative transition-all duration-500 ease-out pb-8 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
@@ -418,7 +415,7 @@ export default function DedicatedDesk() {
       />
 
       {/* User Info Modal */}
-      {showUserInfoModal && selectedUserInfo && (
+      {showUserInfoModal && selectedUserInfo && createPortal(
         <div 
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
           onClick={() => setShowUserInfoModal(false)}
@@ -495,7 +492,69 @@ export default function DedicatedDesk() {
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Alert Modal */}
+      {alertModal.show && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-slideUp">
+            <div className="flex items-center gap-3 mb-4">
+              {alertModal.type === 'success' ? (
+                <div className="w-12 h-12 bg-teal-100 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+              ) : (
+                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </div>
+              )}
+              <h3 className="text-lg font-bold text-slate-800">{alertModal.title}</h3>
+            </div>
+            <p className="text-gray-600 mb-6">{alertModal.message}</p>
+            <button
+              onClick={() => setAlertModal({ ...alertModal, show: false })}
+              className={`w-full py-2.5 rounded-lg font-semibold transition-colors ${
+                alertModal.type === 'success'
+                  ? 'bg-teal-600 text-white hover:bg-teal-700'
+                  : 'bg-red-600 text-white hover:bg-red-700'
+              }`}
+            >
+              OK
+            </button>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* Confirm Modal */}
+      {confirmModal.show && createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-slideUp">
+            <h3 className="text-lg font-bold text-slate-800 mb-3">{confirmModal.title}</h3>
+            <p className="text-gray-600 mb-6">{confirmModal.message}</p>
+            <div className="flex gap-3">
+              <button
+                onClick={confirmModal.onCancel}
+                className="flex-1 py-2.5 rounded-lg font-semibold bg-gray-100 text-gray-700 hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmModal.onConfirm}
+                className="flex-1 py-2.5 rounded-lg font-semibold bg-teal-600 text-white hover:bg-teal-700 transition-colors"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );

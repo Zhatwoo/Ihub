@@ -55,10 +55,10 @@ export default function RequestsView({
                   <span className="text-gray-600 text-sm">{request.userInfo?.email || 'N/A'}</span>
                 </td>
                 <td className="px-4 py-4">
-                  <span className="text-gray-600 text-sm">{request.userInfo?.companyName || 'N/A'}</span>
+                  <span className="text-gray-600 text-sm">{request.company || request.requestedBy?.companyName || 'N/A'}</span>
                 </td>
                 <td className="px-4 py-4">
-                  <span className="text-gray-600 text-sm">{request.userInfo?.contact || 'N/A'}</span>
+                  <span className="text-gray-600 text-sm">{request.contact || request.requestedBy?.contact || 'N/A'}</span>
                 </td>
                 <td className="px-4 py-4">
                   <span className="text-gray-600 text-sm">{request.deskId || 'N/A'}</span>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '@/lib/api';
 
@@ -13,6 +13,7 @@ export default function VirtualOffice() {
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [confirmAction, setConfirmAction] = useState(null);
   const [deleteClientId, setDeleteClientId] = useState(null);
+  const clientsIntervalRef = useRef(null);
   const [formData, setFormData] = useState({
     fullName: '',
     company: '',
@@ -35,21 +36,36 @@ export default function VirtualOffice() {
   // Fetch clients from backend
   useEffect(() => {
     const fetchClients = async () => {
+      console.log('🔄 POLLING EXECUTED: admin/virtual-office - fetchClients');
       try {
-        const response = await api.get('/api/virtual-office');
+        const response = await api.get('/api/admin/virtual-office/clients');
         if (response.success && response.data) {
-          setClients(response.data);
+          const clientsData = response.data.clients || [];
+          setClients(clientsData);
+          console.log(`📊 SNAPSHOT: admin/virtual-office - ${clientsData.length} clients loaded`);
         }
       } catch (error) {
         console.error('Error fetching clients:', error);
+        setClients([]);
       }
     };
 
+    // Initial fetch only - AUTO REFRESH DISABLED
+    console.log('📖 AUTO READ: admin/virtual-office - Initial fetchClients starting...');
     fetchClients();
     
-    // Poll for updates every 30 seconds
-    const interval = setInterval(fetchClients, 30000);
-    return () => clearInterval(interval);
+    // DISABLED: Auto refresh/polling - was causing excessive Firestore reads
+    // Data will only load once on mount, no automatic refresh
+    // const handleVisibilityChange = () => { ... };
+    // document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      if (clientsIntervalRef.current) {
+        clearInterval(clientsIntervalRef.current);
+        clientsIntervalRef.current = null;
+      }
+      // document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   const handleChange = (e) => {

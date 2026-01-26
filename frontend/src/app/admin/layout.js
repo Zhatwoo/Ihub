@@ -6,26 +6,18 @@ import { usePathname, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import ProfileCard from './ProfileCard/ProfileCard';
 import ProfileModal from './ProfileCard/ProfileModal';
+import AdminAuthGuard from '@/components/AdminAuthGuard.jsx';
 
-// Modern desk SVG icon component
-const DeskIcon = ({ className }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-    <rect x="2" y="6" width="20" height="4" rx="1" />
-    <path d="M4 10v8" />
-    <path d="M20 10v8" />
-    <path d="M12 10v4" />
-    <rect x="8" y="14" width="8" height="3" rx="0.5" />
-  </svg>
-);
+// React Icons - Material Design Icons
+import { MdDashboard, MdBusiness, MdTv, MdPeople, MdCreditCard, MdDesktopMac, MdApartment } from 'react-icons/md';
 
 const navItems = [
-  { name: 'Dashboard', href: '/admin', icon: '📊' },
-  { name: 'Reports', href: '/admin/reports', icon: '📈' },
-  { name: 'Dedicated Desk', href: '/admin/dedicated-desk', icon: 'desk', isSvg: true },
-  { name: 'Private Office', href: '/admin/private-office', icon: '🏢' },
-  { name: 'Virtual Office', href: '/admin/virtual-office', icon: '💻' },
-  { name: 'Tenants', href: '/admin/tenants', icon: '👥' },
-  { name: 'Billing', href: '/admin/billing', icon: '💳' },
+  { name: 'Dashboard', href: '/admin', icon: MdDashboard },
+  { name: 'Dedicated Desk', href: '/admin/dedicated-desk', icon: MdDesktopMac },
+  { name: 'Private Office', href: '/admin/private-office', icon: MdBusiness },
+  { name: 'Virtual Office', href: '/admin/virtual-office', icon: MdTv },
+  { name: 'Tenants', href: '/admin/tenants', icon: MdPeople },
+  { name: 'Billing', href: '/admin/billing', icon: MdCreditCard },
 ];
 
 export default function AdminLayout({ children }) {
@@ -35,6 +27,41 @@ export default function AdminLayout({ children }) {
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   
+  // Clean up old localStorage token and cache data on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    // Remove old token storage from localStorage (now using cookies)
+    const oldTokenKeys = ['idToken', 'refreshToken', 'user'];
+    oldTokenKeys.forEach(key => {
+      if (localStorage.getItem(key)) {
+        localStorage.removeItem(key);
+      }
+    });
+    
+    // Remove old admin cache and admin info from localStorage (now using cookies)
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && (key.startsWith('adminAuth_') || key.startsWith('adminInfo_'))) {
+        localStorage.removeItem(key);
+      }
+    }
+    
+    // Remove other app-related localStorage data
+    const keysToRemove = [
+      'calendar-tasks', 'kanban-columns', 'reports-data', 'currentCompanyId',
+      'userLocationInfo', 'scheduleStart', 'scheduleEnd', 'siteVisitCount',
+      'systemStyle', 'wallpaper', 'weather_cloud_pos', 'websdk_ng_cache_parameter',
+      'websdk_ng_global_parameter', 'websdk_ng_install_id', 'informationReadFilter',
+      'isDockMode', 'shownToastIds', 'advertisementVideoUrl', 'auth_migration_v1_completed'
+    ];
+    keysToRemove.forEach(key => {
+      if (localStorage.getItem(key)) {
+        localStorage.removeItem(key);
+      }
+    });
+  }, []);
+
   // Animation on mount
   useEffect(() => {
     const timer = setTimeout(() => setIsLoaded(true), 50);
@@ -46,24 +73,19 @@ export default function AdminLayout({ children }) {
 
   const handleLogout = async () => {
     try {
-      // Clear localStorage tokens
-      localStorage.removeItem('idToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
-      
+      // Call logout API to clear cookies
+      await api.logout();
       // Redirect to landing page after logout
       router.push('/');
     } catch (error) {
       console.error('Logout error:', error);
-      // Even if there's an error, clear storage and redirect
-      localStorage.removeItem('idToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('user');
+      // Even if there's an error, redirect (cookies might still be cleared)
       router.push('/');
     }
   };
 
   return (
+    <AdminAuthGuard>
     <div className="flex min-h-screen bg-slate-50">
       {/* Mobile overlay */}
       {!isRegisterPage && sidebarOpen && (
@@ -79,7 +101,9 @@ export default function AdminLayout({ children }) {
         <div>
           <div className={`p-4 lg:p-6 border-b border-white/10 bg-black/10 transition-all duration-500 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'}`}>
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-teal-600 to-teal-700 rounded-xl flex items-center justify-center text-xl shadow-lg shadow-teal-600/30 transition-transform duration-300 hover:scale-105">🏢</div>
+              <div className="w-10 h-10 bg-gradient-to-br from-teal-600 to-teal-700 rounded-xl flex items-center justify-center shadow-lg shadow-teal-600/30 transition-transform duration-300 hover:scale-105">
+                <MdApartment size={24} className="text-white" />
+              </div>
               <div className="flex flex-col">
                 <span className="text-base lg:text-lg font-bold text-white leading-tight">Inspire Hub</span>
                 <span className="text-xs text-white/60 tracking-wider uppercase">Admin Panel</span>
@@ -87,7 +111,9 @@ export default function AdminLayout({ children }) {
             </div>
           </div>
           <nav className="flex flex-col p-2 lg:p-4 gap-1.5 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
-            {navItems.map((item, index) => (
+            {navItems.map((item, index) => {
+              const IconComponent = item.icon;
+              return (
               <Link 
                 key={item.name} 
                 href={item.href} 
@@ -100,16 +126,13 @@ export default function AdminLayout({ children }) {
                   transition: `opacity 0.3s ease-out ${index * 0.05}s, transform 0.3s ease-out ${index * 0.05}s`
                 }}
               >
-                {item.isSvg ? (
-                  <span className="mr-2 lg:mr-3.5 w-5 lg:w-6 flex items-center justify-center">
-                    <DeskIcon className="w-5 h-5 lg:w-6 lg:h-6" />
-                  </span>
-                ) : (
-                  <span className="mr-2 lg:mr-3.5 text-base lg:text-lg w-5 lg:w-6 text-center">{item.icon}</span>
-                )}
+                <span className="mr-2 lg:mr-3.5 w-5 lg:w-6 flex items-center justify-center">
+                  <IconComponent size={20} />
+                </span>
                 <span className="truncate">{item.name}</span>
               </Link>
-            ))}
+            );
+            })}
           </nav>
         </div>
         <nav className={`flex flex-col p-2 lg:p-4 gap-1.5 border-t border-white/10 mt-auto pt-4 transition-all duration-500 delay-300 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
@@ -148,7 +171,9 @@ export default function AdminLayout({ children }) {
             </svg>
           </button>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-teal-600 to-teal-700 rounded-lg flex items-center justify-center text-lg">🏢</div>
+            <div className="w-8 h-8 bg-gradient-to-br from-teal-600 to-teal-700 rounded-lg flex items-center justify-center">
+              <MdApartment size={20} className="text-white" />
+            </div>
             <span className="text-sm font-bold text-slate-800">Inspire Hub</span>
           </div>
         </div>
@@ -164,5 +189,6 @@ export default function AdminLayout({ children }) {
       {/* Profile Modal */}
       <ProfileModal isOpen={showProfileModal} onClose={() => setShowProfileModal(false)} />
     </div>
+    </AdminAuthGuard>
   );
 }

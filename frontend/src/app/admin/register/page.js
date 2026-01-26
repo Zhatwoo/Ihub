@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { motion } from 'framer-motion';
+import { showToast } from '@/components/Toast';
 
 export default function AdminRegisterPage() {
   const router = useRouter();
@@ -48,21 +49,30 @@ export default function AdminRegisterPage() {
       });
 
       if (response.success) {
-        // Success - redirect to admin dashboard
-        router.push('/admin');
+        // Success - admin account created, but user needs to log in manually
+        showToast('Admin account created successfully! Please log in to continue.', 'success');
+        router.push('/');
       } else {
         setError(response.message || 'Registration failed. Please try again.');
       }
     } catch (error) {
       console.error('Admin registration error:', error);
       
-      // Handle API errors
+      // Handle API errors with better error messages
       let errorMessage = 'An error occurred during registration. Please try again.';
       
+      // Check for specific error messages
       if (error.message) {
         errorMessage = error.message;
       } else if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      }
+      
+      // Show more helpful error for network issues
+      if (errorMessage.includes('Failed to fetch') || errorMessage.includes('Network')) {
+        errorMessage = 'Unable to connect to server. Please check your connection and try again.';
       }
       
       setError(errorMessage);
@@ -149,14 +159,14 @@ export default function AdminRegisterPage() {
           {/* Email Field */}
           <div>
             <label
-              htmlFor="email"
+              htmlFor="register-email"
               className="block text-slate-800 font-semibold mb-2 text-sm"
             >
               Email
             </label>
             <input
               type="email"
-              id="email"
+              id="register-email"
               name="email"
               value={formData.email}
               onChange={handleChange}

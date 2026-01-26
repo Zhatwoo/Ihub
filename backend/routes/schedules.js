@@ -5,28 +5,33 @@ import {
   createSchedule,
   updateSchedule,
   deleteSchedule,
-  getUserSchedules
-} from '../controllers/schedulesController.js';
-// import { authenticate } from '../middlewares/auth.js';
+  getUserSchedules,
+  getRoomOccupancy
+} from '../controllers/Admin/Private Office/schedulesController.js';
+import { authenticate, isAdmin } from '../middlewares/auth.js';
 
 const router = express.Router();
 
-// GET /api/schedules - Get all schedules
-router.get('/', getAllSchedules);
+// GET /api/schedules/occupancy - Get room occupancy status (public - for checking available rooms)
+// DISABLED: Using room.status field instead to reduce Firestore reads
+// router.get('/occupancy', getRoomOccupancy);
 
-// GET /api/schedules/user/:userId - Get schedules for a specific user
-router.get('/user/:userId', getUserSchedules);
+// GET /api/schedules - Get all schedules (admin only)
+router.get('/', authenticate, isAdmin, getAllSchedules);
 
-// GET /api/schedules/:scheduleId - Get schedule by ID
-router.get('/:scheduleId', getScheduleById);
+// GET /api/schedules/user/:userId - Get schedules for a specific user (authenticated)
+router.get('/user/:userId', authenticate, getUserSchedules);
 
-// POST /api/schedules - Create new schedule/booking
-router.post('/', createSchedule); // Add authenticate middleware later
+// GET /api/schedules/:scheduleId - Get schedule by ID (authenticated)
+router.get('/:scheduleId', authenticate, getScheduleById);
 
-// PUT /api/schedules/:scheduleId - Update schedule
-router.put('/:scheduleId', updateSchedule); // Add authenticate middleware later
+// POST /api/schedules - Create new schedule/booking (authenticated)
+router.post('/', authenticate, createSchedule);
 
-// DELETE /api/schedules/:scheduleId - Delete schedule/booking
-router.delete('/:scheduleId', deleteSchedule); // Add authenticate middleware later
+// PUT /api/schedules/:scheduleId - Update schedule (admin only)
+router.put('/:scheduleId', authenticate, isAdmin, updateSchedule);
+
+// DELETE /api/schedules/:scheduleId - Delete schedule/booking (authenticated - clients can delete their own, admins can delete any)
+router.delete('/:scheduleId', authenticate, deleteSchedule);
 
 export default router;

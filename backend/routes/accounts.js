@@ -10,38 +10,40 @@ import {
   updateDeskRequest,
   deleteDeskRequest
 } from '../controllers/accountsController.js';
-// import { authenticate, isAdmin } from '../middlewares/auth.js';
+import { authenticate, isAdmin } from '../middlewares/auth.js';
 
 const router = express.Router();
 
 // Client users routes
-// GET /api/accounts/client/users - Get all client users
-router.get('/client/users', getAllClientUsers);
+// GET /api/accounts/client/users - Get all client users (admin only)
+router.get('/client/users', authenticate, isAdmin, getAllClientUsers);
 
-// GET /api/accounts/client/users/:userId
-router.get('/client/users/:userId', getClientUser);
+// GET /api/accounts/client/users/:userId (authenticated)
+router.get('/client/users/:userId', authenticate, getClientUser);
 
 // Admin users routes
-// GET /api/accounts/admin/users/:userId
-router.get('/admin/users/:userId', getAdminUser);
+// GET /api/accounts/admin/users/:userId (authenticated)
+router.get('/admin/users/:userId', authenticate, getAdminUser);
 
-// POST /api/accounts/admin/users - Create admin user
-router.post('/admin/users', createAdminUser); // Add authenticate, isAdmin middleware later
+// POST /api/accounts/admin/users - Create admin user (admin only)
+// Allow admin registration without requiring an existing token
+// so the first admin can be created.
+router.post('/admin/users', createAdminUser);
 
-// PUT /api/accounts/admin/users/:userId
-router.put('/admin/users/:userId', updateAdminUser); // Add authenticate middleware later
+// PUT /api/accounts/admin/users/:userId (admin only)
+router.put('/admin/users/:userId', authenticate, isAdmin, updateAdminUser);
 
 // Desk requests routes
-// GET /api/accounts/desk-requests - Get all desk requests
-router.get('/desk-requests', getAllDeskRequests);
+// GET /api/accounts/desk-requests - Get all desk requests (admin only)
+router.get('/desk-requests', authenticate, isAdmin, getAllDeskRequests);
 
-// GET /api/accounts/client/users/:userId/request/desk - Get user desk request
-router.get('/client/users/:userId/request/desk', getUserDeskRequest);
+// GET /api/accounts/client/users/:userId/request/desk - Get user desk request (authenticated)
+router.get('/client/users/:userId/request/desk', authenticate, getUserDeskRequest);
 
-// PUT /api/accounts/client/users/:userId/request/desk - Update desk request
-router.put('/client/users/:userId/request/desk', updateDeskRequest);
+// PUT /api/accounts/client/users/:userId/request/desk - Update desk request (authenticated)
+router.put('/client/users/:userId/request/desk', authenticate, updateDeskRequest);
 
-// DELETE /api/accounts/client/users/:userId/request/desk - Delete desk request
-router.delete('/client/users/:userId/request/desk', deleteDeskRequest);
+// DELETE /api/accounts/client/users/:userId/request/desk - Delete desk request (authenticated)
+router.delete('/client/users/:userId/request/desk', authenticate, deleteDeskRequest);
 
 export default router;

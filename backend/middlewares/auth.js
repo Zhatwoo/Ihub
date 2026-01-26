@@ -1,26 +1,28 @@
 // Authentication middleware
 // Verifies Firebase ID tokens from Authorization header
 
-import { getFirebaseAuth } from '../config/firebase.js';
+import { getFirebaseAuth, getFirestore } from '../config/firebase.js';
 
 export const authenticate = async (req, res, next) => {
   try {
-    // Get token from Authorization header
-    const authHeader = req.headers.authorization;
+    // Get token from Authorization header OR cookies (cookies are preferred for security)
+    let idToken = null;
     
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ 
-        error: 'Unauthorized', 
-        message: 'No token provided. Please include Authorization: Bearer <token>' 
-      });
+    // First, try to get from Authorization header (for API clients)
+    const authHeader = req.headers.authorization;
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      idToken = authHeader.split('Bearer ')[1];
     }
-
-    const idToken = authHeader.split('Bearer ')[1];
+    
+    // If no token in header, try to get from cookies (for browser requests)
+    if (!idToken && req.cookies && req.cookies.idToken) {
+      idToken = req.cookies.idToken;
+    }
     
     if (!idToken) {
       return res.status(401).json({ 
         error: 'Unauthorized', 
-        message: 'Invalid token format' 
+        message: 'No token provided. Please log in again.' 
       });
     }
 
@@ -35,6 +37,44 @@ export const authenticate = async (req, res, next) => {
         email: decodedToken.email,
         emailVerified: decodedToken.email_verified,
       };
+
+      // Fetch user role from Firestore
+      try {
+        const firestore = getFirestore();
+        if (firestore) {
+          // Check client users first
+          const clientDoc = await firestore
+            .collection('accounts')
+            .doc('client')
+            .collection('users')
+            .doc(decodedToken.uid)
+            .get();
+          
+          if (clientDoc.exists) {
+            const userData = clientDoc.data();
+            req.user.role = userData.role || 'client';
+          } else {
+            // Check admin users
+            const adminDoc = await firestore
+              .collection('accounts')
+              .doc('admin')
+              .collection('users')
+              .doc(decodedToken.uid)
+              .get();
+            
+            if (adminDoc.exists) {
+              req.user.role = 'admin';
+            } else {
+              req.user.role = 'client'; // Default if user not found in either collection
+            }
+          }
+        } else {
+          req.user.role = 'client'; // Default if Firestore not available
+        }
+      } catch (error) {
+        console.warn('Could not fetch user role:', error.message);
+        req.user.role = 'client'; // Default on error
+      }
 
       next();
     } catch (error) {

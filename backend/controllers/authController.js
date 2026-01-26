@@ -69,6 +69,8 @@ export const login = async (req, res) => {
           errorMessage = 'This account has been disabled';
         } else if (message.includes('TOO_MANY_ATTEMPTS')) {
           errorMessage = 'Too many failed attempts. Please try again later';
+        } else if (message.includes('OPERATION_NOT_ALLOWED')) {
+          errorMessage = 'Email/Password sign-in is currently disabled. Please enable it in Firebase Console > Authentication > Sign-in method > Email/Password.';
         } else {
           errorMessage = message;
         }
@@ -123,6 +125,36 @@ export const login = async (req, res) => {
       redirectPath = '/client/home';
     }
 
+    // Set HttpOnly cookies for tokens (more secure than localStorage)
+    // For localhost development, don't set domain so cookies work across ports
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production', // HTTPS only in production
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' for cross-origin in production
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: '/'
+      // Don't set domain for localhost - allows cookies to work across ports (3000 and 5000)
+    };
+
+    // Set idToken cookie
+    res.cookie('idToken', data.idToken, cookieOptions);
+    
+    // Set refreshToken cookie (longer expiry)
+    res.cookie('refreshToken', data.refreshToken, {
+      ...cookieOptions,
+      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+    });
+
+    // Set user info cookie (non-sensitive data only)
+    res.cookie('user', JSON.stringify({
+      uid,
+      email: data.email,
+      role
+    }), {
+      ...cookieOptions,
+      httpOnly: false // Allow frontend to read user info
+    });
+
     res.json({
       success: true,
       message: 'Login successful',
@@ -131,10 +163,9 @@ export const login = async (req, res) => {
         email: data.email,
         role,
         redirectPath,
-        idToken: data.idToken,
-        refreshToken: data.refreshToken,
         expiresIn: data.expiresIn,
         userData
+        // Tokens are now in cookies, not in response
       }
     });
   } catch (error) {
@@ -208,12 +239,15 @@ export const signup = async (req, res) => {
           errorMessage = 'Invalid email address';
         } else if (message.includes('WEAK_PASSWORD')) {
           errorMessage = 'Password is too weak';
+        } else if (message.includes('OPERATION_NOT_ALLOWED')) {
+          errorMessage = 'Email/Password sign-up is currently disabled. Please contact the administrator or enable Email/Password authentication in Firebase Console > Authentication > Sign-in method.';
         } else {
           errorMessage = message;
         }
       }
 
       return res.status(400).json({
+        success: false,
         error: 'Bad Request',
         message: errorMessage
       });
@@ -250,18 +284,18 @@ export const signup = async (req, res) => {
       console.warn('   User created in Firebase Auth but profile data not saved');
     }
 
+    // Don't set cookies on signup - user needs to log in manually
+    // This is more secure and gives user control over their session
+
     res.status(201).json({
       success: true,
-      message: 'User created successfully',
+      message: 'Account created successfully. Please log in to continue.',
       data: {
         uid,
         email: data.email,
         role: 'client',
-        redirectPath: '/client/home',
-        idToken: data.idToken,
-        refreshToken: data.refreshToken,
-        expiresIn: data.expiresIn,
-        userData: userDoc
+        redirectPath: '/', // Redirect to landing page to log in
+        // No tokens - user must log in manually
       }
     });
   } catch (error) {
@@ -355,6 +389,41 @@ export const getCurrentUser = async (req, res) => {
     res.status(500).json({
       error: 'Internal Server Error',
       message: error.message || 'An error occurred'
+    });
+  }
+};
+
+/**
+ * Logout user - Clear authentication cookies
+ */
+export const logout = async (req, res) => {
+  try {
+    // Clear all authentication cookies
+    // Use same options as when setting cookies to ensure they're cleared properly
+    const clearCookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      path: '/'
+    };
+    
+    res.clearCookie('idToken', clearCookieOptions);
+    res.clearCookie('refreshToken', clearCookieOptions);
+    res.clearCookie('user', {
+      ...clearCookieOptions,
+      httpOnly: false
+    });
+
+    res.json({
+      success: true,
+      message: 'Logged out successfully'
+    });
+  } catch (error) {
+    console.error('Logout error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal Server Error',
+      message: error.message || 'An error occurred during logout'
     });
   }
 };

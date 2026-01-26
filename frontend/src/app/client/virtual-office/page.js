@@ -1,8 +1,8 @@
-import VirtualOfficeHeader from './components/header';
-import VirtualOfficeHero from './components/virtualOffice';
-import WhatYouGot from './components/whatYouGot';
-import InquiryForm from './components/inquiryForm';
-import Footer from '../../landingpage/components/footer';
+import VirtualOfficeHeader from './components/header.jsx';
+import VirtualOfficeHero from './components/virtualOffice.jsx';
+import WhatYouGot from './components/whatYouGot.jsx';
+import InquiryForm from './components/inquiryForm.jsx';
+import Footer from '../../landingpage/components/footer.jsx';
 
 export default function VirtualOfficePage() {
   return (

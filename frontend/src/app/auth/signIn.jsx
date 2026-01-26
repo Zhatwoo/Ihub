@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
+import { showToast } from '@/components/Toast';
 
 export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
   const router = useRouter();
@@ -51,33 +52,33 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
       });
 
       if (response.success && response.data) {
-        // Store tokens in localStorage
-        if (response.data.idToken) {
-          localStorage.setItem('idToken', response.data.idToken);
-          localStorage.setItem('refreshToken', response.data.refreshToken);
-          localStorage.setItem('user', JSON.stringify({
-            uid: response.data.uid,
-            email: response.data.email,
-            role: response.data.role,
-          }));
-        }
-
-        // Success - close modal and redirect to client home
+        // Account created successfully - user needs to log in manually
+        // Close modal and redirect to landing page
         onClose();
-        router.push(response.data.redirectPath || '/client/home');
+        
+        // Show success message and redirect to landing page
+        showToast('Account created successfully! Please log in to continue.', 'success');
+        router.push('/');
       } else {
         setError(response.message || 'Sign up failed. Please try again.');
       }
     } catch (error) {
       console.error('Sign up error:', error);
       
-      // Handle API errors
+      // Handle API errors with better error messages
       let errorMessage = 'An error occurred during sign up. Please try again.';
       
+      // Check for specific Firebase error messages
       if (error.message) {
-        errorMessage = error.message;
+        if (error.message.includes('OPERATION_NOT_ALLOWED')) {
+          errorMessage = 'Email/Password sign-up is currently disabled. Please enable it in Firebase Console > Authentication > Sign-in method > Email/Password.';
+        } else {
+          errorMessage = error.message;
+        }
       } else if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
       }
       
       setError(errorMessage);
@@ -105,15 +106,26 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/50 backdrop-blur-md z-[9999] flex items-center justify-center"
+            style={{ 
+              position: 'fixed', 
+              top: 0, 
+              left: 0, 
+              right: 0, 
+              bottom: 0,
+              width: '100vw',
+              height: '100vh',
+              margin: 0
+            }}
           >
             {/* Modal */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, y: -100 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -100 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-white rounded-lg border-4 border-[#0F766E] p-8 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto"
+              className="bg-white rounded-lg border-4 border-[#0F766E] p-8 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto relative m-4"
             >
               {/* Title */}
               <h2 className="text-3xl font-bold text-black mb-6 text-center">
@@ -174,14 +186,14 @@ export default function SignUpModal({ isOpen, onClose, onSwitchToLogin }) {
                 {/* Email Field */}
                 <div>
                   <label
-                    htmlFor="email"
+                    htmlFor="signin-email"
                     className="block text-black font-semibold mb-2"
                   >
                     Email
                   </label>
                     <input
                       type="email"
-                      id="email"
+                      id="signin-email"
                       name="email"
                       value={formData.email}
                       onChange={handleChange}

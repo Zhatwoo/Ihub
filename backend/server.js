@@ -1,20 +1,31 @@
 import express from 'express';
+import { createServer } from 'http';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
 import morgan from 'morgan';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { Server } from 'socket.io';
 import { config } from './config/index.js';
 import { initFirebase } from './config/firebase.js';
+import { initRealtimeFirestore } from './services/realtimeFirestore.js';
+import adminRoutes from './routes/admin.js';
 import authRoutes from './routes/auth.js';
 import accountsRoutes from './routes/accounts.js';
 import roomsRoutes from './routes/rooms.js';
 import schedulesRoutes from './routes/schedules.js';
 import virtualOfficeRoutes from './routes/virtualOffice.js';
 import deskAssignmentsRoutes from './routes/deskAssignments.js';
-import floorsRoutes from './routes/floors.js';
 import uploadRoutes from './routes/upload.js';
+import emailRoutes from './routes/emails.js';
+import clientRoutes from './controllers/Client/index.js';
 
 // Load environment variables
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -22,16 +33,20 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(cors({
   origin: config.corsOrigin,
-  credentials: true,
+  credentials: true, // Important: Allow cookies to be sent
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['Set-Cookie'] // Expose Set-Cookie header for debugging
 }));
+app.use(cookieParser()); // Parse cookies from requests
 app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Serve static files from uploads directory
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 // Initialize Firebase Admin SDK
-// Check Firebase API key configuration
 if (!config.firebase?.apiKey) {
   console.warn('⚠️  Firebase API key not found in environment variables');
   console.warn('   Add to backend/.env: NEXT_PUBLIC_FIREBASE_API_KEY=your-api-key');
@@ -39,11 +54,6 @@ if (!config.firebase?.apiKey) {
 } else {
   console.log('✅ Firebase API key configured');
 }
-
-initFirebase().catch(err => {
-  console.error('⚠️  Firebase Admin SDK initialization failed:', err.message);
-  console.error('   Some features may not work. Check your Firebase configuration.');
-});
 
 // Health check endpoint
 app.get('/health', (req, res) => {
@@ -67,21 +77,26 @@ app.get('/api', (req, res) => {
       schedules: '/api/schedules',
       virtualOffice: '/api/virtual-office',
       deskAssignments: '/api/desk-assignments',
-      floors: '/api/floors',
-      upload: '/api/upload'
+      upload: '/api/upload',
+      emails: '/api/emails'
     }
   });
 });
 
 // Mount routes
+app.use('/api/admin', adminRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/accounts', accountsRoutes);
 app.use('/api/rooms', roomsRoutes);
 app.use('/api/schedules', schedulesRoutes);
 app.use('/api/virtual-office', virtualOfficeRoutes);
 app.use('/api/desk-assignments', deskAssignmentsRoutes);
-app.use('/api/floors', floorsRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/emails', emailRoutes);
+app.use('/api/client', clientRoutes);
+
+// Log mounted routes
+console.log('📧 Email routes mounted at /api/emails');
 
 // 404 handler
 app.use((req, res) => {
@@ -100,11 +115,40 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Start server
-app.listen(PORT, () => {
-  console.log(`🚀 Server is running on http://localhost:${PORT}`);
-  console.log(`📡 API endpoint: http://localhost:${PORT}/api`);
-  console.log(`💚 Health check: http://localhost:${PORT}/health`);
+// Create HTTP server and attach Socket.IO (for onSnapshot real-time updates)
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: config.corsOrigin,
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
 });
+
+io.on('connection', (socket) => {
+  console.log('🔌 Socket connected:', socket.id);
+  socket.on('disconnect', () => {
+    console.log('🔌 Socket disconnected:', socket.id);
+  });
+});
+
+// Start server (async: init Firebase then realtime Firestore, then listen)
+async function start() {
+  try {
+    await initFirebase();
+  } catch (err) {
+    console.error('⚠️  Firebase Admin SDK initialization failed:', err.message);
+    console.error('   Some features may not work. Check your Firebase configuration.');
+  }
+  initRealtimeFirestore(io);
+  httpServer.listen(PORT, () => {
+    console.log(`🚀 Server is running on http://localhost:${PORT}`);
+    console.log(`📡 API endpoint: http://localhost:${PORT}/api`);
+    console.log(`💚 Health check: http://localhost:${PORT}/health`);
+    console.log(`🔌 Socket.IO enabled for real-time Firestore (onSnapshot)`);
+  });
+}
+
+start();
 
 export default app;
