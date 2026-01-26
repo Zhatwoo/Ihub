@@ -24,7 +24,8 @@ import {
 import { 
   getBillingDashboard, 
   getInvoices,
-  getBillingStats
+  getBillingStats,
+  recordPayment
 } from '../controllers/Admin/Billing/billingController.js';
 import {
   getPrivateOfficeBillingDetails,
@@ -72,6 +73,7 @@ router.put('/virtual-office/clients/:clientId/status', updateClientStatus);
 router.get('/billing/dashboard', getBillingDashboard);
 router.get('/billing/invoices', getInvoices);
 router.get('/billing/stats', getBillingStats);
+router.post('/billing/:billId/record-payment', recordPayment);
 
 // Private Office billing routes
 router.get('/billing/private-office/:billingId/details', getPrivateOfficeBillingDetails);

@@ -427,8 +427,11 @@ export const updateRequestStatus = async (req, res) => {
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     };
 
-    // If approving, update room status and save rentFee
+    // If approving, update room status, save rentFee, and create bill
     if (status === 'approved' && currentRequest.status !== 'approved') {
+      let rentFee = 0;
+      let rentFeePeriod = 'Monthly';
+      
       if (currentRequest.roomId && currentRequest.clientName) {
         try {
           const roomRef = firestore.collection('privateOfficeRooms').doc('data').collection('office').doc(currentRequest.roomId);
@@ -439,8 +442,10 @@ export const updateRequestStatus = async (req, res) => {
           if (roomDoc.exists) {
             const roomData = roomDoc.data();
             // Save rentFee from room to booking
-            updateData.rentFee = roomData.rentFee || 0;
-            updateData.rentFeePeriod = roomData.rentFeePeriod || 'Monthly';
+            rentFee = roomData.rentFee || 0;
+            rentFeePeriod = roomData.rentFeePeriod || 'Monthly';
+            updateData.rentFee = rentFee;
+            updateData.rentFeePeriod = rentFeePeriod;
             
             await roomRef.update({
               status: 'Occupied',
@@ -448,11 +453,52 @@ export const updateRequestStatus = async (req, res) => {
               updatedAt: admin.firestore.FieldValue.serverTimestamp()
             });
             console.log(`✅ Room ${currentRequest.roomId} status updated to Occupied (request approved)`);
-            console.log(`✅ Saved rentFee: ${updateData.rentFee} to booking`);
+            console.log(`✅ Saved rentFee: ${rentFee} to booking`);
           }
         } catch (roomError) {
           console.error('Error updating room status:', roomError);
         }
+      }
+
+      // Create bill in user's bills collection (separate try-catch for better error handling)
+      try {
+        const billRef = firestore
+          .collection('accounts')
+          .doc('client')
+          .collection('users')
+          .doc(userId)
+          .collection('bills')
+          .doc();
+
+        // Calculate due date (30 days from start date)
+        const startDate = currentRequest.startDate ? new Date(currentRequest.startDate) : new Date();
+        const dueDate = new Date(startDate);
+        dueDate.setDate(dueDate.getDate() + 30); // Due 30 days after start date
+
+        const billData = {
+          clientName: currentRequest.clientName || '',
+          companyName: currentRequest.companyName || '',
+          email: currentRequest.email || '',
+          contactNumber: currentRequest.contactNumber || '',
+          serviceType: 'Private Office',
+          suite: currentRequest.room || '',
+          rentFee: rentFee,
+          rentFeePeriod: rentFeePeriod,
+          cusaFee: 0,
+          parkingFee: 0,
+          bookingId: bookingId,
+          roomId: currentRequest.roomId || '',
+          startDate: admin.firestore.Timestamp.fromDate(startDate),
+          dueDate: admin.firestore.Timestamp.fromDate(dueDate),
+          status: 'unpaid',
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        };
+
+        await billRef.set(billData);
+        console.log(`✅ Created bill for user ${userId}`);
+      } catch (billError) {
+        console.error('❌ Error creating bill:', billError.message);
       }
     }
 

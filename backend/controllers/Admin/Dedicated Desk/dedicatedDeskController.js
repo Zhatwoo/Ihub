@@ -359,7 +359,7 @@ export const updateDeskRequestStatus = async (req, res) => {
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
 
-    // If approving, create desk assignment
+    // If approving, create desk assignment and bill
     if (status === 'approved' && assignedDesk) {
       // Extract company and contact from request data (try multiple locations)
       const requestedBy = deskRequestData.requestedBy || {};
@@ -383,6 +383,47 @@ export const updateDeskRequestStatus = async (req, res) => {
 
       // Removed: Log containing private user data (assignmentData)
       await firestore.collection('desk-assignments').doc(assignedDesk).set(assignmentData);
+
+      // Create bill in user's bills collection (only for Tenants, not Employees)
+      if ((deskRequestData.occupantType || 'Tenant') === 'Tenant') {
+        try {
+          const billRef = firestore
+            .collection('accounts')
+            .doc('client')
+            .collection('users')
+            .doc(userId)
+            .collection('bills')
+            .doc();
+
+          // Calculate due date (30 days from today since desk requests don't have start date)
+          const startDate = new Date();
+          const dueDate = new Date(startDate);
+          dueDate.setDate(dueDate.getDate() + 30); // Due 30 days after start date
+
+          await billRef.set({
+            clientName: `${userData.firstName} ${userData.lastName}`,
+            companyName: company,
+            email: userData.email,
+            contactNumber: contact,
+            serviceType: 'Dedicated Desk',
+            desk: assignedDesk,
+            rentFee: 0, // Default to 0 if no rent fee specified
+            rentFeePeriod: 'Monthly',
+            cusaFee: 0,
+            parkingFee: 0,
+            requestId: requestId,
+            startDate: admin.firestore.Timestamp.fromDate(startDate),
+            dueDate: admin.firestore.Timestamp.fromDate(dueDate),
+            status: 'unpaid',
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          });
+
+          console.log(`✅ Created bill for user ${userId} in bills collection`);
+        } catch (billError) {
+          console.error('Error creating bill:', billError);
+        }
+      }
     }
 
     // Verify the update was saved

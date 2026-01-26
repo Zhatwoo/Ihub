@@ -49,9 +49,13 @@ export default function Billing() {
           // Calculate billing stats
           const allBillingRecords = [...(billing.privateOffice || []), ...(billing.virtualOffice || []), ...(billing.dedicatedDesk || [])];
           const totalBills = allBillingRecords.length;
-          const totalRevenue = allBillingRecords.reduce((sum, record) => sum + (record.amount || 0), 0);
+          const totalRevenue = allBillingRecords
+            .filter(r => r.paymentStatus === 'paid')
+            .reduce((sum, record) => sum + (record.amount || 0), 0);
           const collected = allBillingRecords.filter(r => r.paymentStatus === 'paid').length;
-          const outstanding = allBillingRecords.filter(r => r.paymentStatus !== 'paid').length;
+          const outstanding = allBillingRecords
+            .filter(r => r.paymentStatus !== 'paid')
+            .reduce((sum, record) => sum + (record.amount || 0), 0);
           
           setBillingStats({
             totalBills,
@@ -189,9 +193,13 @@ export default function Billing() {
         
         const allBillingRecords = [...(billing.privateOffice || []), ...(billing.virtualOffice || []), ...(billing.dedicatedDesk || [])];
         const totalBills = allBillingRecords.length;
-        const totalRevenue = allBillingRecords.reduce((sum, record) => sum + (record.amount || 0), 0);
+        const totalRevenue = allBillingRecords
+          .filter(r => r.paymentStatus === 'paid')
+          .reduce((sum, record) => sum + (record.amount || 0), 0);
         const collected = allBillingRecords.filter(r => r.paymentStatus === 'paid').length;
-        const outstanding = allBillingRecords.filter(r => r.paymentStatus !== 'paid').length;
+        const outstanding = allBillingRecords
+          .filter(r => r.paymentStatus !== 'paid')
+          .reduce((sum, record) => sum + (record.amount || 0), 0);
         
         setBillingStats({
           totalBills,
@@ -245,7 +253,7 @@ export default function Billing() {
           <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">⏳</div>
           <div className="min-w-0 flex-1">
             <p className="text-gray-500 text-xs sm:text-sm truncate">Outstanding</p>
-            <p className="text-2xl sm:text-3xl font-bold text-slate-800 truncate">{billingStats.outstanding}</p>
+            <p className="text-2xl sm:text-3xl font-bold text-slate-800 truncate">₱{(billingStats.outstanding || 0).toLocaleString()}</p>
           </div>
         </div>
       </div>
@@ -458,15 +466,10 @@ export default function Billing() {
                       <div className="flex items-center justify-center gap-1.5 flex-wrap">
                         <button 
                           onClick={() => {
-                            console.log('Edit clicked for record:', { id: record.id, userId: record.userId, type: record.type });
                             setSelectedBillingId(record.id);
                             setSelectedBillingServiceType(record.type);
-                            // Store userId for private office records from new path
-                            if (record.type === 'private-office' && record.userId) {
-                              console.log(`Storing userId ${record.userId} for billingId ${record.id}`);
+                            if (record.userId) {
                               sessionStorage.setItem(`billing_userId_${record.id}`, record.userId);
-                            } else {
-                              console.log('No userId found in record or not private office');
                             }
                             setEditModalOpen(true);
                           }}
@@ -521,6 +524,7 @@ export default function Billing() {
         isOpen={selectedPaymentData !== null}
         onClose={() => setSelectedPaymentData(null)}
         billingData={selectedPaymentData}
+        onPaymentRecorded={handleEditSave}
       />
     </div>
   );

@@ -35,7 +35,13 @@ export default function EditDedicatedDeskVirtualOfficeModal({ isOpen, onClose, b
   const fetchBillingDetails = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/api/admin/billing/${serviceType}/${billingId}/details`, { skipCache: true });
+      const userId = sessionStorage.getItem(`billing_userId_${billingId}`);
+      
+      const url = userId 
+        ? `/api/admin/billing/${serviceType}/${billingId}/details?userId=${userId}`
+        : `/api/admin/billing/${serviceType}/${billingId}/details`;
+      
+      const response = await api.get(url, { skipCache: true });
       
       if (response.success && response.data) {
         setTenantInfo(response.data.tenantInfo);
@@ -58,7 +64,14 @@ export default function EditDedicatedDeskVirtualOfficeModal({ isOpen, onClose, b
   const handleSave = async () => {
     try {
       setIsSaving(true);
-      const response = await api.put(`/api/admin/billing/${serviceType}/${billingId}/details`, formData);
+      const userId = sessionStorage.getItem(`billing_userId_${billingId}`);
+      
+      const payload = {
+        ...formData,
+        userId: userId || undefined
+      };
+      
+      const response = await api.put(`/api/admin/billing/${serviceType}/${billingId}/details`, payload);
       
       if (response.success) {
         onSave?.();
@@ -301,9 +314,9 @@ export default function EditDedicatedDeskVirtualOfficeModal({ isOpen, onClose, b
                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-slate-900 focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-500/10 transition-all cursor-pointer"
                       >
                         <option value="Monthly">Monthly</option>
-                        <option value="Quarterly">Quarterly</option>
-                        <option value="6 Months">6 Months</option>
-                        <option value="Yearly">Yearly</option>
+                        <option value="Quarterly">Quarterly (3 months)</option>
+                        <option value="Semiannually">Semiannually (6 months)</option>
+                        <option value="Annually">Annually</option>
                       </select>
                     </div>
                   </div>
