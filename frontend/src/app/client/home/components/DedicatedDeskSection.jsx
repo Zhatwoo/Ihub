@@ -102,7 +102,6 @@ export default function DedicatedDeskSection() {
   
   useEffect(() => {
     const fetchDeskAssignments = async () => {
-      console.log('🔄 POLLING EXECUTED: DedicatedDeskSection - fetchDeskAssignments');
       try {
         const response = await api.get('/api/desk-assignments');
         if (response.success && response.data) {
@@ -111,7 +110,6 @@ export default function DedicatedDeskSection() {
             assignments[assignment.id] = assignment;
           });
           setDeskAssignments(assignments);
-          console.log(`📊 SNAPSHOT: DedicatedDeskSection - ${Object.keys(assignments).length} desk assignments loaded`);
         }
       } catch (error) {
         console.error('Error fetching desk assignments:', error);
@@ -120,7 +118,6 @@ export default function DedicatedDeskSection() {
     };
 
     // Initial fetch only - AUTO REFRESH DISABLED
-    console.log('📖 AUTO READ: DedicatedDeskSection - Initial fetch starting...');
     fetchDeskAssignments();
     
     // DISABLED: Auto refresh/polling - was causing excessive Firestore reads

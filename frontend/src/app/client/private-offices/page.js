@@ -92,7 +92,6 @@ export default function PrivateOffices() {
   // Fetch private offices from backend API (which fetches from Firestore database)
   useEffect(() => {
     const fetchRooms = async () => {
-      console.log('🔄 POLLING EXECUTED: private-offices/page - fetchRooms');
       try {
         setRoomsLoading(true);
         // Fetch from backend API endpoint: GET /api/rooms
@@ -106,7 +105,6 @@ export default function PrivateOffices() {
             return room.status !== 'Occupied';
           });
           setRooms(availableRooms);
-          console.log(`📊 SNAPSHOT: private-offices/page - ${availableRooms.length} available rooms loaded`);
         } else {
           console.error('Failed to fetch rooms:', response.message);
           setRooms([]);
@@ -122,7 +120,6 @@ export default function PrivateOffices() {
     };
 
     // Initial fetch only - AUTO REFRESH DISABLED
-    console.log('📖 AUTO READ: private-offices/page - Initial fetchRooms starting...');
     fetchRooms();
     
     // DISABLED: Auto refresh/polling - was causing excessive Firestore reads
@@ -243,7 +240,7 @@ export default function PrivateOffices() {
     
     // Ensure the form is ready
     setTimeout(() => {
-      setShowReservationModal(true);
+    setShowReservationModal(true);
     }, 100);
   };
 
@@ -352,7 +349,7 @@ export default function PrivateOffices() {
         // Show success animation before closing
         setBookingStep(4); // Success step
         setTimeout(() => {
-          closeReservationModal();
+      closeReservationModal();
           showAlert('success', `Booking request for "${selectedRoom.name}" submitted successfully! We will contact you soon to confirm your reservation.`);
         }, 2000);
       } else {
@@ -508,7 +505,7 @@ export default function PrivateOffices() {
                 </div>
               )}
             </div>
-
+            
             {/* Form Content - Scrollable */}
             <div className="flex-1 overflow-y-auto px-6 py-6">
               <form onSubmit={handleSubmit} id="booking-form">
@@ -618,7 +615,7 @@ export default function PrivateOffices() {
                             <span>⚠</span> {formErrors.startDate}
                           </p>
                         )}
-                      </div>
+              </div>
 
                       <div>
                         <label className="block text-slate-800 mb-2 font-semibold text-sm">
@@ -643,7 +640,7 @@ export default function PrivateOffices() {
                           <p className="text-teal-600 text-xs mt-1">Duration: {calculateDuration()}</p>
                         )}
                       </div>
-                    </div>
+              </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
@@ -657,7 +654,7 @@ export default function PrivateOffices() {
                           onChange={handleChange}
                           className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all"
                         />
-                      </div>
+              </div>
 
                       <div>
                         <label className="block text-slate-800 mb-2 font-semibold text-sm">
@@ -679,7 +676,7 @@ export default function PrivateOffices() {
                           </p>
                         )}
                       </div>
-                    </div>
+              </div>
 
                     <div>
                       <label className="block text-slate-800 mb-2 font-semibold text-sm">
@@ -701,7 +698,7 @@ export default function PrivateOffices() {
                 {/* Step 3: Review & Confirm */}
                 {bookingStep === 3 && (
                   <div className="space-y-5 animate-[fadeIn_0.3s_ease]">
-                    <div className="mb-6">
+              <div className="mb-6">
                       <h3 className="text-lg font-bold text-slate-800 mb-2">Review Your Booking</h3>
                       <p className="text-sm text-gray-600">Please review all details before submitting</p>
                     </div>
@@ -800,12 +797,12 @@ export default function PrivateOffices() {
                   </div>
                 )}
               </form>
-            </div>
+              </div>
 
             {/* Footer - Action Buttons */}
             {bookingStep !== 4 && (
               <div className="shrink-0 px-6 py-4 border-t-2 border-gray-100 bg-gray-50">
-                <div className="flex gap-3">
+              <div className="flex gap-3">
                   {bookingStep > 1 && (
                     <button
                       type="button"
@@ -853,7 +850,7 @@ export default function PrivateOffices() {
                           Confirm Booking
                         </>
                       )}
-                    </button>
+                </button>
                   )}
                 </div>
               </div>
@@ -891,40 +888,40 @@ export default function PrivateOffices() {
                   </svg>
                   <span>Book Now</span>
                 </button>
-                <button 
-                  onClick={() => {
-                    setShowDetailsModal(false);
-                    setDetailsRoom(null);
-                  }} 
+              <button 
+                onClick={() => {
+                  setShowDetailsModal(false);
+                  setDetailsRoom(null);
+                }} 
                   className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 text-xl hover:bg-gray-200 hover:text-slate-800 transition-all flex-shrink-0"
-                >
-                  ×
-                </button>
+              >
+                ×
+              </button>
               </div>
             </div>
 
             {/* Scrollable Content */}
             <div className="overflow-y-auto flex-1 p-6 pt-4">
-              <div className="relative w-full h-64 rounded-xl overflow-hidden mb-6 shadow-lg bg-gray-100">
-                {detailsRoom.image ? (
-                  <Image src={detailsRoom.image} alt={detailsRoom.name} fill className="object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-400 text-6xl">🏢</div>
-                )}
+            <div className="relative w-full h-64 rounded-xl overflow-hidden mb-6 shadow-lg bg-gray-100">
+              {detailsRoom.image ? (
+                <Image src={detailsRoom.image} alt={detailsRoom.name} fill className="object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-gray-400 text-6xl">🏢</div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1 p-4 bg-gray-50 rounded-xl">
+                <span className="text-gray-500 text-xs uppercase tracking-wide font-semibold">Office Name</span>
+                <span className="text-slate-800 text-xl font-semibold">{detailsRoom.name}</span>
               </div>
 
-              <div className="flex flex-col gap-4">
-                <div className="flex flex-col gap-1 p-4 bg-gray-50 rounded-xl">
-                  <span className="text-gray-500 text-xs uppercase tracking-wide font-semibold">Office Name</span>
-                  <span className="text-slate-800 text-xl font-semibold">{detailsRoom.name}</span>
-                </div>
-
-                <div className="flex flex-col gap-1 p-4 bg-gray-50 rounded-xl">
-                  <span className="text-gray-500 text-xs uppercase tracking-wide font-semibold">Rental Fee</span>
-                  <span className="text-slate-800 text-xl font-semibold">
-                    {getCurrencySymbol(detailsRoom.currency || 'PHP')}{detailsRoom.rentFee?.toLocaleString() || '0'} {detailsRoom.rentFeePeriod || 'per hour'}
-                  </span>
-                </div>
+              <div className="flex flex-col gap-1 p-4 bg-gray-50 rounded-xl">
+                <span className="text-gray-500 text-xs uppercase tracking-wide font-semibold">Rental Fee</span>
+                <span className="text-slate-800 text-xl font-semibold">
+                  {getCurrencySymbol(detailsRoom.currency || 'PHP')}{detailsRoom.rentFee?.toLocaleString() || '0'} {detailsRoom.rentFeePeriod || 'per hour'}
+                </span>
+              </div>
 
                 {detailsRoom.description && (
                   <div className="flex flex-col gap-1 p-4 bg-gray-50 rounded-xl">
@@ -933,12 +930,12 @@ export default function PrivateOffices() {
                   </div>
                 )}
 
-                {detailsRoom.inclusions && (
-                  <div className="flex flex-col gap-1 p-4 bg-gray-50 rounded-xl">
-                    <span className="text-gray-500 text-xs uppercase tracking-wide font-semibold">Inclusions</span>
-                    <span className="text-slate-800 text-lg whitespace-pre-line">{detailsRoom.inclusions}</span>
-                  </div>
-                )}
+              {detailsRoom.inclusions && (
+                <div className="flex flex-col gap-1 p-4 bg-gray-50 rounded-xl">
+                  <span className="text-gray-500 text-xs uppercase tracking-wide font-semibold">Inclusions</span>
+                  <span className="text-slate-800 text-lg whitespace-pre-line">{detailsRoom.inclusions}</span>
+                </div>
+              )}
               </div>
             </div>
 
@@ -954,8 +951,8 @@ export default function PrivateOffices() {
                       {getCurrencySymbol(detailsRoom.currency || 'PHP')}{detailsRoom.rentFee?.toLocaleString() || '0'} {detailsRoom.rentFeePeriod || 'per hour'}
                     </p>
                   </div>
-                </div>
-                
+            </div>
+
                 {/* Primary Book Now Button - Large and Prominent */}
                 <button
                   type="button"

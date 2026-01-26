@@ -59,8 +59,6 @@ export default function Billing() {
             collected,
             outstanding
           });
-          
-          console.log(`📊 SNAPSHOT: admin/billing - PO: ${billing.privateOffice?.length || 0}, VO: ${billing.virtualOffice?.length || 0}, DD: ${billing.dedicatedDesk?.length || 0}`);
         }
       } catch (error) {
         console.error('Error fetching billing data:', error);
@@ -75,8 +73,6 @@ export default function Billing() {
     };
 
     // Initial fetch only - AUTO REFRESH DISABLED
-    console.log('📖 AUTO READ: admin/billing - Initial fetchBilling starting...');
-    console.log('📖 AUTO READ: admin/billing - Calling /api/admin/billing/stats...');
     fetchBilling();
     
     // DISABLED: Auto refresh/polling - was causing excessive Firestore reads

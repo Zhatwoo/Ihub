@@ -34,7 +34,6 @@ export default function Tenants() {
           setVirtualOfficeTenants(tenants.virtualOffice || []);
           setDedicatedDeskTenants(tenants.dedicatedDesk || []);
           setStats(stats);
-          console.log(`📊 SNAPSHOT: admin/tenants - PO: ${tenants.privateOffice?.length || 0}, VO: ${tenants.virtualOffice?.length || 0}, DD: ${tenants.dedicatedDesk?.length || 0}`);
         }
       } catch (error) {
         console.error('Error fetching tenants:', error);
@@ -49,8 +48,6 @@ export default function Tenants() {
     };
 
     // Initial fetch only - AUTO REFRESH DISABLED
-    console.log('📖 AUTO READ: admin/tenants - Initial fetchTenants starting...');
-    console.log('📖 AUTO READ: admin/tenants - Calling /api/admin/tenants/stats...');
     fetchTenants();
     
     // DISABLED: Auto refresh/polling - was causing excessive Firestore reads

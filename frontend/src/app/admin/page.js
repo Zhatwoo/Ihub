@@ -30,7 +30,6 @@ export default function AdminDashboard() {
   // Fetch dashboard data from backend (all processing done server-side)
   useEffect(() => {
     const fetchData = async () => {
-      console.log('🔄 POLLING EXECUTED: admin/page - fetchData');
       try {
         const response = await api.get('/api/admin/dashboard/stats');
         
@@ -45,8 +44,6 @@ export default function AdminDashboard() {
           // Set limited raw data for modals
           setRooms(rawData.rooms || []);
           setSchedules(rawData.schedules || []);
-          
-          console.log(`📊 SNAPSHOT: admin/page - Dashboard stats loaded (PO: ${privateOffice?.totalBookings || 0}, VO: ${virtualOffice?.totalClients || 0}, DD: ${dedicatedDesk?.totalAssignments || 0})`);
         }
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
@@ -62,7 +59,6 @@ export default function AdminDashboard() {
     };
 
     // Initial fetch only - AUTO REFRESH DISABLED
-    console.log('📖 AUTO READ: admin/page - Initial fetchData starting...');
     fetchData();
     
     // DISABLED: Auto refresh/polling - was causing excessive Firestore reads
@@ -189,7 +185,7 @@ export default function AdminDashboard() {
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
-              </div>
+            </div>
             </div>
           </div>
         );
@@ -414,8 +410,8 @@ export default function AdminDashboard() {
                         <div className={`text-3xl font-bold ${item.textColor} mb-2`}>{item.value}</div>
                         <div className={`text-sm font-medium ${item.textColor}`}>{item.label}</div>
                       </div>
-                    </div>
-                  ))}
+                </div>
+              ))}
                 </div>
 
                 {/* Detail Content Below Cards */}
@@ -458,9 +454,9 @@ export default function AdminDashboard() {
                           ))
                         )}
                       </div>
-                    </div>
-                  )}
-                </div>
+            </div>
+          )}
+        </div>
               </div>
             )}
 
@@ -501,9 +497,9 @@ export default function AdminDashboard() {
                         <div className={`text-2xl font-bold ${item.textColor} mb-1`}>{item.value}</div>
                         <div className={`text-sm font-medium ${item.textColor}`}>{item.label}</div>
                       </div>
-                    </div>
+            </div>
                   ))}
-                </div>
+            </div>
 
                 {/* Detail Content Below Cards */}
                 <div className="animate-[fadeIn_0.4s_ease] border-t-2 border-gray-100 pt-6">
@@ -513,7 +509,7 @@ export default function AdminDashboard() {
                       <div className="text-center py-8">
                         <div className="text-gray-400 text-3xl mb-2">📋</div>
                         <p className="text-gray-500">No recent requests</p>
-                      </div>
+            </div>
                     ) : (
                       (dedicatedDeskStats.recentRequests || []).map((request) => (
                         <div key={request.id} className="bg-gray-50 rounded-lg p-4 flex justify-between items-center">
@@ -521,18 +517,18 @@ export default function AdminDashboard() {
                             <div className="font-semibold text-slate-800">{request.userInfo?.firstName} {request.userInfo?.lastName}</div>
                             <div className="text-sm text-gray-600">{request.userInfo?.email}</div>
                             <div className="text-xs text-gray-500">{request.requestDate || request.createdAt || 'N/A'}</div>
-                          </div>
+            </div>
                           <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusBadge(request.status)}`}>
                             {request.status || 'Unknown'}
                           </span>
-                        </div>
+            </div>
                       ))
                     )}
-                  </div>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
+        </div>
+            )}
+      </div>
         </div>,
         document.body
       )}
