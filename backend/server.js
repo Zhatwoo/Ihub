@@ -19,6 +19,7 @@ import virtualOfficeRoutes from './routes/virtualOffice.js';
 import deskAssignmentsRoutes from './routes/deskAssignments.js';
 import uploadRoutes from './routes/upload.js';
 import emailRoutes from './routes/emails.js';
+import clientRoutes from './controllers/Client/index.js';
 
 // Load environment variables
 dotenv.config();
@@ -92,6 +93,7 @@ app.use('/api/virtual-office', virtualOfficeRoutes);
 app.use('/api/desk-assignments', deskAssignmentsRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/emails', emailRoutes);
+app.use('/api/client', clientRoutes);
 
 // Log mounted routes
 console.log('📧 Email routes mounted at /api/emails');

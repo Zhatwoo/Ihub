@@ -11,8 +11,6 @@ export default function EditBillingModal({ isOpen, onClose, billingId, serviceTy
   const [tenantInfo, setTenantInfo] = useState(null);
   const [formData, setFormData] = useState({
     amount: 0,
-    paymentStatus: 'unpaid',
-    dueDate: '',
     notes: '',
     rentFee: 0,
     rentFeePeriod: 'Monthly',
@@ -41,8 +39,6 @@ export default function EditBillingModal({ isOpen, onClose, billingId, serviceTy
         setTenantInfo(response.data.tenantInfo);
         setFormData({
           amount: response.data.billingDetails.amount || 0,
-          paymentStatus: response.data.billingDetails.paymentStatus || 'unpaid',
-          dueDate: response.data.billingDetails.dueDate || '',
           notes: response.data.billingDetails.notes || '',
           rentFee: response.data.billingDetails.rentFee || 0,
           rentFeePeriod: response.data.billingDetails.rentFeePeriod || 'Monthly',
@@ -270,26 +266,15 @@ export default function EditBillingModal({ isOpen, onClose, billingId, serviceTy
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">Amount (₱)</label>
-                      <div className="relative">
-                        <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-semibold">₱</span>
-                        <input
-                          type="number"
-                          value={formData.amount}
-                          onChange={(e) => setFormData({ ...formData, amount: parseFloat(e.target.value) || 0 })}
-                          className="w-full pl-8 pr-4 py-3 border-2 border-gray-200 rounded-xl text-slate-900 focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-500/10 transition-all"
-                          placeholder="0.00"
-                        />
+                      <div className="px-4 py-3 border-2 border-gray-200 rounded-xl text-slate-900 bg-gray-50">
+                        <p className="font-semibold">₱{formData.amount.toLocaleString()}</p>
                       </div>
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">Fee Period</label>
-                      <input
-                        type="text"
-                        value={formData.rentFeePeriod}
-                        onChange={(e) => setFormData({ ...formData, rentFeePeriod: e.target.value })}
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-slate-900 focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-500/10 transition-all"
-                        placeholder="e.g., Monthly"
-                      />
+                      <div className="px-4 py-3 border-2 border-gray-200 rounded-xl text-slate-900 bg-gray-50">
+                        <p className="font-semibold">{formData.rentFeePeriod}</p>
+                      </div>
                     </div>
                   </div>
 
@@ -320,32 +305,6 @@ export default function EditBillingModal({ isOpen, onClose, billingId, serviceTy
                           placeholder="0.00"
                         />
                       </div>
-                    </div>
-                  </div>
-
-                  {/* Payment Status and Due Date */}
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Payment Status</label>
-                      <select
-                        value={formData.paymentStatus}
-                        onChange={(e) => setFormData({ ...formData, paymentStatus: e.target.value })}
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-slate-900 focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-500/10 transition-all"
-                      >
-                        <option value="unpaid">Unpaid</option>
-                        <option value="paid">Paid</option>
-                        <option value="partial">Partial</option>
-                        <option value="overdue">Overdue</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">Due Date</label>
-                      <input
-                        type="date"
-                        value={formData.dueDate}
-                        onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
-                        className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-slate-900 focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-500/10 transition-all"
-                      />
                     </div>
                   </div>
 
@@ -410,30 +369,6 @@ export default function EditBillingModal({ isOpen, onClose, billingId, serviceTy
                       <span className="text-gray-700 font-bold text-lg">Total</span>
                       <span className="text-3xl font-bold text-teal-700">₱{(formData.amount + formData.cusaFee + formData.parkingFee).toLocaleString()}</span>
                     </div>
-
-                    {/* Payment Status */}
-                    <div className="flex items-center justify-between pt-4 border-t border-teal-200">
-                      <span className="text-gray-700 font-semibold">Payment Status</span>
-                      <span className={`px-4 py-2 rounded-full text-sm font-semibold ${
-                        formData.paymentStatus === 'paid'
-                          ? 'bg-green-100 text-green-700'
-                          : formData.paymentStatus === 'overdue'
-                          ? 'bg-red-100 text-red-700'
-                          : formData.paymentStatus === 'partial'
-                          ? 'bg-yellow-100 text-yellow-700'
-                          : 'bg-gray-100 text-gray-700'
-                      }`}>
-                        {formData.paymentStatus.charAt(0).toUpperCase() + formData.paymentStatus.slice(1)}
-                      </span>
-                    </div>
-
-                    {/* Due Date */}
-                    {formData.dueDate && (
-                      <div className="flex items-center justify-between">
-                        <span className="text-gray-700 font-semibold">Due Date</span>
-                        <span className="text-slate-800 font-medium">{new Date(formData.dueDate).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span>
-                      </div>
-                    )}
                   </div>
 
                   {/* Notes */}

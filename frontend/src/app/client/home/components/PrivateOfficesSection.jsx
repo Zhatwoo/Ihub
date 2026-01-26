@@ -332,7 +332,7 @@ export default function PrivateOfficesSection() {
       
       // Removed: Log containing private user data (clientName, companyName, fullData)
       
-      const response = await api.post('/api/schedules', reservationData);
+      const response = await api.post('/api/client/private-office/bookings', reservationData);
       
       if (response && response.success) {
         // Show success animation - DO NOT close immediately

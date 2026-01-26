@@ -6,8 +6,10 @@ import { api } from '@/lib/api';
 // React Icons - Material Design Icons
 import { MdBusiness, MdTv, MdDesktopMac } from 'react-icons/md';
 
-// Import the edit modal
-import EditBillingModal from './components/EditBillingModal';
+// Import the edit modals
+import EditPrivateOfficeModal from './components/EditPrivateOfficeModal';
+import EditDedicatedDeskVirtualOfficeModal from './components/EditDedicatedDeskVirtualOfficeModal';
+import PaymentModal from './components/PaymentModal';
 
 export default function Billing() {
   const [privateOfficeBilling, setPrivateOfficeBilling] = useState([]);
@@ -23,6 +25,8 @@ export default function Billing() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [selectedBillingId, setSelectedBillingId] = useState(null);
   const [selectedBillingServiceType, setSelectedBillingServiceType] = useState(null);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [selectedPaymentData, setSelectedPaymentData] = useState(null);
   const billingIntervalRef = useRef(null);
 
   // Fetch all billing data from backend
@@ -382,9 +386,14 @@ export default function Billing() {
                       </div>
                     </td>
                     <td className="px-4 sm:px-6 py-4">
-                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${getBillingTypeColor(record.type)}`}>
-                        {getBillingTypeLabel(record.type)}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        {record.type === 'private-office' && <MdBusiness className="w-5 h-5 text-blue-600" />}
+                        {record.type === 'virtual-office' && <MdTv className="w-5 h-5 text-indigo-600" />}
+                        {record.type === 'dedicated-desk' && <MdDesktopMac className="w-5 h-5 text-teal-600" />}
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${getBillingTypeColor(record.type)}`}>
+                          {getBillingTypeLabel(record.type)}
+                        </span>
+                      </div>
                     </td>
                     <td className="px-4 sm:px-6 py-4">
                       <p className="text-gray-600 text-sm">{record.contactNumber || record.phone || 'N/A'}</p>
@@ -448,25 +457,18 @@ export default function Billing() {
                     <td className="px-4 sm:px-6 py-4">
                       <div className="flex items-center justify-center gap-1.5 flex-wrap">
                         <button 
-                          className="px-2.5 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition-colors whitespace-nowrap"
-                          title="View billing details"
-                        >
-                          View
-                        </button>
-                        <button 
-                          onClick={() => handleEditClick(record.id, record.type)}
+                          onClick={() => {
+                            setSelectedBillingId(record.id);
+                            setSelectedBillingServiceType(record.type);
+                            setEditModalOpen(true);
+                          }}
                           className="px-2.5 py-1.5 bg-teal-600 text-white rounded-lg text-xs font-semibold hover:bg-teal-700 transition-colors whitespace-nowrap"
                           title="Edit billing information"
                         >
                           Edit
                         </button>
                         <button 
-                          className="px-2.5 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-semibold hover:bg-purple-700 transition-colors whitespace-nowrap"
-                          title="Download PDF"
-                        >
-                          PDF
-                        </button>
-                        <button 
+                          onClick={() => setSelectedPaymentData(record)}
                           className="px-2.5 py-1.5 bg-green-600 text-white rounded-lg text-xs font-semibold hover:bg-green-700 transition-colors whitespace-nowrap"
                           title="Process payment"
                         >
@@ -488,13 +490,29 @@ export default function Billing() {
         )}
       </div>
 
-      {/* Edit Billing Modal */}
-      <EditBillingModal
-        isOpen={editModalOpen}
-        onClose={() => setEditModalOpen(false)}
-        billingId={selectedBillingId}
-        serviceType={selectedBillingServiceType}
-        onSave={handleEditSave}
+      {/* Edit Billing Modals */}
+      {selectedBillingServiceType === 'private-office' ? (
+        <EditPrivateOfficeModal
+          isOpen={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          billingId={selectedBillingId}
+          onSave={handleEditSave}
+        />
+      ) : (
+        <EditDedicatedDeskVirtualOfficeModal
+          isOpen={editModalOpen}
+          onClose={() => setEditModalOpen(false)}
+          billingId={selectedBillingId}
+          serviceType={selectedBillingServiceType}
+          onSave={handleEditSave}
+        />
+      )}
+
+      {/* Payment Modal */}
+      <PaymentModal
+        isOpen={selectedPaymentData !== null}
+        onClose={() => setSelectedPaymentData(null)}
+        billingData={selectedPaymentData}
       />
     </div>
   );

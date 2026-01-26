@@ -38,7 +38,7 @@ export default function RequestList() {
     setMounted(true);
   }, []);
 
-  const handleApprove = async (id) => {
+  const handleApprove = async (request) => {
     setIsLoading(true);
     try {
       const response = await api.put(`/api/admin/private-office/requests/${id}/status`, { 
@@ -64,7 +64,7 @@ export default function RequestList() {
     }
   };
 
-  const handleReject = async (id) => {
+  const handleReject = async (request) => {
     setIsLoading(true);
     try {
       const response = await api.put(`/api/admin/private-office/requests/${id}/status`, { 
@@ -225,14 +225,14 @@ export default function RequestList() {
                     <td className="px-3 sm:px-4 py-3 sm:py-4">
                       <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap">
                         <button 
-                          onClick={() => handleApprove(request.id)}
+                          onClick={() => handleApprove(request)}
                           disabled={isLoading}
                           className="px-2 sm:px-3 py-1 sm:py-1.5 bg-green-600 text-white rounded-lg text-[10px] xs:text-xs font-semibold hover:bg-green-700 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           Approve
                         </button>
                         <button 
-                          onClick={() => handleReject(request.id)}
+                          onClick={() => handleReject(request)}
                           disabled={isLoading}
                           className="px-2 sm:px-3 py-1 sm:py-1.5 bg-red-600 text-white rounded-lg text-[10px] xs:text-xs font-semibold hover:bg-red-700 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
                         >

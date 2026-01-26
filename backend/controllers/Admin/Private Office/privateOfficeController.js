@@ -55,16 +55,67 @@ export const getPrivateOfficeDashboard = async (req, res) => {
       return sendFirestoreError(res);
     }
 
-    // Fetch schedules and rooms
     console.log('📖 FIRESTORE READ: Starting private office dashboard fetch...');
-    const [schedulesSnapshot, roomsSnapshot] = await Promise.all([
-      firestore.collection('privateOfficeRooms').doc('data').collection('requests').get(),
-      firestore.collection('privateOfficeRooms').doc('data').collection('office').get()
-    ]);
-    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests - ${schedulesSnapshot.docs.length} documents`);
-    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/office - ${roomsSnapshot.docs.length} documents`);
+    
+    let schedules = [];
+    let roomsSnapshot;
+    
+    // Fetch from old path
+    try {
+      const oldSchedulesSnapshot = await firestore.collection('privateOfficeRooms').doc('data').collection('requests').get();
+      console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests - ${oldSchedulesSnapshot.docs.length} documents`);
+      schedules = oldSchedulesSnapshot.docs.map(doc => convertTimestamps({ id: doc.id, ...doc.data() }));
+    } catch (err) {
+      console.warn('⚠️ Could not fetch old requests path:', err.message);
+    }
 
-    let schedules = schedulesSnapshot.docs.map(doc => convertTimestamps({ id: doc.id, ...doc.data() }));
+    // Fetch from new path - query all users and their office bookings
+    try {
+      console.log('📖 FIRESTORE READ: Fetching all users from accounts/client/users...');
+      const usersSnapshot = await firestore.collection('accounts').doc('client').collection('users').get();
+      console.log(`📖 FIRESTORE READ: Found ${usersSnapshot.docs.length} users`);
+      
+      for (const userDoc of usersSnapshot.docs) {
+        const userId = userDoc.id;
+        try {
+          const bookingsSnapshot = await firestore
+            .collection('accounts')
+            .doc('client')
+            .collection('users')
+            .doc(userId)
+            .collection('request')
+            .doc('office')
+            .collection('bookings')
+            .get();
+          
+          console.log(`📖 FIRESTORE READ: accounts/client/users/${userId}/request/office/bookings - ${bookingsSnapshot.docs.length} documents`);
+          
+          const userBookings = bookingsSnapshot.docs.map(doc => 
+            convertTimestamps({
+              id: doc.id,
+              userId,
+              ...doc.data()
+            })
+          );
+          
+          schedules = [...schedules, ...userBookings];
+        } catch (err) {
+          console.warn(`⚠️ Could not fetch bookings for user ${userId}:`, err.message);
+        }
+      }
+    } catch (err) {
+      console.warn('⚠️ Could not fetch new requests path:', err.message);
+    }
+
+    // Fetch rooms
+    try {
+      roomsSnapshot = await firestore.collection('privateOfficeRooms').doc('data').collection('office').get();
+      console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/office - ${roomsSnapshot.docs.length} documents`);
+    } catch (err) {
+      console.warn('⚠️ Could not fetch rooms:', err.message);
+      roomsSnapshot = { docs: [] };
+    }
+
     const rooms = roomsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
     // Keep a copy of ALL schedules for stats calculation
@@ -153,23 +204,36 @@ export const getPrivateOfficeRequests = async (req, res) => {
       return sendFirestoreError(res);
     }
 
-    console.log('📖 FIRESTORE READ: privateOfficeRooms/data/requests - executing query...');
-    const schedulesSnapshot = await firestore.collection('privateOfficeRooms').doc('data').collection('requests').get();
-    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests - ${schedulesSnapshot.docs.length} documents read`);
-    let schedules = schedulesSnapshot.docs.map(doc => convertTimestamps({ id: doc.id, ...doc.data() }));
+    // Use collection group query to get ALL bookings from all users
+    // Path: /accounts/client/users/{userId}/request/office/bookings/{bookingId}
+    console.log('📖 FIRESTORE READ: collectionGroup("bookings") - executing query for office bookings...');
+    const bookingsSnapshot = await firestore
+      .collectionGroup('bookings')
+      .get();
+    console.log(`📖 FIRESTORE READ: collectionGroup("bookings") - ${bookingsSnapshot.docs.length} total documents read`);
+    
+    let schedules = bookingsSnapshot.docs.map(doc => {
+      // Extract userId from the document path: /accounts/client/users/{userId}/request/office/bookings/{bookingId}
+      const pathParts = doc.ref.path.split('/');
+      const userId = pathParts[3]; // Index 3 is the userId in the path
+      
+      return convertTimestamps({ 
+        id: doc.id, 
+        userId, // Add userId to the response
+        ...doc.data() 
+      });
+    });
 
-    // Removed: Debug logs containing private user data (clientName)
+    console.log(`📖 FIRESTORE READ: collectionGroup("bookings") - ${schedules.length} bookings after extraction`);
 
     // For Request List, only show pending requests by default
     // Dashboard will show all requests including approved/rejected
     if (!status || status === 'all') {
       // Default: only show pending requests in Request List
       schedules = schedules.filter(s => s.status === 'pending');
-      // Removed: Log (may expose request data)
     } else {
       // Apply specific status filter if provided
       schedules = schedules.filter(s => s.status === status);
-      // Removed: Log (may expose request data)
     }
 
     // Apply search filter
@@ -239,23 +303,31 @@ export const removeTenant = async (req, res) => {
     }
 
     const roomData = roomDoc.data();
-    
-    // Removed: Debug logs containing room and tenant data
-    // Removed: Log containing room data (may contain private info)
-    if (false) { // Disabled log
-      // Removed: Log containing room data
-    }
 
-    // Find the associated request for this room
+    // Find the associated request for this room from OLD path
     console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests - querying where roomId==${roomId} AND status=='approved'...`);
-    const requestsSnapshot = await firestore
+    const oldRequestsSnapshot = await firestore
       .collection('privateOfficeRooms')
       .doc('data')
       .collection('requests')
       .where('roomId', '==', roomId)
       .where('status', '==', 'approved')
       .get();
-    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests - ${requestsSnapshot.docs.length} documents found`);
+    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests - ${oldRequestsSnapshot.docs.length} documents found`);
+
+    // Find the associated request for this room from NEW path
+    // Since we can't use where clauses on collection groups reliably, fetch all and filter
+    console.log(`📖 FIRESTORE READ: collectionGroup("bookings") - fetching all office bookings...`);
+    const allBookingsSnapshot = await firestore
+      .collectionGroup('bookings')
+      .get();
+    
+    // Filter to only office bookings with matching roomId and approved status
+    const newOfficeRequests = allBookingsSnapshot.docs.filter(doc => 
+      doc.data().roomId === roomId && 
+      doc.data().status === 'approved'
+    );
+    console.log(`📖 FIRESTORE READ: collectionGroup("bookings") - ${newOfficeRequests.length} office bookings found with roomId=${roomId}`);
 
     // Update room to Vacant
     await roomRef.update({
@@ -264,17 +336,25 @@ export const removeTenant = async (req, res) => {
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
 
-    // Update associated request to cancelled
-    for (const requestDoc of requestsSnapshot.docs) {
+    // Update associated requests from OLD path to cancelled
+    for (const requestDoc of oldRequestsSnapshot.docs) {
       await requestDoc.ref.update({
         status: 'cancelled',
         adminNotes: 'Tenant removed by admin',
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
       });
-      // Removed: Log containing request ID
+      console.log(`✅ Updated old path request to cancelled`);
     }
 
-    // Tenant removed successfully (removed log for privacy)
+    // Update associated requests from NEW path to cancelled
+    for (const requestDoc of newOfficeRequests) {
+      await requestDoc.ref.update({
+        status: 'cancelled',
+        adminNotes: 'Tenant removed by admin',
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+      console.log(`✅ Updated new path request to cancelled`);
+    }
 
     res.json({
       success: true,
@@ -299,7 +379,7 @@ export const removeTenant = async (req, res) => {
  */
 export const updateRequestStatus = async (req, res) => {
   try {
-    const { requestId } = req.params;
+    const { userId, bookingId } = req.params;
     const { status, adminNotes } = req.body;
     const firestore = getFirestore();
     
@@ -307,10 +387,28 @@ export const updateRequestStatus = async (req, res) => {
       return sendFirestoreError(res);
     }
 
-    const requestRef = firestore.collection('privateOfficeRooms').doc('data').collection('requests').doc(requestId);
-    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests/${requestId} - executing query...`);
+    if (!userId || !bookingId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Bad Request',
+        message: 'userId and bookingId are required'
+      });
+    }
+
+    // Read from new path: /accounts/client/users/{userId}/request/office/bookings/{bookingId}
+    const requestRef = firestore
+      .collection('accounts')
+      .doc('client')
+      .collection('users')
+      .doc(userId)
+      .collection('request')
+      .doc('office')
+      .collection('bookings')
+      .doc(bookingId);
+      
+    console.log(`📖 FIRESTORE READ: accounts/client/users/${userId}/request/office/bookings/${bookingId} - executing query...`);
     const requestDoc = await requestRef.get();
-    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests/${requestId} - ${requestDoc.exists ? '1 document' : 'not found'}`);
+    console.log(`📖 FIRESTORE READ: accounts/client/users/${userId}/request/office/bookings/${bookingId} - ${requestDoc.exists ? '1 document' : 'not found'}`);
 
     if (!requestDoc.exists) {
       return res.status(404).json({
@@ -321,11 +419,6 @@ export const updateRequestStatus = async (req, res) => {
     }
 
     const currentRequest = requestDoc.data();
-    
-    // Removed: Debug logs containing request data
-    if (false) { // Disabled logs
-    // Removed: Debug logs containing private request data (clientName, roomId, room)
-    } // End disabled logs
     
     // Update request status
     const updateData = {
@@ -380,25 +473,18 @@ export const updateRequestStatus = async (req, res) => {
       }
     }
 
-    // Ensure the update is committed to Firebase
+    // Update the request status
     await requestRef.update(updateData);
 
-    // Removed: Log containing request status update
-    // Removed: Log containing request update data (may contain private info)
-
-    // Verify the update was saved by reading the document back
-    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests/${requestId} - verification read...`);
+    // Verify the update was saved
+    console.log(`📖 FIRESTORE READ: accounts/client/users/${userId}/request/office/bookings/${bookingId} - verification read...`);
     const updatedDoc = await requestRef.get();
-    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests/${requestId} - ${updatedDoc.exists ? '1 document verified' : 'not found'}`);
-    // Removed: Verification log containing private request data (clientName, room)
+    console.log(`📖 FIRESTORE READ: accounts/client/users/${userId}/request/office/bookings/${bookingId} - ${updatedDoc.exists ? '1 document verified' : 'not found'}`);
 
     res.json({
       success: true,
       message: `Request ${status} successfully`,
-      data: {
-        id: requestId,
-        ...updateData
-      }
+      data: updatedDoc.data()
     });
   } catch (error) {
     console.error('Update request status error:', error);

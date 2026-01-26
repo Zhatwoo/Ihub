@@ -165,7 +165,7 @@ export default function DedicatedDesk() {
       onConfirm: async () => {
         setConfirmModal({ ...confirmModal, show: false });
         try {
-          const response = await api.put(`/api/admin/dedicated-desk/requests/${request.userId}/status`, {
+          const response = await api.put(`/api/admin/dedicated-desk/requests/${request.userId}/${request.id}/status`, {
             status: 'approved',
             assignedDesk: request.deskId
           });
@@ -210,7 +210,7 @@ export default function DedicatedDesk() {
     }
     
     try {
-      const response = await api.put(`/api/admin/dedicated-desk/requests/${request.userId}/status`, {
+      const response = await api.put(`/api/admin/dedicated-desk/requests/${request.userId}/${request.id}/status`, {
         status: 'rejected'
       });
       

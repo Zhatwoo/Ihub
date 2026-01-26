@@ -63,6 +63,24 @@ export const getBillingDetails = async (req, res) => {
           type: 'private-office'
         });
 
+        // Fetch room details to get rentFee
+        let roomRentFee = 0;
+        if (billingData.roomId) {
+          try {
+            const roomDoc = await firestore
+              .collection('privateOfficeRooms')
+              .doc('data')
+              .collection('office')
+              .doc(billingData.roomId)
+              .get();
+            if (roomDoc.exists) {
+              roomRentFee = roomDoc.data().rentFee || 0;
+            }
+          } catch (error) {
+            console.error('Error fetching room details:', error);
+          }
+        }
+
         tenantInfo = {
           clientName: billingData.clientName || 'Unknown',
           email: billingData.email || '',
@@ -74,11 +92,8 @@ export const getBillingDetails = async (req, res) => {
 
         billingDetails = {
           amount: billingData.amount || billingData.totalAmount || 0,
-          paymentStatus: billingData.paymentStatus || 'unpaid',
-          startDate: billingData.startDate || null,
-          dueDate: billingData.dueDate || null,
           notes: billingData.notes || '',
-          rentFee: billingData.rentFee || billingData.amount || 0,
+          rentFee: roomRentFee || billingData.rentFee || billingData.amount || 0,
           rentFeePeriod: billingData.rentFeePeriod || 'Monthly',
           cusaFee: billingData.cusaFee || 0,
           parkingFee: billingData.parkingFee || 0
@@ -109,9 +124,6 @@ export const getBillingDetails = async (req, res) => {
 
         billingDetails = {
           amount: billingData.amount || billingData.monthlyFee || 0,
-          paymentStatus: billingData.paymentStatus || 'unpaid',
-          startDate: billingData.startDate || billingData.createdAt || null,
-          dueDate: billingData.dueDate || null,
           notes: billingData.notes || '',
           rentFee: billingData.rentFee || billingData.amount || billingData.monthlyFee || 0,
           rentFeePeriod: billingData.rentFeePeriod || 'Monthly',
@@ -144,9 +156,6 @@ export const getBillingDetails = async (req, res) => {
 
         billingDetails = {
           amount: billingData.amount || billingData.monthlyFee || 0,
-          paymentStatus: billingData.paymentStatus || 'unpaid',
-          startDate: billingData.assignedAt || billingData.startDate || null,
-          dueDate: billingData.dueDate || null,
           notes: billingData.notes || '',
           rentFee: billingData.rentFee || billingData.amount || billingData.monthlyFee || 0,
           rentFeePeriod: billingData.rentFeePeriod || 'Monthly',
@@ -229,8 +238,6 @@ export const updateBillingDetails = async (req, res) => {
     // Update the document
     await updateRef.update({
       amount: amount || 0,
-      paymentStatus: paymentStatus || 'unpaid',
-      dueDate: dueDate || null,
       notes: notes || '',
       rentFee: req.body.rentFee || 0,
       rentFeePeriod: req.body.rentFeePeriod || 'Monthly',
@@ -248,8 +255,6 @@ export const updateBillingDetails = async (req, res) => {
         billingId,
         serviceType,
         amount,
-        paymentStatus,
-        dueDate,
         notes,
         rentFee: req.body.rentFee || 0,
         rentFeePeriod: req.body.rentFeePeriod || 'Monthly',
