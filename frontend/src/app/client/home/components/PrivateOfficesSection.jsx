@@ -68,7 +68,6 @@ export default function PrivateOfficesSection() {
           
           // Fetch user details from backend API
           try {
-            console.log(`📖 AUTO READ: PrivateOfficesSection - Calling /api/accounts/client/users/${user.uid}...`);
             const response = await api.get(`/api/accounts/client/users/${user.uid}`);
             if (response.success && response.data) {
               setUserInfo(response.data);

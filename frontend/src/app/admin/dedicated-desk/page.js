@@ -41,7 +41,6 @@ export default function DedicatedDesk() {
   // Fetch desk assignments from backend with real-time updates
   useEffect(() => {
     const fetchAssignments = async () => {
-      console.log('🔄 POLLING EXECUTED: admin/dedicated-desk - fetchAssignments');
       try {
         const response = await api.get('/api/admin/dedicated-desk/assignments', { skipCache: true });
         if (response.success && response.data) {
@@ -50,7 +49,6 @@ export default function DedicatedDesk() {
             assignments[assignment.id] = assignment;
           });
           setDeskAssignments(assignments);
-          console.log(`📊 SNAPSHOT: admin/dedicated-desk/assignments - ${Object.keys(assignments).length} assignments loaded`);
         }
       } catch (error) {
         console.error('Error fetching desk assignments:', error);
@@ -59,7 +57,6 @@ export default function DedicatedDesk() {
     };
 
     // Initial fetch only - AUTO REFRESH DISABLED
-    console.log('📖 AUTO READ: admin/dedicated-desk - Initial fetchAssignments starting...');
     fetchAssignments();
     
     // DISABLED: Auto refresh/polling - was causing excessive Firestore reads
@@ -99,7 +96,6 @@ export default function DedicatedDesk() {
     }
     
     const fetchRequests = async () => {
-      console.log('🔄 POLLING EXECUTED: admin/dedicated-desk - fetchRequests');
       // Only show loading on initial fetch
       if (requests.length === 0) {
         setLoadingRequests(true);
@@ -107,7 +103,6 @@ export default function DedicatedDesk() {
       try {
         const requestsData = await fetchAllRequests();
         setRequests(requestsData);
-        console.log(`📊 SNAPSHOT: admin/dedicated-desk/requests - ${requestsData.length} requests loaded`);
       } catch (error) {
         console.error('Error fetching requests:', error);
       } finally {
@@ -126,7 +121,6 @@ export default function DedicatedDesk() {
     }
     
     // Initial fetch only - AUTO REFRESH DISABLED
-    console.log('📖 AUTO READ: admin/dedicated-desk - Initial fetchRequests starting...');
     fetchRequests();
     
     // DISABLED: Auto refresh/polling - was causing excessive Firestore reads

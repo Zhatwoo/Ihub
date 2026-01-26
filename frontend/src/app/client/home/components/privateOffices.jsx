@@ -11,7 +11,6 @@ export function usePrivateOffices() {
 
   useEffect(() => {
     const fetchRooms = async () => {
-      console.log('🔄 POLLING EXECUTED: privateOffices - fetchRooms');
       try {
         /**
          * IMPORTANT:
@@ -41,7 +40,6 @@ export function usePrivateOffices() {
             }));
 
           setRooms(roomsData);
-          console.log(`📊 SNAPSHOT: privateOffices - ${roomsData.length} available rooms loaded`);
         }
       } catch (error) {
         console.error('Error fetching rooms:', error);
@@ -52,7 +50,6 @@ export function usePrivateOffices() {
     };
 
     // Initial fetch only - AUTO REFRESH DISABLED
-    console.log('📖 AUTO READ: privateOffices - Initial fetchRooms starting...');
     fetchRooms();
     
     // DISABLED: Auto refresh/polling - was causing excessive Firestore reads

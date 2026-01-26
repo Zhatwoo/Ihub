@@ -40,9 +40,7 @@ export default function RequestList() {
 
   const handleApprove = async (id) => {
     setIsLoading(true);
-    console.log('✅ Approving request:', id);
     try {
-      console.log('📤 Sending PUT request to /api/admin/private-office/requests/' + id + '/status');
       const response = await api.put(`/api/admin/private-office/requests/${id}/status`, { 
         status: 'approved' 
       });
@@ -57,16 +55,10 @@ export default function RequestList() {
         // Close modal and refetch requests
         setShowSuccessModal(false);
         setIsLoading(false);
-        console.log('🔄 Refetching requests...');
         await fetchSchedules();
       }
     } catch (error) {
-      console.error('❌ Error approving request:', error);
-      console.error('Error details:', {
-        message: error.message,
-        response: error.response,
-        stack: error.stack
-      });
+      console.error('Error approving request:', error);
       setIsLoading(false);
       setShowSuccessModal(false);
     }
@@ -74,9 +66,7 @@ export default function RequestList() {
 
   const handleReject = async (id) => {
     setIsLoading(true);
-    console.log('🔴 Rejecting request:', id);
     try {
-      console.log('📤 Sending PUT request to /api/admin/private-office/requests/' + id + '/status');
       const response = await api.put(`/api/admin/private-office/requests/${id}/status`, { 
         status: 'rejected' 
       });
@@ -91,16 +81,10 @@ export default function RequestList() {
         // Close modal and refetch requests
         setShowSuccessModal(false);
         setIsLoading(false);
-        console.log('🔄 Refetching requests...');
         await fetchSchedules();
       }
     } catch (error) {
-      console.error('❌ Error rejecting request:', error);
-      console.error('Error details:', {
-        message: error.message,
-        response: error.response,
-        stack: error.stack
-      });
+      console.error('Error rejecting request:', error);
       setIsLoading(false);
       setShowSuccessModal(false);
     }

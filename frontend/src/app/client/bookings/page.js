@@ -5,6 +5,7 @@ import { api, getUserFromCookie } from '@/lib/api';
 import { League_Spartan, Roboto } from 'next/font/google';
 import { motion } from 'framer-motion';
 import { showToast } from '@/components/Toast';
+import ConfirmDialog from '@/components/ConfirmDialog';
 
 const leagueSpartan = League_Spartan({
   subsets: ['latin'],
@@ -23,6 +24,11 @@ export default function Bookings() {
   const [userInfo, setUserInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [deletingBookingId, setDeletingBookingId] = useState(null);
+  const [confirmDialog, setConfirmDialog] = useState({
+    isOpen: false,
+    message: '',
+    booking: null,
+  });
   
   // Refs to track intervals and prevent duplicate polling
   const bookingsIntervalRef = useRef(null);
@@ -96,11 +102,8 @@ export default function Bookings() {
     }
 
     if (showLoading) {
-      console.log('📖 AUTO READ: bookings/page - fetchBookings starting...');
       setLoading(true);
     }
-      console.log('📖 AUTO READ: bookings/page - fetchBookings starting...');
-      setLoading(true);
       
       // Get user's full name from userInfo
       const userFullName = userInfo 
@@ -109,7 +112,6 @@ export default function Bookings() {
       
       try {
         // Fetch desk assignments from backend API
-        console.log('📖 AUTO READ: bookings/page - Calling /api/desk-assignments...');
         const deskAssignmentsResponse = await api.get('/api/desk-assignments');
         const deskBookings = [];
         
@@ -156,7 +158,6 @@ export default function Bookings() {
         }
 
         // Fetch virtual office clients for this user from backend API
-        console.log(`📖 AUTO READ: bookings/page - Calling /api/virtual-office/user/${userId}...`);
         const virtualOfficeResponse = await api.get(`/api/virtual-office/user/${userId}`).catch(() => ({ success: false, data: [] }));
         const virtualOfficeBookings = [];
         
@@ -183,7 +184,6 @@ export default function Bookings() {
         }
 
         // Fetch schedules/bookings from backend API
-        console.log(`📖 AUTO READ: bookings/page - Calling /api/schedules/user/${userId}...`);
         const schedulesResponse = await api.get(`/api/schedules/user/${userId}`);
         const scheduleBookings = [];
         
@@ -247,7 +247,6 @@ export default function Bookings() {
   // Use stable dependencies (primitive values) instead of object references to prevent refresh loops
   useEffect(() => {
     // Initial fetch only - AUTO REFRESH DISABLED
-    console.log('📖 AUTO READ: bookings/page - Initial fetchBookings starting...');
     fetchBookings(true);
     
     // DISABLED: Auto refresh/polling - was causing excessive Firestore reads
@@ -268,13 +267,10 @@ export default function Bookings() {
   // Fetch rooms from backend API to get rental fee information
   useEffect(() => {
     const fetchRooms = async () => {
-      console.log('📖 AUTO READ: bookings/page - fetchRooms starting...');
       try {
-        console.log('📖 AUTO READ: bookings/page - Calling /api/rooms...');
         const response = await api.get('/api/rooms');
         if (response.success && response.data) {
           setRooms(response.data);
-          console.log(`📊 SNAPSHOT: bookings/page - ${response.data.length} rooms loaded`);
         }
       } catch (error) {
         console.error('Error fetching rooms:', error);
@@ -344,10 +340,19 @@ export default function Bookings() {
       return;
     }
 
-    if (!confirm(`Are you sure you want to cancel this booking for ${booking.room}? This action cannot be undone.`)) {
-      return;
-    }
+    // Show confirmation dialog instead of native confirm()
+    setConfirmDialog({
+      isOpen: true,
+      message: `Are you sure you want to cancel this booking for ${booking.room}? This action cannot be undone.`,
+      booking: booking,
+    });
+  };
 
+  const handleConfirmCancel = async () => {
+    const booking = confirmDialog.booking;
+    if (!booking) return;
+
+    setConfirmDialog({ isOpen: false, message: '', booking: null });
     setDeletingBookingId(booking.id);
 
     try {
@@ -393,6 +398,10 @@ export default function Bookings() {
     } finally {
       setDeletingBookingId(null);
     }
+  };
+
+  const handleCancelConfirm = () => {
+    setConfirmDialog({ isOpen: false, message: '', booking: null });
   };
 
 
@@ -695,6 +704,19 @@ export default function Bookings() {
           </div>
         )}
       </div>
+
+      {/* Confirmation Dialog */}
+      <ConfirmDialog
+        isOpen={confirmDialog.isOpen}
+        onConfirm={handleConfirmCancel}
+        onCancel={handleCancelConfirm}
+        title="Cancel Booking"
+        message={confirmDialog.message}
+        confirmText="OK"
+        cancelText="Cancel"
+        confirmColor="#0F766E"
+        type="warning"
+      />
     </div>
   );
 }
