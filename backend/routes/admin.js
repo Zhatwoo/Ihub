@@ -27,9 +27,17 @@ import {
   getBillingStats
 } from '../controllers/Admin/Billing/billingController.js';
 import {
-  getBillingDetails,
-  updateBillingDetails
-} from '../controllers/Admin/Billing/editBillingController.js';
+  getPrivateOfficeBillingDetails,
+  updatePrivateOfficeBillingDetails
+} from '../controllers/Admin/Billing/privateOfficeBillingController.js';
+import {
+  getVirtualOfficeBillingDetails,
+  updateVirtualOfficeBillingDetails
+} from '../controllers/Admin/Billing/virtualOfficeBillingController.js';
+import {
+  getDedicatedDeskBillingDetails,
+  updateDedicatedDeskBillingDetails
+} from '../controllers/Admin/Billing/dedicatedDeskBillingController.js';
 
 const router = express.Router();
 
@@ -64,7 +72,17 @@ router.put('/virtual-office/clients/:clientId/status', updateClientStatus);
 router.get('/billing/dashboard', getBillingDashboard);
 router.get('/billing/invoices', getInvoices);
 router.get('/billing/stats', getBillingStats);
-router.get('/billing/:serviceType/:billingId/details', getBillingDetails);
-router.put('/billing/:serviceType/:billingId/details', updateBillingDetails);
+
+// Private Office billing routes
+router.get('/billing/private-office/:billingId/details', getPrivateOfficeBillingDetails);
+router.put('/billing/private-office/:billingId/details', updatePrivateOfficeBillingDetails);
+
+// Virtual Office billing routes
+router.get('/billing/virtual-office/:billingId/details', getVirtualOfficeBillingDetails);
+router.put('/billing/virtual-office/:billingId/details', updateVirtualOfficeBillingDetails);
+
+// Dedicated Desk billing routes
+router.get('/billing/dedicated-desk/:billingId/details', getDedicatedDeskBillingDetails);
+router.put('/billing/dedicated-desk/:billingId/details', updateDedicatedDeskBillingDetails);
 
 export default router;

@@ -31,7 +31,16 @@ export default function EditPrivateOfficeModal({ isOpen, onClose, billingId, onS
   const fetchBillingDetails = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/api/admin/billing/private-office/${billingId}/details`, { skipCache: true });
+      // Retrieve userId from sessionStorage if available (for new path records)
+      const userId = sessionStorage.getItem(`billing_userId_${billingId}`);
+      console.log(`Fetching billing details for billingId: ${billingId}, userId: ${userId || 'not found'}`);
+      
+      const url = userId 
+        ? `/api/admin/billing/private-office/${billingId}/details?userId=${userId}`
+        : `/api/admin/billing/private-office/${billingId}/details`;
+      
+      console.log(`API URL: ${url}`);
+      const response = await api.get(url, { skipCache: true });
       
       if (response.success && response.data) {
         setTenantInfo(response.data.tenantInfo);

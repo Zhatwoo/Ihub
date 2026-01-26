@@ -62,7 +62,7 @@ export const getVirtualOfficeBillingDetails = async (req, res) => {
     });
 
     const tenantInfo = {
-      clientName: billingData.clientName || billingData.name || 'Unknown',
+      clientName: billingData.fullName || billingData.name || billingData.clientName || billingData.firstName || 'Unknown',
       email: billingData.email || '',
       contactNumber: billingData.contactNumber || billingData.phone || '',
       companyName: billingData.companyName || billingData.company || '',

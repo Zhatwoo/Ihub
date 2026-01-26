@@ -41,7 +41,7 @@ export default function RequestList() {
   const handleApprove = async (request) => {
     setIsLoading(true);
     try {
-      const response = await api.put(`/api/admin/private-office/requests/${id}/status`, { 
+      const response = await api.put(`/api/admin/private-office/requests/${request.userId}/${request.id}/status`, { 
         status: 'approved' 
       });
       // Removed: Log containing response data
@@ -67,7 +67,7 @@ export default function RequestList() {
   const handleReject = async (request) => {
     setIsLoading(true);
     try {
-      const response = await api.put(`/api/admin/private-office/requests/${id}/status`, { 
+      const response = await api.put(`/api/admin/private-office/requests/${request.userId}/${request.id}/status`, { 
         status: 'rejected' 
       });
       // Removed: Log containing response data
