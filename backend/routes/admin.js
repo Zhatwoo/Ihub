@@ -46,13 +46,13 @@ router.get('/tenants/filtered', getFilteredTenants);
 // Private Office routes
 router.get('/private-office/dashboard', getPrivateOfficeDashboard);
 router.get('/private-office/requests', getPrivateOfficeRequests);
-router.put('/private-office/requests/:requestId/status', updateRequestStatus);
+router.put('/private-office/requests/:userId/:bookingId/status', updateRequestStatus);
 router.put('/private-office/rooms/:roomId/remove-tenant', removeTenant);
 
 // Dedicated Desk routes
 router.get('/dedicated-desk/assignments', getDeskAssignments);
 router.get('/dedicated-desk/requests', getDeskRequests);
-router.put('/dedicated-desk/requests/:userId/status', updateDeskRequestStatus);
+router.put('/dedicated-desk/requests/:userId/:requestId/status', updateDeskRequestStatus);
 router.get('/dedicated-desk/occupants/:part', getOccupantsByPart);
 
 // Virtual Office routes

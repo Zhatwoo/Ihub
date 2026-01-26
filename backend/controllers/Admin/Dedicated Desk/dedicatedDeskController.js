@@ -117,19 +117,21 @@ export const getDeskRequests = async (req, res) => {
     }
 
     // OPTIMIZED: Use collection group query to get ALL desk requests in 1 READ!
-    // This queries all 'request' subcollections across all users
-    // Path: /accounts/client/users/{userId}/request/desk
-    // Collection group ID: 'request' (must match the subcollection name)
-    // Note: Can't filter by documentId in collection group, so we get all and filter in memory
-    console.log('📖 FIRESTORE READ: collectionGroup("request") - executing query...');
+    // This queries all 'requests' subcollections across all users
+    // Path: /accounts/client/users/{userId}/request/desk/requests/{requestId}
+    // Collection group ID: 'requests' (must match the subcollection name)
+    console.log('📖 FIRESTORE READ: collectionGroup("requests") - executing query...');
     const deskRequestsSnapshot = await firestore
-      .collectionGroup('request')
+      .collectionGroup('requests')
       .get();
-    console.log(`📖 FIRESTORE READ: collectionGroup("request") - ${deskRequestsSnapshot.docs.length} total documents read`);
+    console.log(`📖 FIRESTORE READ: collectionGroup("requests") - ${deskRequestsSnapshot.docs.length} total documents read`);
     
-    // Filter to only get documents with ID 'desk' (in memory - still only 1 read!)
-    const deskRequestDocs = deskRequestsSnapshot.docs.filter(doc => doc.id === 'desk');
-    console.log(`📖 FIRESTORE READ: collectionGroup("request") - ${deskRequestDocs.length} desk requests after filtering`);
+    // Filter to only get desk requests (from /request/desk/requests path)
+    const deskRequestDocs = deskRequestsSnapshot.docs.filter(doc => {
+      const path = doc.ref.path;
+      return path.includes('/request/desk/requests/');
+    });
+    console.log(`📖 FIRESTORE READ: collectionGroup("requests") - ${deskRequestDocs.length} desk requests after filtering`);
 
     // Removed: Log containing request count (may expose data)
 
@@ -145,7 +147,7 @@ export const getDeskRequests = async (req, res) => {
         continue;
       }
 
-      // Extract userId from document path: accounts/client/users/{userId}/request/desk
+      // Extract userId from document path: accounts/client/users/{userId}/request/desk/requests/{requestId}
       const pathParts = deskRequestDoc.ref.path.split('/');
       const userIdIndex = pathParts.indexOf('users');
       const userId = userIdIndex !== -1 && userIdIndex + 1 < pathParts.length 
@@ -160,7 +162,7 @@ export const getDeskRequests = async (req, res) => {
       userIds.add(userId);
       
       deskRequests.push({
-        id: userId,
+        id: deskRequestDoc.id, // Use the actual document ID (requestId)
         userId: userId,
         ...deskRequestData,
         // User info will be fetched in batch below
@@ -293,12 +295,20 @@ export const getDeskRequests = async (req, res) => {
  */
 export const updateDeskRequestStatus = async (req, res) => {
   try {
-    const { userId } = req.params;
+    const { userId, requestId } = req.params;
     const { status, adminNotes, assignedDesk } = req.body;
     const firestore = getFirestore();
     
     if (!firestore) {
       return sendFirestoreError(res);
+    }
+
+    if (!userId || !requestId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Bad Request',
+        message: 'userId and requestId are required'
+      });
     }
 
     // Get user data first
@@ -317,18 +327,20 @@ export const updateDeskRequestStatus = async (req, res) => {
 
     const userData = userDoc.data();
 
-    // Get desk request from correct path: /accounts/client/users/{userId}/request/desk
+    // Get desk request from new nested path: /accounts/client/users/{userId}/request/desk/requests/{requestId}
     const deskRequestRef = firestore
       .collection('accounts')
       .doc('client')
       .collection('users')
       .doc(userId)
       .collection('request')
-      .doc('desk');
+      .doc('desk')
+      .collection('requests')
+      .doc(requestId);
       
-    console.log(`📖 FIRESTORE READ: accounts/client/users/${userId}/request/desk - executing query...`);
+    console.log(`📖 FIRESTORE READ: accounts/client/users/${userId}/request/desk/requests/${requestId} - executing query...`);
     const deskRequestDoc = await deskRequestRef.get();
-    console.log(`📖 FIRESTORE READ: accounts/client/users/${userId}/request/desk - ${deskRequestDoc.exists ? '1 document' : 'not found'}`);
+    console.log(`📖 FIRESTORE READ: accounts/client/users/${userId}/request/desk/requests/${requestId} - ${deskRequestDoc.exists ? '1 document' : 'not found'}`);
 
     if (!deskRequestDoc.exists) {
       return res.status(404).json({
@@ -374,15 +386,15 @@ export const updateDeskRequestStatus = async (req, res) => {
     }
 
     // Verify the update was saved
-    console.log(`📖 FIRESTORE READ: accounts/client/users/${userId}/request/desk - verification read...`);
+    console.log(`📖 FIRESTORE READ: accounts/client/users/${userId}/request/desk/requests/${requestId} - verification read...`);
     const verifyDoc = await deskRequestRef.get();
-    console.log(`📖 FIRESTORE READ: accounts/client/users/${userId}/request/desk - ${verifyDoc.exists ? '1 document verified' : 'not found'}`);
+    console.log(`📖 FIRESTORE READ: accounts/client/users/${userId}/request/desk/requests/${requestId} - ${verifyDoc.exists ? '1 document verified' : 'not found'}`);
     const verifyData = verifyDoc.data();
 
     res.json({
       success: true,
       message: `Desk request ${status} successfully`,
-      data: updateData
+      data: verifyData
     });
   } catch (error) {
     console.error('Update desk request status error:', error);

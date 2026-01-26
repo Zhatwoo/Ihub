@@ -210,7 +210,6 @@ export default function DedicatedDeskSection() {
       const requestData = {
         deskId: selectedDesk,
         section: selectedSpace?.title || '',
-        location: selectedSpace?.location || '',
         requestDate: new Date().toISOString(),
         status: 'pending',
         occupantType: 'Tenant',
@@ -233,10 +232,9 @@ export default function DedicatedDeskSection() {
         updatedAt: new Date().toISOString(),
       };
 
-      // Save to backend API: PUT /api/accounts/client/users/:userId/request/desk
-      // Backend controller saves to Firestore at /accounts/client/users/{userId}/request/desk
-      // Backend will create user document if it doesn't exist
-      const response = await api.put(`/api/accounts/client/users/${currentUser.uid}/request/desk`, requestData);
+      // Save to backend API: POST /api/client/dedicated-desk/:userId/request
+      // Backend controller saves to Firestore at /accounts/client/users/{userId}/request/desk/requests/{requestId}
+      const response = await api.post(`/api/client/dedicated-desk/${currentUser.uid}/request`, requestData);
       
       if (response.success) {
         showToast(`Desk request for ${selectedDesk} has been submitted successfully!`, 'success');
