@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { api } from '@/lib/api';
 
-export default function PaymentModal({ isOpen, onClose, billingData }) {
+export default function PaymentModal({ isOpen, onClose, billingData, onPaymentRecorded }) {
   const [mounted, setMounted] = useState(false);
   const [lateFee, setLateFee] = useState(0);
   const [damageFee, setDamageFee] = useState(0);
+  const [isRecording, setIsRecording] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -18,6 +20,28 @@ export default function PaymentModal({ isOpen, onClose, billingData }) {
       setDamageFee(0);
     }
   }, [isOpen]);
+
+  const handleRecordPayment = async () => {
+    try {
+      setIsRecording(true);
+      
+      const response = await api.post(`/api/admin/billing/${billingData.id}/record-payment`, {
+        userId: billingData.userId,
+        lateFee: lateFee || 0,
+        damageFee: damageFee || 0
+      });
+
+      if (response.success) {
+        onPaymentRecorded?.();
+        onClose();
+      }
+    } catch (error) {
+      console.error('Error recording payment:', error);
+      alert('Failed to record payment. Please try again.');
+    } finally {
+      setIsRecording(false);
+    }
+  };
 
   if (!mounted || !isOpen || !billingData) return null;
 
@@ -62,9 +86,11 @@ export default function PaymentModal({ isOpen, onClose, billingData }) {
           </div>
           <div className="flex items-center gap-3">
             <button
-              className="px-4 py-2 bg-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 transition-colors whitespace-nowrap"
+              onClick={handleRecordPayment}
+              disabled={isRecording}
+              className="px-4 py-2 bg-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Record Payment
+              {isRecording ? 'Recording...' : 'Record Payment'}
             </button>
             <button
               onClick={onClose}
@@ -175,16 +201,16 @@ export default function PaymentModal({ isOpen, onClose, billingData }) {
             {/* Additional Fees Section */}
             <div>
               <h3 className="text-lg font-bold text-slate-800 mb-4">Additional Fees</h3>
-              <div className="space-y-4">
+              <div className="space-y-4 bg-gradient-to-br from-red-50 to-rose-50 rounded-xl p-6 border border-red-100">
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Late Fee (₱)</label>
+                  <label className="block text-sm font-semibold text-red-900 mb-2">Late Fee (₱)</label>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-semibold">₱</span>
+                    <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-red-600 font-semibold">₱</span>
                     <input
                       type="number"
                       value={lateFee}
                       onChange={(e) => setLateFee(parseFloat(e.target.value) || 0)}
-                      className="w-full pl-8 pr-4 py-3 border-2 border-gray-200 rounded-xl text-slate-900 focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-500/10 transition-all"
+                      className="w-full pl-8 pr-4 py-3 border-2 border-red-200 rounded-xl text-slate-900 bg-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 transition-all"
                       placeholder="0.00"
                       min="0"
                     />
@@ -192,14 +218,14 @@ export default function PaymentModal({ isOpen, onClose, billingData }) {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Damage Fee (₱)</label>
+                  <label className="block text-sm font-semibold text-red-900 mb-2">Damage Fee (₱)</label>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500 font-semibold">₱</span>
+                    <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-red-600 font-semibold">₱</span>
                     <input
                       type="number"
                       value={damageFee}
                       onChange={(e) => setDamageFee(parseFloat(e.target.value) || 0)}
-                      className="w-full pl-8 pr-4 py-3 border-2 border-gray-200 rounded-xl text-slate-900 focus:outline-none focus:border-teal-600 focus:ring-2 focus:ring-teal-500/10 transition-all"
+                      className="w-full pl-8 pr-4 py-3 border-2 border-red-200 rounded-xl text-slate-900 bg-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 transition-all"
                       placeholder="0.00"
                       min="0"
                     />
@@ -209,10 +235,10 @@ export default function PaymentModal({ isOpen, onClose, billingData }) {
             </div>
 
             {/* Overall Total Section */}
-            <div className="bg-gradient-to-br from-slate-800 to-slate-700 rounded-xl p-6 text-white">
+            <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-6 border border-blue-100">
               <div className="flex items-center justify-between">
-                <span className="text-lg font-bold">Overall Total</span>
-                <span className="text-4xl font-bold">₱{overallTotal.toLocaleString()}</span>
+                <span className="text-lg font-bold text-blue-900">Overall Total</span>
+                <span className="text-4xl font-bold text-blue-700">₱{overallTotal.toLocaleString()}</span>
               </div>
             </div>
           </div>

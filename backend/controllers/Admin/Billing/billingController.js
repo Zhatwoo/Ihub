@@ -102,6 +102,7 @@ export const getInvoices = async (req, res) => {
 
 /**
  * Get billing stats and records for all service types
+ * Fetches from bills collection: /accounts/client/users/{userId}/bills/{billId}
  */
 export const getBillingStats = async (req, res) => {
   try {
@@ -111,161 +112,77 @@ export const getBillingStats = async (req, res) => {
       return sendFirestoreError(res);
     }
 
-    console.log('📖 FIRESTORE READ: Fetching billing data from all collections...');
+    // Fetch all users
+    const usersSnapshot = await firestore
+      .collection('accounts')
+      .doc('client')
+      .collection('users')
+      .get();
 
-    // Fetch all billing data from different collections
-    let privateOfficeSnapshot, newPrivateOfficeSnapshot, virtualOfficeSnapshot, deskAssignmentsSnapshot;
+    // Fetch bills for each user
+    const allBills = [];
     
-    try {
-      privateOfficeSnapshot = await firestore.collection('privateOfficeRooms').doc('data').collection('requests').get();
-      console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests - ${privateOfficeSnapshot.docs.length} documents`);
-    } catch (err) {
-      console.warn('⚠️ Could not fetch privateOfficeRooms/data/requests:', err.message);
-      privateOfficeSnapshot = { docs: [] };
-    }
-
-    // Fetch from new private office path using collection group
-    try {
-      newPrivateOfficeSnapshot = await firestore.collectionGroup('bookings').get();
-      console.log(`📖 FIRESTORE READ: collectionGroup("bookings") - ${newPrivateOfficeSnapshot.docs.length} total documents`);
-    } catch (err) {
-      console.warn('⚠️ Could not fetch new private office bookings path:', err.message);
-      newPrivateOfficeSnapshot = { docs: [] };
-    }
-
-    try {
-      virtualOfficeSnapshot = await firestore.collection('virtual-office-clients').get();
-      console.log(`📖 FIRESTORE READ: virtual-office-clients - ${virtualOfficeSnapshot.docs.length} documents`);
-    } catch (err) {
-      console.warn('⚠️ Could not fetch virtual-office-clients:', err.message);
-      virtualOfficeSnapshot = { docs: [] };
-    }
-
-    try {
-      deskAssignmentsSnapshot = await firestore.collection('desk-assignments').get();
-      console.log(`📖 FIRESTORE READ: desk-assignments - ${deskAssignmentsSnapshot.docs.length} documents`);
-    } catch (err) {
-      console.warn('⚠️ Could not fetch desk-assignments:', err.message);
-      deskAssignmentsSnapshot = { docs: [] };
-    }
-
-    // Process Private Office billing from OLD path - ONLY approved/active tenants
-    const privateOfficeBilling = privateOfficeSnapshot.docs
-      .map(doc => {
-        const data = doc.data();
-        return convertTimestamps({
-          id: doc.id,
-          ...data,
-          type: 'private-office',
-          clientName: data.clientName || data.name || data.fullName || 'Unknown',
-          email: data.email || data.emailAddress || '',
-          contactNumber: data.contactNumber || data.phone || data.phoneNumber || data.contact || '',
-          companyName: data.companyName || data.company || data.businessName || '',
-          room: data.room || data.roomName || data.office || '',
-          status: data.status || 'pending',
-          amount: data.amount || data.totalAmount || data.price || 0,
-          paymentStatus: data.paymentStatus || 'unpaid',
-          startDate: data.startDate || data.createdAt || data.registeredAt || null
-        });
-      })
-      .filter(record => record.status === 'approved' || record.status === 'active' || record.status === 'ongoing');
-
-    console.log(`✅ Processed ${privateOfficeBilling.length} Private Office billing records from old path (tenants only)`);
-
-    // Process Private Office billing from NEW path - ONLY approved/active tenants
-    const newPrivateOfficeBilling = newPrivateOfficeSnapshot.docs
-      .map(doc => {
-        // Extract userId from path: /accounts/client/users/{userId}/request/office/bookings/{bookingId}
-        const pathParts = doc.ref.path.split('/');
-        const userId = pathParts[3];
+    for (const userDoc of usersSnapshot.docs) {
+      const userId = userDoc.id;
+      const userData = userDoc.data();
+      
+      try {
+        const billsSnapshot = await firestore
+          .collection('accounts')
+          .doc('client')
+          .collection('users')
+          .doc(userId)
+          .collection('bills')
+          .get();
         
-        const data = doc.data();
-        return convertTimestamps({
-          id: doc.id,
-          userId,
-          ...data,
-          type: 'private-office',
-          clientName: data.clientName || data.name || data.fullName || 'Unknown',
-          email: data.email || data.emailAddress || '',
-          contactNumber: data.contactNumber || data.phone || data.phoneNumber || data.contact || '',
-          companyName: data.companyName || data.company || data.businessName || '',
-          room: data.room || data.roomName || data.office || '',
-          status: data.status || 'pending',
-          amount: data.amount || data.totalAmount || data.price || 0,
-          paymentStatus: data.paymentStatus || 'unpaid',
-          startDate: data.startDate || data.createdAt || data.registeredAt || null
-        });
-      })
-      .filter(record => record.status === 'approved' || record.status === 'active' || record.status === 'ongoing');
+        if (billsSnapshot.docs.length > 0) {
+          billsSnapshot.docs.forEach(billDoc => {
+            const billData = billDoc.data();
+            allBills.push(convertTimestamps({
+              id: billDoc.id,
+              userId,
+              ...billData,
+              // Map serviceType to type field for frontend compatibility
+              type: billData.serviceType === 'Private Office' ? 'private-office' 
+                  : billData.serviceType === 'Virtual Office' ? 'virtual-office'
+                  : billData.serviceType === 'Dedicated Desk' ? 'dedicated-desk'
+                  : 'unknown',
+              // Ensure all required fields are present
+              clientName: billData.clientName || userData.fullName || userData.name || 'Unknown',
+              email: billData.email || userData.email || '',
+              contactNumber: billData.contactNumber || userData.phoneNumber || userData.phone || '',
+              companyName: billData.companyName || userData.company || '',
+              room: billData.suite || billData.room || '',
+              desk: billData.desk || '',
+              amount: billData.rentFee || 0,
+              paymentStatus: billData.status || 'unpaid'
+            }));
+          });
+        }
+      } catch (err) {
+        console.warn(`⚠️ Could not fetch bills for user ${userId}:`, err.message);
+      }
+    }
 
-    console.log(`✅ Processed ${newPrivateOfficeBilling.length} Private Office billing records from new path (tenants only)`);
-
-    // Combine private office billing from both paths
-    const allPrivateOfficeBilling = [...privateOfficeBilling, ...newPrivateOfficeBilling];
-
-    // Process Virtual Office billing - ONLY active tenants
-    const virtualOfficeBilling = virtualOfficeSnapshot.docs
-      .map(doc => {
-        const data = doc.data();
-        return convertTimestamps({
-          id: doc.id,
-          ...data,
-          type: 'virtual-office',
-          clientName: data.fullName || data.name || data.clientName || data.firstName || 'Unknown',
-          email: data.email || data.emailAddress || '',
-          contactNumber: data.phoneNumber || data.contactNumber || data.phone || data.contact || '',
-          companyName: data.company || data.companyName || data.businessName || '',
-          position: data.position || data.jobTitle || '',
-          status: data.status || 'active',
-          amount: data.amount || data.monthlyFee || data.price || 0,
-          paymentStatus: data.paymentStatus || 'unpaid',
-          startDate: data.dateStart || data.preferredStartDate || data.startDate || data.createdAt || null
-        });
-      })
-      .filter(record => record.status === 'active' || record.status === 'approved');
-
-    console.log(`✅ Processed ${virtualOfficeBilling.length} Virtual Office billing records (tenants only)`);
-
-    // Process Dedicated Desk billing - ONLY tenants (not employees)
-    const dedicatedDeskBilling = deskAssignmentsSnapshot.docs
-      .map(doc => {
-        const data = doc.data();
-        return convertTimestamps({
-          id: doc.id,
-          ...data,
-          type: 'dedicated-desk',
-          clientName: data.name || data.fullName || data.clientName || 'Unknown',
-          email: data.email || data.emailAddress || '',
-          contactNumber: data.contactNumber || data.phone || data.phoneNumber || data.contact || '',
-          companyName: data.company || data.companyName || data.businessName || '',
-          desk: data.desk || data.deskTag || doc.id,
-          status: 'active',
-          amount: data.amount || data.monthlyFee || data.price || 0,
-          paymentStatus: data.paymentStatus || 'unpaid',
-          occupantType: data.type || 'Tenant', // Track if it's Employee or Tenant
-          startDate: data.assignedAt || data.startDate || data.createdAt || null // Use assignedAt for desk assignments
-        });
-      })
-      .filter(record => record.occupantType === 'Tenant' || !record.occupantType); // Only show Tenants, exclude Employees
-
-    console.log(`✅ Processed ${dedicatedDeskBilling.length} Dedicated Desk billing records (tenants only, employees excluded)`);
+    // Separate bills by service type
+    const privateOfficeBilling = allBills.filter(bill => bill.type === 'private-office');
+    const virtualOfficeBilling = allBills.filter(bill => bill.type === 'virtual-office');
+    const dedicatedDeskBilling = allBills.filter(bill => bill.type === 'dedicated-desk');
 
     // Calculate stats
     const stats = {
-      privateOffice: allPrivateOfficeBilling.length,
+      privateOffice: privateOfficeBilling.length,
       virtualOffice: virtualOfficeBilling.length,
       dedicatedDesk: dedicatedDeskBilling.length,
-      total: allPrivateOfficeBilling.length + virtualOfficeBilling.length + dedicatedDeskBilling.length
+      total: allBills.length
     };
-
-    console.log(`📊 Billing Stats:`, stats);
 
     res.json({
       success: true,
       data: {
         stats,
         billing: {
-          privateOffice: allPrivateOfficeBilling,
+          privateOffice: privateOfficeBilling,
           virtualOffice: virtualOfficeBilling,
           dedicatedDesk: dedicatedDeskBilling
         }
@@ -277,6 +194,77 @@ export const getBillingStats = async (req, res) => {
       success: false,
       error: 'Internal Server Error',
       message: error.message || 'Failed to fetch billing stats'
+    });
+  }
+};
+
+/**
+ * Record payment for a bill
+ * Updates bill status to "paid" and adds late fee and damage fee
+ */
+export const recordPayment = async (req, res) => {
+  try {
+    const { billId } = req.params;
+    const { userId, lateFee, damageFee } = req.body;
+    const firestore = getFirestore();
+    
+    if (!firestore) {
+      return sendFirestoreError(res);
+    }
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Bad Request',
+        message: 'userId is required'
+      });
+    }
+
+    // Get the bill reference
+    const billRef = firestore
+      .collection('accounts')
+      .doc('client')
+      .collection('users')
+      .doc(userId)
+      .collection('bills')
+      .doc(billId);
+
+    const billDoc = await billRef.get();
+
+    if (!billDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        error: 'Not Found',
+        message: 'Bill not found'
+      });
+    }
+
+    // Update the bill with payment information
+    await billRef.update({
+      status: 'paid',
+      lateFee: lateFee || 0,
+      damageFee: damageFee || 0,
+      paidAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    });
+
+    res.json({
+      success: true,
+      message: 'Payment recorded successfully',
+      data: {
+        billId,
+        userId,
+        status: 'paid',
+        lateFee: lateFee || 0,
+        damageFee: damageFee || 0
+      }
+    });
+  } catch (error) {
+    console.error('❌ Record payment error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal Server Error',
+      message: error.message || 'Failed to record payment'
     });
   }
 };

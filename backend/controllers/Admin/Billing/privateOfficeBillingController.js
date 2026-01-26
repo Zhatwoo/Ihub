@@ -29,6 +29,7 @@ const convertTimestamps = (obj) => {
 
 /**
  * Get billing details for private office
+ * Fetches from bills collection: /accounts/client/users/{userId}/bills/{billId}
  */
 export const getPrivateOfficeBillingDetails = async (req, res) => {
   try {
@@ -40,12 +41,11 @@ export const getPrivateOfficeBillingDetails = async (req, res) => {
       return sendFirestoreError(res);
     }
 
-    console.log(`📖 FIRESTORE READ: Fetching private office billing details for ${billingId}${userId ? ` (userId: ${userId})` : ''}`);
-
     let doc = null;
     let data = null;
+    let foundUserId = userId;
 
-    // If userId is provided, try new path first (most efficient)
+    // If userId is provided, try bills collection first (most efficient)
     if (userId) {
       try {
         doc = await firestore
@@ -53,63 +53,38 @@ export const getPrivateOfficeBillingDetails = async (req, res) => {
           .doc('client')
           .collection('users')
           .doc(userId)
-          .collection('request')
-          .doc('office')
-          .collection('bookings')
-          .doc(bookingsId)
-          .get();
-        
-        if (doc.exists) {
-          data = doc.data();
-          console.log(`📖 FIRESTORE READ: Found in new path - accounts/client/users/${userId}/request/office/bookings/${billingId}`);
-        }
-      } catch (err) {
-        console.warn('Could not fetch from new path with userId:', err.message);
-      }
-    }
-
-    // If not found with userId, try old path
-    if (!doc || !doc.exists) {
-      try {
-        doc = await firestore
-          .collection('privateOfficeRooms')
-          .doc('data')
-          .collection('requests')
+          .collection('bills')
           .doc(billingId)
           .get();
         
         if (doc.exists) {
           data = doc.data();
-          console.log(`📖 FIRESTORE READ: Found in old path - privateOfficeRooms/data/requests/${billingId}`);
         }
       } catch (err) {
-        console.warn('Could not fetch from old path:', err.message);
+        console.warn('Could not fetch from bills collection with userId:', err.message);
       }
     }
 
-    // If still not found, search through all users (last resort)
+    // If not found with userId, search through all users (last resort)
     if (!doc || !doc.exists) {
       try {
-        console.log('📖 FIRESTORE READ: Searching through all users for booking...');
         const usersSnapshot = await firestore.collection('accounts').doc('client').collection('users').get();
         
         for (const userDoc of usersSnapshot.docs) {
           const uid = userDoc.id;
-          const bookingDoc = await firestore
+          const billDoc = await firestore
             .collection('accounts')
             .doc('client')
             .collection('users')
             .doc(uid)
-            .collection('request')
-            .doc('office')
-            .collection('bookings')
+            .collection('bills')
             .doc(billingId)
             .get();
           
-          if (bookingDoc.exists) {
-            doc = bookingDoc;
-            data = bookingDoc.data();
-            console.log(`📖 FIRESTORE READ: Found in new path - accounts/client/users/${uid}/request/office/bookings/${billingId}`);
+          if (billDoc.exists) {
+            doc = billDoc;
+            data = billDoc.data();
+            foundUserId = uid;
             break;
           }
         }
@@ -119,7 +94,6 @@ export const getPrivateOfficeBillingDetails = async (req, res) => {
     }
 
     if (!doc || !doc.exists) {
-      console.error(`❌ Billing record not found for billingId: ${billingId}`);
       return res.status(404).json({
         success: false,
         error: 'Not Found',
@@ -129,51 +103,33 @@ export const getPrivateOfficeBillingDetails = async (req, res) => {
 
     const billingData = convertTimestamps({
       id: doc.id,
+      userId: foundUserId,
       ...data,
       type: 'private-office'
     });
-
-    // Fetch room details to get rentFee
-    let roomRentFee = 0;
-    if (billingData.roomId) {
-      try {
-        const roomDoc = await firestore
-          .collection('privateOfficeRooms')
-          .doc('data')
-          .collection('office')
-          .doc(billingData.roomId)
-          .get();
-        if (roomDoc.exists) {
-          roomRentFee = roomDoc.data().rentFee || 0;
-        }
-      } catch (error) {
-        console.error('Error fetching room details:', error);
-      }
-    }
 
     const tenantInfo = {
       clientName: billingData.clientName || 'Unknown',
       email: billingData.email || '',
       contactNumber: billingData.contactNumber || '',
       companyName: billingData.companyName || '',
-      room: billingData.room || '',
-      status: billingData.status || 'pending'
+      room: billingData.suite || billingData.room || '',
+      status: billingData.status || 'unpaid'
     };
 
     const billingDetails = {
       notes: billingData.notes || '',
-      rentFee: roomRentFee || billingData.rentFee || billingData.amount || 0,
+      rentFee: billingData.rentFee || 0,
       rentFeePeriod: billingData.rentFeePeriod || 'Monthly',
       cusaFee: billingData.cusaFee || 0,
       parkingFee: billingData.parkingFee || 0
     };
 
-    console.log(`✅ Fetched private office billing details for ${billingId}`);
-
     res.json({
       success: true,
       data: {
         billingId,
+        userId: foundUserId,
         serviceType: 'private-office',
         tenantInfo,
         billingDetails,
@@ -192,77 +148,77 @@ export const getPrivateOfficeBillingDetails = async (req, res) => {
 
 /**
  * Update private office billing details
+ * Updates bills collection: /accounts/client/users/{userId}/bills/{billId}
  */
 export const updatePrivateOfficeBillingDetails = async (req, res) => {
   try {
     const { billingId } = req.params;
-    const { notes, cusaFee, parkingFee } = req.body;
+    const { userId, notes, cusaFee, parkingFee, rentFee, rentFeePeriod } = req.body;
     const firestore = getFirestore();
     
     if (!firestore) {
       return sendFirestoreError(res);
     }
 
-    console.log(`📝 API WRITE: Updating private office billing details for ${billingId}`);
-
     let updateRef = null;
+    let foundUserId = userId;
 
-    // Try old path first
-    try {
-      const oldDoc = await firestore
-        .collection('privateOfficeRooms')
-        .doc('data')
-        .collection('requests')
-        .doc(billingId)
-        .get();
-      
-      if (oldDoc.exists) {
-        updateRef = firestore
-          .collection('privateOfficeRooms')
-          .doc('data')
-          .collection('requests')
-          .doc(billingId);
-        console.log(`Found in old path - updating...`);
-      }
-    } catch (err) {
-      console.warn('Could not check old path:', err.message);
-    }
-
-    // If not found in old path, try new path
-    if (!updateRef) {
+    // If userId is provided, try bills collection first (most efficient)
+    if (userId) {
       try {
-        console.log('Trying new path for private office bookings...');
-        const usersSnapshot = await firestore.collection('accounts').doc('client').collection('users').get();
+        const billDoc = await firestore
+          .collection('accounts')
+          .doc('client')
+          .collection('users')
+          .doc(userId)
+          .collection('bills')
+          .doc(billingId)
+          .get();
         
-        for (const userDoc of usersSnapshot.docs) {
-          const userId = userDoc.id;
-          const bookingDoc = await firestore
+        if (billDoc.exists) {
+          updateRef = firestore
             .collection('accounts')
             .doc('client')
             .collection('users')
             .doc(userId)
-            .collection('request')
-            .doc('office')
-            .collection('bookings')
+            .collection('bills')
+            .doc(billingId);
+        }
+      } catch (err) {
+        console.warn('Could not check bills collection with userId:', err.message);
+      }
+    }
+
+    // If not found with userId, search through all users (last resort)
+    if (!updateRef) {
+      try {
+        const usersSnapshot = await firestore.collection('accounts').doc('client').collection('users').get();
+        
+        for (const userDoc of usersSnapshot.docs) {
+          const uid = userDoc.id;
+          const billDoc = await firestore
+            .collection('accounts')
+            .doc('client')
+            .collection('users')
+            .doc(uid)
+            .collection('bills')
             .doc(billingId)
             .get();
           
-          if (bookingDoc.exists) {
+          if (billDoc.exists) {
             updateRef = firestore
               .collection('accounts')
               .doc('client')
               .collection('users')
-              .doc(userId)
-              .collection('request')
-              .doc('office')
-              .collection('bookings')
+              .doc(uid)
+              .collection('bills')
               .doc(billingId);
-            console.log(`Found in new path - updating...`);
+            foundUserId = uid;
             break;
           }
         }
       } catch (err) {
-        console.warn('Could not check new path:', err.message);
+        console.warn('Could not search through users:', err.message);
       }
     }
 
@@ -275,24 +231,26 @@ export const updatePrivateOfficeBillingDetails = async (req, res) => {
     }
 
     // Update the document
-    await updateRef.update({
-      notes: notes || '',
-      cusaFee: cusaFee || 0,
-      parkingFee: parkingFee || 0,
+    const updateData = {
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    });
+    };
 
-    console.log(`✅ Updated private office billing details for ${billingId}`);
+    if (notes !== undefined) updateData.notes = notes || '';
+    if (cusaFee !== undefined) updateData.cusaFee = cusaFee || 0;
+    if (parkingFee !== undefined) updateData.parkingFee = parkingFee || 0;
+    if (rentFee !== undefined) updateData.rentFee = rentFee || 0;
+    if (rentFeePeriod !== undefined) updateData.rentFeePeriod = rentFeePeriod || 'Monthly';
+
+    await updateRef.update(updateData);
 
     res.json({
       success: true,
       message: 'Billing details updated successfully',
       data: {
         billingId,
+        userId: foundUserId,
         serviceType: 'private-office',
-        notes,
-        cusaFee: cusaFee || 0,
-        parkingFee: parkingFee || 0
+        ...updateData
       }
     });
   } catch (error) {

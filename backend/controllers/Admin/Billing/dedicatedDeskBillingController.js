@@ -29,24 +29,71 @@ const convertTimestamps = (obj) => {
 
 /**
  * Get billing details for dedicated desk
+ * Fetches from bills collection: /accounts/client/users/{userId}/bills/{billId}
  */
 export const getDedicatedDeskBillingDetails = async (req, res) => {
   try {
     const { billingId } = req.params;
+    const { userId } = req.query;
     const firestore = getFirestore();
     
     if (!firestore) {
       return sendFirestoreError(res);
     }
 
-    console.log(`📖 FIRESTORE READ: Fetching dedicated desk billing details for ${billingId}`);
+    let doc = null;
+    let data = null;
+    let foundUserId = userId;
 
-    const doc = await firestore
-      .collection('desk-assignments')
-      .doc(billingId)
-      .get();
+    // If userId is provided, try bills collection first
+    if (userId) {
+      try {
+        doc = await firestore
+          .collection('accounts')
+          .doc('client')
+          .collection('users')
+          .doc(userId)
+          .collection('bills')
+          .doc(billingId)
+          .get();
+        
+        if (doc.exists) {
+          data = doc.data();
+        }
+      } catch (err) {
+        console.warn('Could not fetch from bills collection:', err.message);
+      }
+    }
 
-    if (!doc.exists) {
+    // If not found, search through all users
+    if (!doc || !doc.exists) {
+      try {
+        const usersSnapshot = await firestore.collection('accounts').doc('client').collection('users').get();
+        
+        for (const userDoc of usersSnapshot.docs) {
+          const uid = userDoc.id;
+          const billDoc = await firestore
+            .collection('accounts')
+            .doc('client')
+            .collection('users')
+            .doc(uid)
+            .collection('bills')
+            .doc(billingId)
+            .get();
+          
+          if (billDoc.exists) {
+            doc = billDoc;
+            data = billDoc.data();
+            foundUserId = uid;
+            break;
+          }
+        }
+      } catch (err) {
+        console.warn('Could not search through users:', err.message);
+      }
+    }
+
+    if (!doc || !doc.exists) {
       return res.status(404).json({
         success: false,
         error: 'Not Found',
@@ -54,37 +101,36 @@ export const getDedicatedDeskBillingDetails = async (req, res) => {
       });
     }
 
-    const data = doc.data();
     const billingData = convertTimestamps({
       id: doc.id,
+      userId: foundUserId,
       ...data,
       type: 'dedicated-desk'
     });
 
     const tenantInfo = {
-      clientName: billingData.name || billingData.clientName || 'Unknown',
+      clientName: billingData.clientName || 'Unknown',
       email: billingData.email || '',
-      contactNumber: billingData.contactNumber || billingData.phone || '',
-      companyName: billingData.company || billingData.companyName || '',
-      desk: billingData.desk || billingData.deskTag || '',
-      status: 'active'
+      contactNumber: billingData.contactNumber || '',
+      companyName: billingData.companyName || '',
+      desk: billingData.desk || '',
+      status: billingData.status || 'unpaid'
     };
 
     const billingDetails = {
-      amount: billingData.amount || billingData.monthlyFee || 0,
+      amount: billingData.rentFee || 0,
       notes: billingData.notes || '',
-      rentFee: billingData.rentFee || billingData.amount || billingData.monthlyFee || 0,
+      rentFee: billingData.rentFee || 0,
       rentFeePeriod: billingData.rentFeePeriod || 'Monthly',
       cusaFee: billingData.cusaFee || 0,
       parkingFee: billingData.parkingFee || 0
     };
 
-    console.log(`✅ Fetched dedicated desk billing details for ${billingId}`);
-
     res.json({
       success: true,
       data: {
         billingId,
+        userId: foundUserId,
         serviceType: 'dedicated-desk',
         tenantInfo,
         billingDetails,
@@ -103,46 +149,109 @@ export const getDedicatedDeskBillingDetails = async (req, res) => {
 
 /**
  * Update dedicated desk billing details
+ * Updates bills collection: /accounts/client/users/{userId}/bills/{billId}
  */
 export const updateDedicatedDeskBillingDetails = async (req, res) => {
   try {
     const { billingId } = req.params;
-    const { amount, rentFeePeriod, notes, cusaFee, parkingFee } = req.body;
+    const { userId, amount, rentFeePeriod, notes, cusaFee, parkingFee } = req.body;
     const firestore = getFirestore();
     
     if (!firestore) {
       return sendFirestoreError(res);
     }
 
-    console.log(`📝 API WRITE: Updating dedicated desk billing details for ${billingId}`);
+    let updateRef = null;
+    let foundUserId = userId;
 
-    const updateRef = firestore
-      .collection('desk-assignments')
-      .doc(billingId);
+    // If userId is provided, try bills collection first
+    if (userId) {
+      try {
+        const billDoc = await firestore
+          .collection('accounts')
+          .doc('client')
+          .collection('users')
+          .doc(userId)
+          .collection('bills')
+          .doc(billingId)
+          .get();
+        
+        if (billDoc.exists) {
+          updateRef = firestore
+            .collection('accounts')
+            .doc('client')
+            .collection('users')
+            .doc(userId)
+            .collection('bills')
+            .doc(billingId);
+        }
+      } catch (err) {
+        console.warn('Could not check bills collection:', err.message);
+      }
+    }
+
+    // If not found, search through all users
+    if (!updateRef) {
+      try {
+        const usersSnapshot = await firestore.collection('accounts').doc('client').collection('users').get();
+        
+        for (const userDoc of usersSnapshot.docs) {
+          const uid = userDoc.id;
+          const billDoc = await firestore
+            .collection('accounts')
+            .doc('client')
+            .collection('users')
+            .doc(uid)
+            .collection('bills')
+            .doc(billingId)
+            .get();
+          
+          if (billDoc.exists) {
+            updateRef = firestore
+              .collection('accounts')
+              .doc('client')
+              .collection('users')
+              .doc(uid)
+              .collection('bills')
+              .doc(billingId);
+            foundUserId = uid;
+            break;
+          }
+        }
+      } catch (err) {
+        console.warn('Could not search through users:', err.message);
+      }
+    }
+
+    if (!updateRef) {
+      return res.status(404).json({
+        success: false,
+        error: 'Not Found',
+        message: 'Billing record not found'
+      });
+    }
 
     // Update the document
-    await updateRef.update({
-      amount: amount || 0,
-      rentFeePeriod: rentFeePeriod || 'Monthly',
-      notes: notes || '',
-      cusaFee: cusaFee || 0,
-      parkingFee: parkingFee || 0,
+    const updateData = {
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    });
+    };
 
-    console.log(`✅ Updated dedicated desk billing details for ${billingId}`);
+    if (amount !== undefined) updateData.rentFee = amount || 0;
+    if (rentFeePeriod !== undefined) updateData.rentFeePeriod = rentFeePeriod || 'Monthly';
+    if (notes !== undefined) updateData.notes = notes || '';
+    if (cusaFee !== undefined) updateData.cusaFee = cusaFee || 0;
+    if (parkingFee !== undefined) updateData.parkingFee = parkingFee || 0;
+
+    await updateRef.update(updateData);
 
     res.json({
       success: true,
       message: 'Billing details updated successfully',
       data: {
         billingId,
+        userId: foundUserId,
         serviceType: 'dedicated-desk',
-        amount,
-        rentFeePeriod,
-        notes,
-        cusaFee: cusaFee || 0,
-        parkingFee: parkingFee || 0
+        ...updateData
       }
     });
   } catch (error) {
