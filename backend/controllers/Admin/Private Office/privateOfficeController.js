@@ -427,7 +427,7 @@ export const updateRequestStatus = async (req, res) => {
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     };
 
-    // If approving, update room status
+    // If approving, update room status and save rentFee
     if (status === 'approved' && currentRequest.status !== 'approved') {
       if (currentRequest.roomId && currentRequest.clientName) {
         try {
@@ -437,12 +437,18 @@ export const updateRequestStatus = async (req, res) => {
           console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/office/${currentRequest.roomId} - ${roomDoc.exists ? '1 document' : 'not found'}`);
           
           if (roomDoc.exists) {
+            const roomData = roomDoc.data();
+            // Save rentFee from room to booking
+            updateData.rentFee = roomData.rentFee || 0;
+            updateData.rentFeePeriod = roomData.rentFeePeriod || 'Monthly';
+            
             await roomRef.update({
               status: 'Occupied',
               occupiedBy: currentRequest.clientName,
               updatedAt: admin.firestore.FieldValue.serverTimestamp()
             });
             console.log(`✅ Room ${currentRequest.roomId} status updated to Occupied (request approved)`);
+            console.log(`✅ Saved rentFee: ${updateData.rentFee} to booking`);
           }
         } catch (roomError) {
           console.error('Error updating room status:', roomError);

@@ -211,7 +211,7 @@ export const getBillingStats = async (req, res) => {
           id: doc.id,
           ...data,
           type: 'virtual-office',
-          clientName: data.fullName || data.clientName || data.name || 'Unknown',
+          clientName: data.fullName || data.name || data.clientName || data.firstName || 'Unknown',
           email: data.email || data.emailAddress || '',
           contactNumber: data.phoneNumber || data.contactNumber || data.phone || data.contact || '',
           companyName: data.company || data.companyName || data.businessName || '',

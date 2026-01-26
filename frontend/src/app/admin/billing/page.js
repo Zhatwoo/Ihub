@@ -458,8 +458,16 @@ export default function Billing() {
                       <div className="flex items-center justify-center gap-1.5 flex-wrap">
                         <button 
                           onClick={() => {
+                            console.log('Edit clicked for record:', { id: record.id, userId: record.userId, type: record.type });
                             setSelectedBillingId(record.id);
                             setSelectedBillingServiceType(record.type);
+                            // Store userId for private office records from new path
+                            if (record.type === 'private-office' && record.userId) {
+                              console.log(`Storing userId ${record.userId} for billingId ${record.id}`);
+                              sessionStorage.setItem(`billing_userId_${record.id}`, record.userId);
+                            } else {
+                              console.log('No userId found in record or not private office');
+                            }
                             setEditModalOpen(true);
                           }}
                           className="px-2.5 py-1.5 bg-teal-600 text-white rounded-lg text-xs font-semibold hover:bg-teal-700 transition-colors whitespace-nowrap"
