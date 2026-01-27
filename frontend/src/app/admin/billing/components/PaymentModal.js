@@ -1,254 +1,189 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '@/lib/api';
 
-export default function PaymentModal({ isOpen, onClose, billingData, onPaymentRecorded }) {
+export default function PaymentModal({ isOpen, onClose, bill, onPaymentRecorded }) {
   const [mounted, setMounted] = useState(false);
-  const [lateFee, setLateFee] = useState(0);
-  const [damageFee, setDamageFee] = useState(0);
-  const [isRecording, setIsRecording] = useState(false);
+  const [formData, setFormData] = useState({
+    lateFee: 0,
+    damageFee: 0
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
-  useEffect(() => {
+  useState(() => {
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (isOpen) {
-      setLateFee(0);
-      setDamageFee(0);
-    }
-  }, [isOpen]);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
 
-  const handleRecordPayment = async () => {
     try {
-      setIsRecording(true);
-      
-      const response = await api.post(`/api/admin/billing/${billingData.id}/record-payment`, {
-        userId: billingData.userId,
-        lateFee: lateFee || 0,
-        damageFee: damageFee || 0
-      });
+      const response = await api.post(
+        `/api/admin/billing/${bill.userId}/${bill.billId}/record-payment`,
+        formData
+      );
 
       if (response.success) {
-        onPaymentRecorded?.();
+        onPaymentRecorded();
         onClose();
+      } else {
+        setError(response.message || 'Failed to record payment');
       }
-    } catch (error) {
-      console.error('Error recording payment:', error);
-      alert('Failed to record payment. Please try again.');
+    } catch (err) {
+      setError(err.message || 'Failed to record payment');
     } finally {
-      setIsRecording(false);
+      setLoading(false);
     }
   };
 
-  if (!mounted || !isOpen || !billingData) return null;
+  if (!isOpen || !mounted) return null;
 
-  const amount = billingData.amount || 0;
-  const cusaFee = billingData.cusaFee || 0;
-  const parkingFee = billingData.parkingFee || 0;
-  const subtotal = amount + cusaFee + parkingFee;
-  const overallTotal = subtotal + lateFee + damageFee;
+  const baseAmount = (bill?.amount || 0) + (bill?.cusaFee || 0) + (bill?.parkingFee || 0);
+  const totalAmount = baseAmount + (formData.lateFee || 0) + (formData.damageFee || 0);
 
-  const getServiceTypeLabel = () => {
-    const typeMap = {
-      'private-office': 'Private Office',
-      'virtual-office': 'Virtual Office',
-      'dedicated-desk': 'Dedicated Desk'
-    };
-    return typeMap[billingData.type] || billingData.type;
-  };
-
-  return createPortal(
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999]">
-      <style>{`
-        @keyframes slideInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        .modal-enter {
-          animation: slideInUp 0.3s ease-out;
-        }
-      `}</style>
-      <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden flex flex-col modal-enter">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-slate-50 to-white">
-          <div>
-            <h2 className="text-2xl font-bold text-slate-800">Process Payment</h2>
-            <p className="text-sm text-gray-500 mt-1">Review and process billing payment</p>
-          </div>
-          <div className="flex items-center gap-3">
+  const modalContent = (
+    <div 
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4 animate-[fadeIn_0.2s_ease]"
+      onClick={onClose}
+    >
+      {/* Modal */}
+      <div 
+        className="relative bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[85vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header with Close Button */}
+        <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between z-10">
+          <h3 className="text-2xl font-bold text-slate-800">Record Payment</h3>
+          <div className="flex items-center gap-2">
             <button
-              onClick={handleRecordPayment}
-              disabled={isRecording}
-              className="px-4 py-2 bg-teal-600 text-white rounded-xl font-semibold hover:bg-teal-700 transition-colors whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+              type="submit"
+              form="payment-form"
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors disabled:opacity-50"
+              disabled={loading}
             >
-              {isRecording ? 'Recording...' : 'Record Payment'}
+              {loading ? 'Recording...' : 'Record Payment'}
             </button>
             <button
               onClick={onClose}
-              className="text-gray-400 hover:text-gray-600 transition-colors p-1 hover:bg-gray-100 rounded-lg"
+              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              disabled={loading}
+              title="Close"
             >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="space-y-6">
-            {/* Tenant Information Section */}
-            <div>
-              <h3 className="text-lg font-bold text-slate-800 mb-4">Tenant Information</h3>
-              <div className="space-y-4">
-                {/* Row 1: Name and Email */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl p-4 border border-gray-100">
-                    <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Name</label>
-                    <p className="text-sm font-semibold text-slate-800">{billingData.clientName || 'N/A'}</p>
-                  </div>
-                  <div className="bg-gradient-to-br from-slate-50 to-gray-50 rounded-xl p-4 border border-gray-100">
-                    <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Email</label>
-                    <p className="text-sm text-slate-800 truncate" title={billingData.email || 'N/A'}>{billingData.email || 'N/A'}</p>
-                  </div>
-                </div>
-
-                {/* Row 2: Type and Office Name/Desk (same row) */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Type</label>
-                    <div className="px-4 py-3 border-2 border-gray-300 rounded-xl text-slate-900 bg-gray-200">
-                      <p className="font-semibold">{getServiceTypeLabel()}</p>
-                    </div>
-                  </div>
-
-                  {/* Office Name (Private Office only) */}
-                  {billingData.type === 'private-office' && billingData.room && (
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Office Name</label>
-                      <div className="px-4 py-3 border-2 border-gray-300 rounded-xl text-slate-900 bg-gray-200">
-                        <p className="font-semibold">{billingData.room}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Desk (Dedicated Desk only) */}
-                  {billingData.type === 'dedicated-desk' && billingData.desk && (
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-2">Desk</label>
-                      <div className="px-4 py-3 border-2 border-gray-300 rounded-xl text-slate-900 bg-gray-200">
-                        <p className="font-semibold">{billingData.desk}</p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Virtual Office - no additional field */}
-                  {billingData.type === 'virtual-office' && (
-                    <div></div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Billing Details Section */}
-            <div>
-              <h3 className="text-lg font-bold text-slate-800 mb-4">Billing Details</h3>
-              <div className="space-y-3 bg-gradient-to-br from-teal-50 to-cyan-50 rounded-xl p-6 border border-teal-100">
-                <div className="flex items-center justify-between pb-3 border-b border-teal-200">
-                  <span className="text-gray-700 font-semibold">Amount</span>
-                  <span className="text-slate-800 font-medium">₱{amount.toLocaleString()}</span>
-                </div>
-
-                <div className="flex items-center justify-between pb-3 border-b border-teal-200">
-                  <span className="text-gray-700 font-semibold">Due Date</span>
-                  <span className="text-slate-800 font-medium">
-                    {billingData.dueDate 
-                      ? new Date(billingData.dueDate).toLocaleDateString('en-US', { 
-                          year: 'numeric', 
-                          month: 'short', 
-                          day: 'numeric' 
-                        })
-                      : 'N/A'}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between pb-3 border-b border-teal-200">
-                  <span className="text-gray-700 font-semibold">CUSA Fee</span>
-                  <span className="text-slate-800 font-medium">₱{cusaFee.toLocaleString()}</span>
-                </div>
-
-                <div className="flex items-center justify-between pb-3 border-b border-teal-200">
-                  <span className="text-gray-700 font-semibold">Parking Fee</span>
-                  <span className="text-slate-800 font-medium">₱{parkingFee.toLocaleString()}</span>
-                </div>
-
-                <div className="flex items-center justify-between pt-2">
-                  <span className="text-gray-700 font-bold">Subtotal</span>
-                  <span className="text-lg font-bold text-teal-700">₱{subtotal.toLocaleString()}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Additional Fees Section */}
-            <div>
-              <h3 className="text-lg font-bold text-slate-800 mb-4">Additional Fees</h3>
-              <div className="space-y-4 bg-gradient-to-br from-red-50 to-rose-50 rounded-xl p-6 border border-red-100">
-                <div>
-                  <label className="block text-sm font-semibold text-red-900 mb-2">Late Fee (₱)</label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-red-600 font-semibold">₱</span>
-                    <input
-                      type="number"
-                      value={lateFee}
-                      onChange={(e) => setLateFee(parseFloat(e.target.value) || 0)}
-                      className="w-full pl-8 pr-4 py-3 border-2 border-red-200 rounded-xl text-slate-900 bg-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 transition-all"
-                      placeholder="0.00"
-                      min="0"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-semibold text-red-900 mb-2">Damage Fee (₱)</label>
-                  <div className="relative">
-                    <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-red-600 font-semibold">₱</span>
-                    <input
-                      type="number"
-                      value={damageFee}
-                      onChange={(e) => setDamageFee(parseFloat(e.target.value) || 0)}
-                      className="w-full pl-8 pr-4 py-3 border-2 border-red-200 rounded-xl text-slate-900 bg-white focus:outline-none focus:border-red-500 focus:ring-2 focus:ring-red-500/10 transition-all"
-                      placeholder="0.00"
-                      min="0"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Overall Total Section */}
-            <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-xl p-6 border border-blue-100">
-              <div className="flex items-center justify-between">
-                <span className="text-lg font-bold text-blue-900">Overall Total</span>
-                <span className="text-4xl font-bold text-blue-700">₱{overallTotal.toLocaleString()}</span>
-              </div>
+        <div className="p-6">
+          {/* Bill Info */}
+          <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+              <p className="text-sm text-gray-600">Client: <span className="font-semibold text-slate-800">{bill?.name}</span></p>
+              <p className="text-sm text-gray-600">Service: <span className="font-semibold text-slate-800">{bill?.serviceType}</span></p>
+              <p className="text-sm text-gray-600">Assigned: <span className="font-semibold text-slate-800">{bill?.assignedResource}</span></p>
+              <p className="text-sm text-gray-600">
+                Due Date: <span className="font-semibold text-slate-800">
+                  {bill?.dueDate 
+                    ? new Date(bill.dueDate).toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric', 
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })
+                    : 'N/A'
+                  }
+                </span>
+              </p>
+              <p className="text-sm text-gray-600">Status: <span className={`font-semibold ${bill?.status === 'overdue' ? 'text-red-600' : 'text-yellow-600'}`}>{bill?.status}</span></p>
             </div>
           </div>
-        </div>
 
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-gray-200 bg-gradient-to-r from-slate-50 to-white">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
+
+          <form id="payment-form" onSubmit={handleSubmit}>
+            <div className="grid grid-cols-2 gap-4">
+              {/* Left Column: Bill Breakdown */}
+              <div>
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 space-y-2">
+                  <h4 className="text-sm font-bold text-gray-700 mb-2 uppercase tracking-wide">Bill Breakdown</h4>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Rent:</span>
+                    <span className="font-semibold">₱{(bill?.amount || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">CUSA Fee:</span>
+                    <span className="font-semibold">₱{(bill?.cusaFee || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between text-sm">
+                    <span className="text-gray-600">Parking Fee:</span>
+                    <span className="font-semibold">₱{(bill?.parkingFee || 0).toLocaleString()}</span>
+                  </div>
+                  <div className="border-t border-blue-300 pt-2 flex justify-between">
+                    <span className="font-semibold text-gray-700">Base Amount:</span>
+                    <span className="font-bold text-slate-800">₱{baseAmount.toLocaleString()}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Additional Fees */}
+              <div>
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <h4 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">Additional Fees</h4>
+                  
+                  {/* Late Fee */}
+                  <div className="mb-3">
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">
+                      Late Fee (₱)
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.lateFee}
+                      onChange={(e) => setFormData({ ...formData, lateFee: parseFloat(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-red-400"
+                      min="0"
+                    />
+                  </div>
+
+                  {/* Damage Fee */}
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-600 mb-1">
+                      Damage Fee (₱)
+                    </label>
+                    <input
+                      type="number"
+                      value={formData.damageFee}
+                      onChange={(e) => setFormData({ ...formData, damageFee: parseFloat(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-red-400"
+                      min="0"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Total Amount */}
+            <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
+              <p className="text-lg font-bold text-slate-800">
+                Total Payment: ₱{totalAmount.toLocaleString()}
+              </p>
+            </div>
+          </form>
         </div>
       </div>
-    </div>,
-    document.body
+    </div>
   );
+
+  return createPortal(modalContent, document.body);
 }

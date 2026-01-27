@@ -20,6 +20,7 @@ import deskAssignmentsRoutes from './routes/deskAssignments.js';
 import uploadRoutes from './routes/upload.js';
 import emailRoutes from './routes/emails.js';
 import clientRoutes from './controllers/Client/index.js';
+import { startBillingService } from './services/billingRecurringService.js';
 
 // Load environment variables
 dotenv.config();
@@ -141,6 +142,10 @@ async function start() {
     console.error('   Some features may not work. Check your Firebase configuration.');
   }
   initRealtimeFirestore(io);
+  
+  // Start billing recurring service
+  startBillingService();
+  
   httpServer.listen(PORT, () => {
     console.log(`🚀 Server is running on http://localhost:${PORT}`);
     console.log(`📡 API endpoint: http://localhost:${PORT}/api`);

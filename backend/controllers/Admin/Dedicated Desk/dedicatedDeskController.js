@@ -384,7 +384,8 @@ export const updateDeskRequestStatus = async (req, res) => {
       // Removed: Log containing private user data (assignmentData)
       await firestore.collection('desk-assignments').doc(assignedDesk).set(assignmentData);
 
-      // Create bill in user's bills collection (only for Tenants, not Employees)
+      // Create initial bill in user's bills collection (only for Tenants, not Employees)
+      // Bill is created with null feePeriod and dueDate - admin must set these via Edit Bill
       if ((deskRequestData.occupantType || 'Tenant') === 'Tenant') {
         try {
           const billRef = firestore
@@ -395,31 +396,28 @@ export const updateDeskRequestStatus = async (req, res) => {
             .collection('bills')
             .doc();
 
-          // Calculate due date (30 days from today since desk requests don't have start date)
           const startDate = new Date();
-          const dueDate = new Date(startDate);
-          dueDate.setDate(dueDate.getDate() + 30); // Due 30 days after start date
 
           await billRef.set({
             clientName: `${userData.firstName} ${userData.lastName}`,
             companyName: company,
             email: userData.email,
             contactNumber: contact,
-            serviceType: 'Dedicated Desk',
-            desk: assignedDesk,
-            rentFee: 0, // Default to 0 if no rent fee specified
-            rentFeePeriod: 'Monthly',
+            serviceType: 'dedicated-desk',
+            assignedResource: assignedDesk,
+            amount: 0, // Admin must set via Edit Bill
             cusaFee: 0,
             parkingFee: 0,
-            requestId: requestId,
+            lateFee: 0,
+            damageFee: 0,
+            feePeriod: null, // Admin must set via Edit Bill
             startDate: admin.firestore.Timestamp.fromDate(startDate),
-            dueDate: admin.firestore.Timestamp.fromDate(dueDate),
+            dueDate: null, // Admin must set via Edit Bill (will be calculated as startDate + feePeriod)
             status: 'unpaid',
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
           });
 
-          console.log(`✅ Created bill for user ${userId} in bills collection`);
+          console.log(`✅ Created initial bill for user ${userId} in bills collection (feePeriod and dueDate must be set by admin)`);
         } catch (billError) {
           console.error('Error creating bill:', billError);
         }

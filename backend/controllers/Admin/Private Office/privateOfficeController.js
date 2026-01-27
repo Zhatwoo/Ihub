@@ -461,7 +461,25 @@ export const updateRequestStatus = async (req, res) => {
       }
 
       // Create bill in user's bills collection (separate try-catch for better error handling)
+      // For private office, fetch room data to get feePeriod and amount, then auto-activate bill
       try {
+        // Fetch room data to get feePeriod and rentFee
+        let roomFeePeriod = null;
+        let roomAmount = 0;
+        
+        if (currentRequest.roomId) {
+          const roomRef = firestore.collection('privateOfficeRooms').doc('data').collection('office').doc(currentRequest.roomId);
+          console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/office/${currentRequest.roomId} - fetching for bill...`);
+          const roomDoc = await roomRef.get();
+          
+          if (roomDoc.exists) {
+            const roomData = roomDoc.data();
+            roomFeePeriod = roomData.rentFeePeriod || roomData.feePeriod || null;
+            roomAmount = roomData.rentFee || roomData.amount || 0;
+            console.log(`✅ Fetched room data: feePeriod=${roomFeePeriod}, amount=${roomAmount}`);
+          }
+        }
+
         const billRef = firestore
           .collection('accounts')
           .doc('client')
@@ -470,33 +488,77 @@ export const updateRequestStatus = async (req, res) => {
           .collection('bills')
           .doc();
 
-        // Calculate due date (30 days from start date)
-        const startDate = currentRequest.startDate ? new Date(currentRequest.startDate) : new Date();
-        const dueDate = new Date(startDate);
-        dueDate.setDate(dueDate.getDate() + 30); // Due 30 days after start date
+        // Use current time if startDate is not provided or is invalid
+        let startDate = new Date();
+        if (currentRequest.startDate) {
+          const requestStartDate = new Date(currentRequest.startDate);
+          // Check if the date is valid and not just a date without time (which defaults to midnight)
+          if (!isNaN(requestStartDate.getTime())) {
+            startDate = requestStartDate;
+          }
+        }
+        
+        // If the startDate is at midnight (00:00), use current time instead
+        if (startDate.getHours() === 0 && startDate.getMinutes() === 0 && startDate.getSeconds() === 0) {
+          startDate = new Date();
+        }
+        
+        console.log(`[Private Office] Using start date: ${startDate.toISOString()}`);
+        
+        // Calculate due date based on feePeriod
+        let dueDate = null;
+        if (roomFeePeriod) {
+          dueDate = new Date(startDate);
+          
+          switch (roomFeePeriod) {
+            case '5 minutes':
+              dueDate.setMinutes(dueDate.getMinutes() + 5);
+              break;
+            case 'Monthly':
+              dueDate.setDate(dueDate.getDate() + 30);
+              break;
+            case 'Quarterly':
+              dueDate.setDate(dueDate.getDate() + 90);
+              break;
+            case 'Semiannually':
+              dueDate.setDate(dueDate.getDate() + 180);
+              break;
+            case 'Annually':
+              dueDate.setDate(dueDate.getDate() + 365);
+              break;
+            default:
+              dueDate.setDate(dueDate.getDate() + 30); // Default to monthly
+          }
+        }
 
         const billData = {
           clientName: currentRequest.clientName || '',
           companyName: currentRequest.companyName || '',
           email: currentRequest.email || '',
           contactNumber: currentRequest.contactNumber || '',
-          serviceType: 'Private Office',
-          suite: currentRequest.room || '',
-          rentFee: rentFee,
-          rentFeePeriod: rentFeePeriod,
+          serviceType: 'private-office',
+          assignedResource: currentRequest.room || '',
+          amount: roomAmount, // Use room's rentFee
           cusaFee: 0,
           parkingFee: 0,
+          lateFee: 0,
+          damageFee: 0,
+          feePeriod: roomFeePeriod, // Use room's feePeriod
           bookingId: bookingId,
           roomId: currentRequest.roomId || '',
           startDate: admin.firestore.Timestamp.fromDate(startDate),
-          dueDate: admin.firestore.Timestamp.fromDate(dueDate),
+          dueDate: dueDate ? admin.firestore.Timestamp.fromDate(dueDate) : null,
           status: 'unpaid',
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+          createdAt: admin.firestore.FieldValue.serverTimestamp()
         };
 
         await billRef.set(billData);
-        console.log(`✅ Created bill for user ${userId}`);
+        
+        if (roomFeePeriod && dueDate) {
+          console.log(`✅ Created activated bill for user ${userId} with feePeriod: ${roomFeePeriod}, amount: ${roomAmount}, due: ${dueDate.toISOString()}`);
+        } else {
+          console.log(`✅ Created bill for user ${userId} (feePeriod or dueDate not set - admin must configure)`);
+        }
       } catch (billError) {
         console.error('❌ Error creating bill:', billError.message);
       }

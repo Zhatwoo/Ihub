@@ -22,23 +22,13 @@ import {
   getAllOccupants 
 } from '../controllers/Admin/Virtual Office/virtualOfficeController.js';
 import { 
-  getBillingDashboard, 
-  getInvoices,
-  getBillingStats,
-  recordPayment
+  getAllBilling, 
+  getBillingStats, 
+  getUserBills, 
+  recordPayment, 
+  updateBill,
+  createBill
 } from '../controllers/Admin/Billing/billingController.js';
-import {
-  getPrivateOfficeBillingDetails,
-  updatePrivateOfficeBillingDetails
-} from '../controllers/Admin/Billing/privateOfficeBillingController.js';
-import {
-  getVirtualOfficeBillingDetails,
-  updateVirtualOfficeBillingDetails
-} from '../controllers/Admin/Billing/virtualOfficeBillingController.js';
-import {
-  getDedicatedDeskBillingDetails,
-  updateDedicatedDeskBillingDetails
-} from '../controllers/Admin/Billing/dedicatedDeskBillingController.js';
 
 const router = express.Router();
 
@@ -70,21 +60,11 @@ router.get('/virtual-office/occupants', getAllOccupants);
 router.put('/virtual-office/clients/:clientId/status', updateClientStatus);
 
 // Billing routes
-router.get('/billing/dashboard', getBillingDashboard);
-router.get('/billing/invoices', getInvoices);
+router.get('/billing/all', getAllBilling);
 router.get('/billing/stats', getBillingStats);
-router.post('/billing/:billId/record-payment', recordPayment);
-
-// Private Office billing routes
-router.get('/billing/private-office/:billingId/details', getPrivateOfficeBillingDetails);
-router.put('/billing/private-office/:billingId/details', updatePrivateOfficeBillingDetails);
-
-// Virtual Office billing routes
-router.get('/billing/virtual-office/:billingId/details', getVirtualOfficeBillingDetails);
-router.put('/billing/virtual-office/:billingId/details', updateVirtualOfficeBillingDetails);
-
-// Dedicated Desk billing routes
-router.get('/billing/dedicated-desk/:billingId/details', getDedicatedDeskBillingDetails);
-router.put('/billing/dedicated-desk/:billingId/details', updateDedicatedDeskBillingDetails);
+router.get('/billing/user/:userId/bills', getUserBills);
+router.post('/billing/:userId/create', createBill);
+router.post('/billing/:userId/:billId/record-payment', recordPayment);
+router.put('/billing/:userId/:billId/update', updateBill);
 
 export default router;

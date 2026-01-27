@@ -1,156 +1,125 @@
 'use client';
 
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { api } from '@/lib/api';
 
 // React Icons - Material Design Icons
 import { MdBusiness, MdTv, MdDesktopMac } from 'react-icons/md';
 
-// Import the edit modals
-import EditPrivateOfficeModal from './components/EditPrivateOfficeModal';
-import EditDedicatedDeskVirtualOfficeModal from './components/EditDedicatedDeskVirtualOfficeModal';
+// Import modal components
+import EditBillModal from './components/EditBillModal';
 import PaymentModal from './components/PaymentModal';
+import BillsHistoryModal from './components/BillsHistoryModal';
+import BillsListModal from './components/BillsListModal';
+import BillDetailModal from './components/BillDetailModal';
 
 export default function Billing() {
-  const [privateOfficeBilling, setPrivateOfficeBilling] = useState([]);
-  const [virtualOfficeBilling, setVirtualOfficeBilling] = useState([]);
-  const [dedicatedDeskBilling, setDedicatedDeskBilling] = useState([]);
-  const [stats, setStats] = useState({ privateOffice: 0, virtualOffice: 0, dedicatedDesk: 0, total: 0 });
-  const [billingStats, setBillingStats] = useState({ totalBills: 0, totalRevenue: 0, collected: 0, outstanding: 0 });
+  const [billingRecords, setBillingRecords] = useState([]);
+  const [billingStats, setBillingStats] = useState({ 
+    totalBills: 0, 
+    totalRevenue: 0, 
+    paidCount: 0, 
+    unpaidAmount: 0,
+    overdueCount: 0 
+  });
   const [selectedServiceType, setSelectedServiceType] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('name');
   const [sortOrder, setSortOrder] = useState('asc');
   const [loading, setLoading] = useState(true);
+  const [selectedBill, setSelectedBill] = useState(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
-  const [selectedBillingId, setSelectedBillingId] = useState(null);
-  const [selectedBillingServiceType, setSelectedBillingServiceType] = useState(null);
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-  const [selectedPaymentData, setSelectedPaymentData] = useState(null);
-  const billingIntervalRef = useRef(null);
+  const [payModalOpen, setPayModalOpen] = useState(false);
+  const [billsModalOpen, setBillsModalOpen] = useState(false);
+  const [billsListModalOpen, setBillsListModalOpen] = useState(false);
+  const [billDetailModalOpen, setBillDetailModalOpen] = useState(false);
+  const [selectedBillForDetail, setSelectedBillForDetail] = useState(null);
 
-  // Fetch all billing data from backend
+  // Fetch billing data
   useEffect(() => {
-    const fetchBilling = async () => {
+    const fetchBillingData = async () => {
       try {
         setLoading(true);
-        // Fetch processed billing data from admin API - skip cache to get fresh data
-        const response = await api.get('/api/admin/billing/stats', { skipCache: true });
         
-        if (response.success && response.data) {
-          const { stats, billing } = response.data;
-          
-          // Set processed billing data from backend
-          setPrivateOfficeBilling(billing.privateOffice || []);
-          setVirtualOfficeBilling(billing.virtualOffice || []);
-          setDedicatedDeskBilling(billing.dedicatedDesk || []);
-          setStats(stats);
-          
-          // Calculate billing stats
-          const allBillingRecords = [...(billing.privateOffice || []), ...(billing.virtualOffice || []), ...(billing.dedicatedDesk || [])];
-          const totalBills = allBillingRecords.length;
-          const totalRevenue = allBillingRecords
-            .filter(r => r.paymentStatus === 'paid')
-            .reduce((sum, record) => sum + (record.amount || 0), 0);
-          const collected = allBillingRecords.filter(r => r.paymentStatus === 'paid').length;
-          const outstanding = allBillingRecords
-            .filter(r => r.paymentStatus !== 'paid')
-            .reduce((sum, record) => sum + (record.amount || 0), 0);
-          
-          setBillingStats({
-            totalBills,
-            totalRevenue,
-            collected,
-            outstanding
+        // Fetch all billing records
+        const recordsResponse = await api.get('/api/admin/billing/all', { skipCache: true });
+        if (recordsResponse.success) {
+          setBillingRecords(recordsResponse.data || []);
+        }
+
+        // Fetch billing statistics
+        const statsResponse = await api.get('/api/admin/billing/stats', { skipCache: true });
+        if (statsResponse.success) {
+          setBillingStats(statsResponse.data || {
+            totalBills: 0,
+            totalRevenue: 0,
+            paidCount: 0,
+            unpaidAmount: 0,
+            overdueCount: 0
           });
         }
       } catch (error) {
         console.error('Error fetching billing data:', error);
-        // Set empty fallbacks
-        setPrivateOfficeBilling([]);
-        setVirtualOfficeBilling([]);
-        setDedicatedDeskBilling([]);
-        setStats({ privateOffice: 0, virtualOffice: 0, dedicatedDesk: 0, total: 0 });
       } finally {
         setLoading(false);
       }
     };
 
-    // Initial fetch only - AUTO REFRESH DISABLED
-    fetchBilling();
-    
-    // DISABLED: Auto refresh/polling - was causing excessive Firestore reads
-    // Data will only load once on mount, no automatic refresh
-    
-    return () => {
-      if (billingIntervalRef.current) {
-        clearInterval(billingIntervalRef.current);
-        billingIntervalRef.current = null;
-      }
-    };
+    fetchBillingData();
   }, []);
 
-  // Combine all billing records - memoized to prevent infinite loops
-  const allBilling = useMemo(() => [...privateOfficeBilling, ...virtualOfficeBilling, ...dedicatedDeskBilling], [privateOfficeBilling, virtualOfficeBilling, dedicatedDeskBilling]);
+  // Filter and sort billing records
+  const filteredBilling = billingRecords
+    .filter(record => {
+      // Service type filter
+      if (selectedServiceType && record.serviceType !== selectedServiceType) {
+        return false;
+      }
 
-  // Calculate counts for each type
-  const getCountByType = (type) => {
-    if (type === 'private-office') return privateOfficeBilling.length;
-    if (type === 'virtual-office') return virtualOfficeBilling.length;
-    if (type === 'dedicated-desk') return dedicatedDeskBilling.length;
-    return allBilling.length;
-  };
+      // Search filter
+      if (searchTerm) {
+        const searchLower = searchTerm.toLowerCase();
+        return (
+          (record.name && record.name.toLowerCase().includes(searchLower)) ||
+          (record.email && record.email.toLowerCase().includes(searchLower)) ||
+          (record.phone && record.phone.toLowerCase().includes(searchLower)) ||
+          (record.companyName && record.companyName.toLowerCase().includes(searchLower)) ||
+          (record.assignedResource && record.assignedResource.toLowerCase().includes(searchLower))
+        );
+      }
 
-  // Filter and sort billing records CLIENT-SIDE to avoid excessive API calls - memoized
-  const filteredBilling = useMemo(() => {
-    let filtered = [...allBilling];
-
-    // Apply service type filter
-    if (selectedServiceType) {
-      filtered = filtered.filter(record => record.type === selectedServiceType);
-    }
-
-    // Apply search filter
-    if (searchTerm) {
-      const searchLower = searchTerm.toLowerCase();
-      filtered = filtered.filter(record =>
-        (record.name && record.name.toLowerCase().includes(searchLower)) ||
-        (record.email && record.email.toLowerCase().includes(searchLower)) ||
-        (record.company && record.company.toLowerCase().includes(searchLower)) ||
-        (record.phone && record.phone.toLowerCase().includes(searchLower)) ||
-        (record.office && record.office.toLowerCase().includes(searchLower)) ||
-        (record.desk && record.desk.toLowerCase().includes(searchLower))
-      );
-    }
-
-    // Apply sorting
-    filtered.sort((a, b) => {
+      return true;
+    })
+    .sort((a, b) => {
       let comparison = 0;
+      
       if (sortBy === 'name') {
-        comparison = (a.name || a.clientName || '').localeCompare(b.name || b.clientName || '');
+        comparison = (a.name || '').localeCompare(b.name || '');
       } else if (sortBy === 'email') {
         comparison = (a.email || '').localeCompare(b.email || '');
-      } else if (sortBy === 'office') {
-        comparison = (a.room || '').localeCompare(b.room || '');
-      } else if (sortBy === 'desk') {
-        comparison = (a.desk || '').localeCompare(b.desk || '');
       } else if (sortBy === 'company') {
-        comparison = (a.companyName || a.company || '').localeCompare(b.companyName || b.company || '');
-      } else if (sortBy === 'type') {
-        comparison = (a.type || '').localeCompare(b.type || '');
-      } else if (sortBy === 'date') {
-        comparison = new Date(a.startDate || 0) - new Date(b.startDate || 0);
+        comparison = (a.companyName || '').localeCompare(b.companyName || '');
+      } else if (sortBy === 'dueDate') {
+        comparison = new Date(a.dueDate || 0) - new Date(b.dueDate || 0);
       } else if (sortBy === 'status') {
         comparison = (a.status || '').localeCompare(b.status || '');
       }
+      
       return sortOrder === 'desc' ? -comparison : comparison;
     });
 
-    return filtered;
-  }, [allBilling, selectedServiceType, searchTerm, sortBy, sortOrder]);
+  // Get status badge color
+  const getStatusColor = (status) => {
+    const colorMap = {
+      'paid': 'bg-green-100 text-green-700',
+      'unpaid': 'bg-yellow-100 text-yellow-700',
+      'overdue': 'bg-red-100 text-red-700'
+    };
+    return colorMap[status] || 'bg-gray-100 text-gray-700';
+  };
 
-  // Get billing type label
-  const getBillingTypeLabel = (type) => {
+  // Get service type label
+  const getServiceTypeLabel = (type) => {
     const typeMap = {
       'private-office': 'Private Office',
       'virtual-office': 'Virtual Office',
@@ -159,8 +128,8 @@ export default function Billing() {
     return typeMap[type] || type;
   };
 
-  // Get billing type color
-  const getBillingTypeColor = (type) => {
+  // Get service type color
+  const getServiceTypeColor = (type) => {
     const colorMap = {
       'private-office': 'bg-blue-100 text-blue-700',
       'virtual-office': 'bg-indigo-100 text-indigo-700',
@@ -169,43 +138,48 @@ export default function Billing() {
     return colorMap[type] || 'bg-gray-100 text-gray-700';
   };
 
-  // Handle edit button click
-  const handleEditClick = (billingId, serviceType) => {
-    setSelectedBillingId(billingId);
-    setSelectedBillingServiceType(serviceType);
+  // Handle Edit button click
+  const handleEditClick = (record) => {
+    setSelectedBill(record);
     setEditModalOpen(true);
   };
 
-  // Handle edit modal save
-  const handleEditSave = async () => {
-    // Refresh billing data after save
+  // Handle Pay button click
+  const handlePayClick = (record) => {
+    setSelectedBill(record);
+    setPayModalOpen(true);
+  };
+
+  // Handle Bills button click
+  const handleBillsClick = (record) => {
+    setSelectedBill(record);
+    setBillsListModalOpen(true);
+  };
+
+  // Handle bill detail click
+  const handleBillDetailClick = (bill) => {
+    setSelectedBillForDetail(bill);
+    setBillDetailModalOpen(true);
+  };
+
+  // Refresh billing data after changes
+  const refreshBillingData = async () => {
     try {
       setLoading(true);
-      const response = await api.get('/api/admin/billing/stats', { skipCache: true });
       
-      if (response.success && response.data) {
-        const { stats, billing } = response.data;
-        
-        setPrivateOfficeBilling(billing.privateOffice || []);
-        setVirtualOfficeBilling(billing.virtualOffice || []);
-        setDedicatedDeskBilling(billing.dedicatedDesk || []);
-        setStats(stats);
-        
-        const allBillingRecords = [...(billing.privateOffice || []), ...(billing.virtualOffice || []), ...(billing.dedicatedDesk || [])];
-        const totalBills = allBillingRecords.length;
-        const totalRevenue = allBillingRecords
-          .filter(r => r.paymentStatus === 'paid')
-          .reduce((sum, record) => sum + (record.amount || 0), 0);
-        const collected = allBillingRecords.filter(r => r.paymentStatus === 'paid').length;
-        const outstanding = allBillingRecords
-          .filter(r => r.paymentStatus !== 'paid')
-          .reduce((sum, record) => sum + (record.amount || 0), 0);
-        
-        setBillingStats({
-          totalBills,
-          totalRevenue,
-          collected,
-          outstanding
+      const recordsResponse = await api.get('/api/admin/billing/all', { skipCache: true });
+      if (recordsResponse.success) {
+        setBillingRecords(recordsResponse.data || []);
+      }
+
+      const statsResponse = await api.get('/api/admin/billing/stats', { skipCache: true });
+      if (statsResponse.success) {
+        setBillingStats(statsResponse.data || {
+          totalBills: 0,
+          totalRevenue: 0,
+          paidCount: 0,
+          unpaidAmount: 0,
+          overdueCount: 0
         });
       }
     } catch (error) {
@@ -214,6 +188,8 @@ export default function Billing() {
       setLoading(false);
     }
   };
+
+
 
   return (
     <div className="w-full animate-fadeIn">
@@ -239,21 +215,21 @@ export default function Billing() {
           </div>
         </div>
 
-        {/* Collected Card */}
+        {/* Paid Bills Card */}
         <div className="bg-white rounded-xl p-4 sm:p-5 flex items-center gap-3 sm:gap-4 border border-gray-200 shadow-sm hover:shadow-md transition-all" style={{ animation: 'slideUp 0.5s ease-out 0.2s both' }}>
           <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-teal-50 to-teal-100 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">✅</div>
           <div className="min-w-0 flex-1">
-            <p className="text-gray-500 text-xs sm:text-sm truncate">Collected</p>
-            <p className="text-2xl sm:text-3xl font-bold text-slate-800 truncate">{billingStats.collected}</p>
+            <p className="text-gray-500 text-xs sm:text-sm truncate">Paid Bills</p>
+            <p className="text-2xl sm:text-3xl font-bold text-slate-800 truncate">{billingStats.paidCount}</p>
           </div>
         </div>
 
-        {/* Outstanding Card */}
+        {/* Outstanding Amount Card */}
         <div className="bg-white rounded-xl p-4 sm:p-5 flex items-center gap-3 sm:gap-4 border border-gray-200 shadow-sm hover:shadow-md transition-all" style={{ animation: 'slideUp 0.5s ease-out 0.3s both' }}>
           <div className="w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br from-orange-50 to-orange-100 rounded-xl flex items-center justify-center text-xl sm:text-2xl shadow-sm">⏳</div>
           <div className="min-w-0 flex-1">
             <p className="text-gray-500 text-xs sm:text-sm truncate">Outstanding</p>
-            <p className="text-2xl sm:text-3xl font-bold text-slate-800 truncate">₱{(billingStats.outstanding || 0).toLocaleString()}</p>
+            <p className="text-2xl sm:text-3xl font-bold text-slate-800 truncate">₱{(billingStats.unpaidAmount || 0).toLocaleString()}</p>
           </div>
         </div>
       </div>
@@ -298,11 +274,9 @@ export default function Billing() {
                 className="flex-1 sm:flex-none px-4 py-2.5 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all"
               >
                 <option value="name">Sort by Name</option>
-                {selectedServiceType === 'private-office' && <option value="office">Sort by Office</option>}
-                {selectedServiceType === 'private-office' && <option value="company">Sort by Company</option>}
-                {selectedServiceType === 'dedicated-desk' && <option value="desk">Sort by Desk</option>}
-                {selectedServiceType === 'dedicated-desk' && <option value="company">Sort by Company</option>}
-                <option value="date">Sort by Date</option>
+                <option value="company">Sort by Company</option>
+                <option value="dueDate">Sort by Due Date</option>
+                <option value="status">Sort by Status</option>
               </select>
               <button
                 onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
@@ -325,13 +299,9 @@ export default function Billing() {
             <div className="text-5xl mb-4">💳</div>
             <p className="text-gray-500 text-lg mb-2 font-semibold">No billing records found</p>
             <p className="text-gray-400 text-sm">
-              {allBilling.length === 0 
+              {billingRecords.length === 0 
                 ? 'No billing records have been added yet.' 
-                : searchTerm 
-                  ? `No records match "${searchTerm}"`
-                  : selectedServiceType 
-                    ? `No records found for ${selectedServiceType === 'private-office' ? 'Private Office' : selectedServiceType === 'virtual-office' ? 'Virtual Office' : 'Dedicated Desk'}`
-                    : 'No billing records available.'}
+                : 'No records match your search criteria.'}
             </p>
             {(searchTerm || selectedServiceType) && (
               <button
@@ -351,110 +321,57 @@ export default function Billing() {
               <thead className="bg-gradient-to-r from-slate-800 to-slate-700 text-white">
                 <tr>
                   <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Client</th>
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Type</th>
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Contact</th>
-                  {!selectedServiceType && (
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Company</th>
-                  )}
-                  {selectedServiceType === 'private-office' && (
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Company</th>
-                  )}
-                  {selectedServiceType === 'private-office' && (
-                    <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Office</th>
-                  )}
-                  {selectedServiceType === 'virtual-office' && (
-                    <>
-                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Company</th>
-                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Position</th>
-                    </>
-                  )}
-                  {selectedServiceType === 'dedicated-desk' && (
-                    <>
-                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Desk</th>
-                      <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Company</th>
-                    </>
-                  )}
-                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Start Date</th>
-                  <th className="px-4 sm:px-6 py-3 text-center text-xs font-semibold uppercase tracking-wide">Actions</th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Service Type</th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Assigned</th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Company</th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Amount</th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Due Date</th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Status</th>
+                  <th className="px-4 sm:px-6 py-3 text-left text-xs font-semibold uppercase tracking-wide">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
                 {filteredBilling.map((record, index) => (
                   <tr 
-                    key={`${record.type}-${record.id}`} 
-                    className="bg-white hover:bg-gray-50 transition-colors cursor-pointer"
+                    key={`${record.userId}-${record.billId}`} 
+                    className="bg-white hover:bg-gray-50 transition-colors"
                     style={{ animation: `fadeInScale 0.3s ease-out ${index * 0.05}s both` }}
                   >
                     <td className="px-4 sm:px-6 py-4">
                       <div>
-                        <p className="text-slate-800 font-semibold text-sm">{record.clientName || record.name || 'Unnamed Client'}</p>
-                        <p className="text-gray-500 text-xs mt-0.5 truncate max-w-[200px]" title={record.email || 'N/A'}>
-                          {record.email ? record.email : 'N/A'}
+                        <p className="text-slate-800 font-semibold text-sm">{record.name}</p>
+                        <p className="text-gray-500 text-xs mt-0.5 truncate max-w-[200px]" title={record.email}>
+                          {record.email}
                         </p>
                       </div>
                     </td>
                     <td className="px-4 sm:px-6 py-4">
                       <div className="flex items-center gap-2">
-                        {record.type === 'private-office' && <MdBusiness className="w-5 h-5 text-blue-600" />}
-                        {record.type === 'virtual-office' && <MdTv className="w-5 h-5 text-indigo-600" />}
-                        {record.type === 'dedicated-desk' && <MdDesktopMac className="w-5 h-5 text-teal-600" />}
-                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${getBillingTypeColor(record.type)}`}>
-                          {getBillingTypeLabel(record.type)}
+                        {record.serviceType === 'private-office' && <MdBusiness className="w-5 h-5 text-blue-600" />}
+                        {record.serviceType === 'virtual-office' && <MdTv className="w-5 h-5 text-indigo-600" />}
+                        {record.serviceType === 'dedicated-desk' && <MdDesktopMac className="w-5 h-5 text-teal-600" />}
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${getServiceTypeColor(record.serviceType)}`}>
+                          {getServiceTypeLabel(record.serviceType)}
                         </span>
                       </div>
                     </td>
                     <td className="px-4 sm:px-6 py-4">
-                      <p className="text-gray-600 text-sm">{record.contactNumber || record.phone || 'N/A'}</p>
+                      <p className="text-gray-600 text-sm font-semibold">{record.assignedResource}</p>
                     </td>
-                    {!selectedServiceType && (
-                      <td className="px-4 sm:px-6 py-4">
-                        <p className="text-gray-600 text-sm truncate max-w-[150px]" title={record.companyName || record.company || 'N/A'}>
-                          {record.companyName || record.company ? record.companyName || record.company : 'N/A'}
-                        </p>
-                      </td>
-                    )}
-                    {selectedServiceType === 'private-office' && (
-                      <td className="px-4 sm:px-6 py-4">
-                        <p className="text-gray-600 text-sm truncate max-w-[150px]" title={record.companyName || 'N/A'}>
-                          {record.companyName ? record.companyName : 'N/A'}
-                        </p>
-                      </td>
-                    )}
-                    {selectedServiceType === 'private-office' && (
-                      <td className="px-4 sm:px-6 py-4">
-                        <p className="text-gray-600 text-sm font-semibold">{record.room || 'N/A'}</p>
-                      </td>
-                    )}
-                    {selectedServiceType === 'virtual-office' && (
-                      <>
-                        <td className="px-4 sm:px-6 py-4">
-                          <p className="text-gray-600 text-sm truncate max-w-[150px]" title={record.companyName || 'N/A'}>
-                            {record.companyName ? record.companyName : 'N/A'}
-                          </p>
-                        </td>
-                        <td className="px-4 sm:px-6 py-4">
-                          <p className="text-gray-600 text-sm truncate max-w-[120px]" title={record.position || 'N/A'}>
-                            {record.position || 'N/A'}
-                          </p>
-                        </td>
-                      </>
-                    )}
-                    {selectedServiceType === 'dedicated-desk' && (
-                      <>
-                        <td className="px-4 sm:px-6 py-4">
-                          <p className="text-gray-600 text-sm font-semibold">{record.desk || 'N/A'}</p>
-                        </td>
-                        <td className="px-4 sm:px-6 py-4">
-                          <p className="text-gray-600 text-sm truncate max-w-[150px]" title={record.companyName || 'N/A'}>
-                            {record.companyName ? record.companyName : 'N/A'}
-                          </p>
-                        </td>
-                      </>
-                    )}
+                    <td className="px-4 sm:px-6 py-4">
+                      <p className="text-gray-600 text-sm truncate max-w-[150px]" title={record.companyName}>
+                        {record.companyName}
+                      </p>
+                    </td>
+                    <td className="px-4 sm:px-6 py-4">
+                      <p className="text-gray-600 text-sm font-semibold">
+                        ₱{((record.amount || 0) + (record.cusaFee || 0) + (record.parkingFee || 0)).toLocaleString()}
+                      </p>
+                    </td>
                     <td className="px-4 sm:px-6 py-4">
                       <p className="text-gray-600 text-sm whitespace-nowrap">
-                        {record.startDate 
-                          ? new Date(record.startDate).toLocaleDateString('en-US', { 
+                        {record.dueDate 
+                          ? new Date(record.dueDate).toLocaleDateString('en-US', { 
                               year: 'numeric', 
                               month: 'short', 
                               day: 'numeric' 
@@ -463,33 +380,43 @@ export default function Billing() {
                       </p>
                     </td>
                     <td className="px-4 sm:px-6 py-4">
-                      <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                        <button 
-                          onClick={() => {
-                            setSelectedBillingId(record.id);
-                            setSelectedBillingServiceType(record.type);
-                            if (record.userId) {
-                              sessionStorage.setItem(`billing_userId_${record.id}`, record.userId);
-                            }
-                            setEditModalOpen(true);
-                          }}
-                          className="px-2.5 py-1.5 bg-teal-600 text-white rounded-lg text-xs font-semibold hover:bg-teal-700 transition-colors whitespace-nowrap"
-                          title="Edit billing information"
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold capitalize ${getStatusColor(record.status)}`}>
+                        {record.status}
+                      </span>
+                    </td>
+                    <td className="px-4 sm:px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleEditClick(record)}
+                          className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                          title="Edit bill"
                         >
                           Edit
                         </button>
-                        <button 
-                          onClick={() => setSelectedPaymentData(record)}
-                          className="px-2.5 py-1.5 bg-green-600 text-white rounded-lg text-xs font-semibold hover:bg-green-700 transition-colors whitespace-nowrap"
-                          title="Process payment"
+                        {(record.status === 'unpaid' || record.status === 'overdue') && !record.allBillsPaid && (
+                          <button
+                            onClick={() => handlePayClick(record)}
+                            className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                            title="Record payment"
+                          >
+                            Pay
+                          </button>
+                        )}
+                        {record.allBillsPaid && (
+                          <button
+                            disabled
+                            className="px-3 py-1.5 bg-green-300 text-white text-xs font-semibold rounded-lg cursor-not-allowed opacity-50"
+                            title="All bills paid"
+                          >
+                            Pay
+                          </button>
+                        )}
+                        <button
+                          onClick={() => handleBillsClick(record)}
+                          className="px-3 py-1.5 bg-gray-600 hover:bg-gray-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                          title="View all bills"
                         >
-                          Pay
-                        </button>
-                        <button 
-                          className="px-2.5 py-1.5 bg-gray-600 text-white rounded-lg text-xs font-semibold hover:bg-gray-700 transition-colors whitespace-nowrap"
-                          title="View payment history"
-                        >
-                          History
+                          Bills
                         </button>
                       </div>
                     </td>
@@ -501,31 +428,34 @@ export default function Billing() {
         )}
       </div>
 
-      {/* Edit Billing Modals */}
-      {selectedBillingServiceType === 'private-office' ? (
-        <EditPrivateOfficeModal
-          isOpen={editModalOpen}
-          onClose={() => setEditModalOpen(false)}
-          billingId={selectedBillingId}
-          onSave={handleEditSave}
-        />
-      ) : (
-        <EditDedicatedDeskVirtualOfficeModal
-          isOpen={editModalOpen}
-          onClose={() => setEditModalOpen(false)}
-          billingId={selectedBillingId}
-          serviceType={selectedBillingServiceType}
-          onSave={handleEditSave}
-        />
-      )}
-
-      {/* Payment Modal */}
-      <PaymentModal
-        isOpen={selectedPaymentData !== null}
-        onClose={() => setSelectedPaymentData(null)}
-        billingData={selectedPaymentData}
-        onPaymentRecorded={handleEditSave}
+      {/* Modals */}
+      <EditBillModal
+        isOpen={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        bill={selectedBill}
+        onSave={refreshBillingData}
       />
+
+      <PaymentModal
+        isOpen={payModalOpen}
+        onClose={() => setPayModalOpen(false)}
+        bill={selectedBill}
+        onPaymentRecorded={refreshBillingData}
+      />
+
+      <BillsListModal
+        isOpen={billsListModalOpen}
+        onClose={() => setBillsListModalOpen(false)}
+        bill={selectedBill}
+        onBillClick={handleBillDetailClick}
+      />
+
+      <BillDetailModal
+        isOpen={billDetailModalOpen}
+        onClose={() => setBillDetailModalOpen(false)}
+        bill={selectedBillForDetail}
+      />
+
     </div>
   );
 }
