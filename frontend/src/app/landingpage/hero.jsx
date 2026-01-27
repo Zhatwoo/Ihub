@@ -1,15 +1,49 @@
 'use client';
 
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { League_Spartan } from 'next/font/google';
-import { motion } from 'framer-motion';
+import { motion, useInView } from 'framer-motion';
 
 const leagueSpartan = League_Spartan({
   subsets: ['latin'],
   weight: ['700'], // Bold weight
   variable: '--font-league-spartan',
 });
+
+// Counting animation component
+function CountUp({ end, duration = 2000, suffix = '' }) {
+  const [count, setCount] = useState(0);
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, amount: 0.5 });
+
+  useEffect(() => {
+    if (!isInView) return;
+
+    let startTime = null;
+    const animate = (currentTime) => {
+      if (!startTime) startTime = currentTime;
+      const progress = Math.min((currentTime - startTime) / duration, 1);
+      
+      // Easing function for smooth animation
+      const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+      const currentCount = Math.floor(easeOutQuart * end);
+      
+      setCount(currentCount);
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        setCount(end);
+      }
+    };
+    
+    requestAnimationFrame(animate);
+  }, [isInView, end, duration]);
+
+  return <span ref={ref}>{count}{suffix}</span>;
+}
 
 export default function Hero() {
   return (
@@ -40,7 +74,7 @@ export default function Hero() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 items-center min-h-[400px] sm:min-h-[500px] lg:min-h-[600px]">
           {/* Left Side - Text Content */}
           <motion.div 
-            className="space-y-4 sm:space-y-6 lg:space-y-8 ml-0 sm:-ml-[5%] lg:-ml-[10%] mt-0 sm:mt-[8%] lg:mt-[15%]"
+            className="space-y-4 sm:space-y-6 lg:space-y-8 ml-0 sm:-ml-[5%] lg:-ml-[10%] mt-0 sm:mt-[8%] lg:mt-[15%] 2xl:mt-[25%]"
             initial={{ x: '-100%', opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
@@ -61,7 +95,7 @@ export default function Hero() {
 
           {/* Right Side - Overlapping Images */}
           <motion.div 
-            className="relative h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px] hidden lg:block"
+            className="relative h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px] hidden lg:block 2xl:mt-[10%]"
             initial={{ x: '100%', opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ duration: 0.8, ease: 'easeOut', delay: 0.4 }}
@@ -120,6 +154,56 @@ export default function Hero() {
             </motion.div>
           </motion.div>
         </div>
+
+        {/* Stats Section */}
+        <motion.div 
+          className="relative z-10 mt-8 sm:mt-12 lg:mt-16 2xl:mt-[15%] 2xl:mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: 'easeOut', delay: 0.6 }}
+        >
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 lg:gap-12 max-w-6xl mx-auto px-4 sm:px-6">
+            {/* Stat 1 */}
+            <div className="text-center">
+              <div className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-2">
+                <CountUp end={500} duration={2000} suffix="+" />
+              </div>
+              <div className="text-sm sm:text-base lg:text-lg text-white font-medium">
+                Workspaces
+              </div>
+            </div>
+
+            {/* Stat 2 */}
+            <div className="text-center">
+              <div className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-2">
+                <CountUp end={1000} duration={2000} suffix="+" />
+              </div>
+              <div className="text-sm sm:text-base lg:text-lg text-white font-medium">
+                Members
+              </div>
+            </div>
+
+            {/* Stat 3 */}
+            <div className="text-center">
+              <div className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-2">
+                <CountUp end={50} duration={2000} suffix="+" />
+              </div>
+              <div className="text-sm sm:text-base lg:text-lg text-white font-medium">
+                Locations
+              </div>
+            </div>
+
+            {/* Stat 4 */}
+            <div className="text-center">
+              <div className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-2">
+                <CountUp end={98} duration={2000} suffix="%" />
+              </div>
+              <div className="text-sm sm:text-base lg:text-lg text-white font-medium">
+                Satisfaction
+              </div>
+            </div>
+          </div>
+        </motion.div>
 
       </div>
     </div>
