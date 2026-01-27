@@ -59,12 +59,7 @@ export default function AboutInspire() {
   }, [bottomLeftSlideshowImages.length]);
 
   return (
-    <section id="about-i-hub" ref={sectionRef} className="relative bg-white py-12 sm:py-16 lg:py-24 overflow-hidden">
-      {/* Top Background - Solid Color */}
-      <div 
-        className="absolute top-0 left-0 right-0 h-1/2 bg-[#1F2937] pointer-events-none z-0"
-      ></div>
-      
+    <section id="about-i-hub" ref={sectionRef} className="relative bg-[#1F2937] py-0 overflow-hidden">
       {/* 2x2 Grid Layout - Full Width */}
       <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-0 w-full">
           {/* Top-Left: About Inspire Hub Text Panel */}
