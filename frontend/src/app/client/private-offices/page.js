@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { api, getUserFromCookie } from '@/lib/api';
 
 export default function PrivateOffices() {
+  const searchParams = useSearchParams();
   // Ref to track rooms polling interval
   const roomsIntervalRef = useRef(null);
   // Currency symbol helper
@@ -88,6 +90,14 @@ export default function PrivateOffices() {
 
     fetchUserData();
   }, []);
+
+  // Read search query parameter from URL
+  useEffect(() => {
+    const searchQuery = searchParams.get('search');
+    if (searchQuery) {
+      setSearchTerm(searchQuery);
+    }
+  }, [searchParams]);
 
   // Fetch private offices from backend API (which fetches from Firestore database)
   useEffect(() => {

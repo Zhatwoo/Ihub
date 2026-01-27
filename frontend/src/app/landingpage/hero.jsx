@@ -16,13 +16,13 @@ export default function Hero() {
     <div className="relative min-h-screen bg-white overflow-hidden pt-[104px]">
       {/* Organic Teal Wave Background */}
       <motion.div 
-        className="absolute bottom-[-18%] left-0 right-0 w-full h-full pointer-events-none"
+        className="absolute bottom-[-25%] left-0 right-0 w-full h-full pointer-events-none"
         initial={{ y: '100%', opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 1, ease: 'easeOut' }}
       >
         <svg
-          className="absolute bottom-[13%] left-0 w-full h-full"
+          className="absolute bottom-[15%] left-0 w-full h-full"
           viewBox="0 0 1440 800"
           preserveAspectRatio="none"
           fill="none"
@@ -121,41 +121,6 @@ export default function Hero() {
           </motion.div>
         </div>
 
-        {/* Search Bar - Bottom Center */}
-        <div className="mt-8 sm:mt-12 lg:mt-16 xl:mt-24 flex justify-center">
-          <div className="relative w-full max-w-full sm:max-w-lg lg:max-w-[44.1rem]">
-            <div className="flex items-center bg-[#0F766E] rounded-[20px] sm:rounded-[31.5px] border-[3px] sm:border-[5.25px] border-white overflow-hidden">
-              {/* Search Icon */}
-              <div className="pl-2 sm:pl-[1.05rem] pr-1 sm:pr-[0.525rem]">
-                <svg
-                  className="w-4 h-4 sm:w-[1.575rem] sm:h-[1.575rem] text-teal-300"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </div>
-              
-              {/* Input Field */}
-              <input
-                type="text"
-                placeholder="Search by room, capacity, or location..."
-                className="flex-1 px-2 sm:px-[1.05rem] py-2 sm:py-[1.05rem] bg-[#0F766E] text-teal-300 placeholder-teal-300 focus:outline-none rounded-none text-sm sm:text-base"
-              />
-              
-              {/* Search Button */}
-              <button className="h-full bg-white hover:bg-gray-100 text-[#0F766E] font-semibold px-3 sm:px-7 py-2 sm:py-[1.05rem] rounded-none rounded-r-[20px] sm:rounded-r-[31.5px] transition-colors duration-200 text-sm sm:text-base">
-                Search
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
