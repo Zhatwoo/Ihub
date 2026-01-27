@@ -1,270 +1,467 @@
-// Admin Billing controller
-// Handles billing records for all service types
-
 import { getFirestore } from '../../../config/firebase.js';
 import admin from 'firebase-admin';
-import { sendFirestoreError } from '../../../utils/firestoreHelper.js';
 
-/**
- * Convert Firestore timestamps to ISO strings
- */
-const convertTimestamps = (obj) => {
-  if (!obj) return obj;
-  
-  const converted = { ...obj };
-  
-  // Convert startDate
-  if (converted.startDate) {
-    if (typeof converted.startDate === 'object' && converted.startDate.toDate) {
-      converted.startDate = converted.startDate.toDate().toISOString();
-    } else if (!(typeof converted.startDate === 'string')) {
-      converted.startDate = new Date(converted.startDate).toISOString();
-    }
-  }
-  
-  // Convert createdAt
-  if (converted.createdAt) {
-    if (typeof converted.createdAt === 'object' && converted.createdAt.toDate) {
-      converted.createdAt = converted.createdAt.toDate().toISOString();
-    } else if (!(typeof converted.createdAt === 'string')) {
-      converted.createdAt = new Date(converted.createdAt).toISOString();
-    }
-  }
-  
-  // Convert assignedAt
-  if (converted.assignedAt) {
-    if (typeof converted.assignedAt === 'object' && converted.assignedAt.toDate) {
-      converted.assignedAt = converted.assignedAt.toDate().toISOString();
-    } else if (!(typeof converted.assignedAt === 'string')) {
-      converted.assignedAt = new Date(converted.assignedAt).toISOString();
-    }
-  }
-  
-  return converted;
-};
-
-/**
- * Get billing dashboard data
- */
-export const getBillingDashboard = async (req, res) => {
+// Get all billing records with latest bill status
+export const getAllBilling = async (req, res) => {
   try {
-    const firestore = getFirestore();
-    
-    if (!firestore) {
-      return sendFirestoreError(res);
-    }
-
-    // For now, return empty dashboard data
-    res.json({
-      success: true,
-      data: {
-        revenueStats: {
-          total: 0,
-          pending: 0,
-          overdue: 0
-        },
-        monthlyRevenue: [],
-        recentInvoices: []
-      }
-    });
-  } catch (error) {
-    console.error('Get billing dashboard error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Internal Server Error',
-      message: error.message || 'Failed to fetch billing dashboard data'
-    });
-  }
-};
-
-/**
- * Get invoices with filtering
- */
-export const getInvoices = async (req, res) => {
-  try {
-    // For now, return empty invoices
-    res.json({
-      success: true,
-      data: {
-        invoices: [],
-        totalCount: 0
-      }
-    });
-  } catch (error) {
-    console.error('Get invoices error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Internal Server Error',
-      message: error.message || 'Failed to fetch invoices'
-    });
-  }
-};
-
-/**
- * Get billing stats and records for all service types
- * Fetches from bills collection: /accounts/client/users/{userId}/bills/{billId}
- */
-export const getBillingStats = async (req, res) => {
-  try {
-    const firestore = getFirestore();
-    
-    if (!firestore) {
-      return sendFirestoreError(res);
-    }
-
-    // Fetch all users
-    const usersSnapshot = await firestore
-      .collection('accounts')
-      .doc('client')
-      .collection('users')
-      .get();
-
-    // Fetch bills for each user
-    const allBills = [];
-    
-    for (const userDoc of usersSnapshot.docs) {
-      const userId = userDoc.id;
-      const userData = userDoc.data();
-      
-      try {
-        const billsSnapshot = await firestore
-          .collection('accounts')
-          .doc('client')
-          .collection('users')
-          .doc(userId)
-          .collection('bills')
-          .get();
-        
-        if (billsSnapshot.docs.length > 0) {
-          billsSnapshot.docs.forEach(billDoc => {
-            const billData = billDoc.data();
-            allBills.push(convertTimestamps({
-              id: billDoc.id,
-              userId,
-              ...billData,
-              // Map serviceType to type field for frontend compatibility
-              type: billData.serviceType === 'Private Office' ? 'private-office' 
-                  : billData.serviceType === 'Virtual Office' ? 'virtual-office'
-                  : billData.serviceType === 'Dedicated Desk' ? 'dedicated-desk'
-                  : 'unknown',
-              // Ensure all required fields are present
-              clientName: billData.clientName || userData.fullName || userData.name || 'Unknown',
-              email: billData.email || userData.email || '',
-              contactNumber: billData.contactNumber || userData.phoneNumber || userData.phone || '',
-              companyName: billData.companyName || userData.company || '',
-              room: billData.suite || billData.room || '',
-              desk: billData.desk || '',
-              amount: billData.rentFee || 0,
-              paymentStatus: billData.status || 'unpaid'
-            }));
-          });
-        }
-      } catch (err) {
-        console.warn(`⚠️ Could not fetch bills for user ${userId}:`, err.message);
-      }
-    }
-
-    // Separate bills by service type
-    const privateOfficeBilling = allBills.filter(bill => bill.type === 'private-office');
-    const virtualOfficeBilling = allBills.filter(bill => bill.type === 'virtual-office');
-    const dedicatedDeskBilling = allBills.filter(bill => bill.type === 'dedicated-desk');
-
-    // Calculate stats
-    const stats = {
-      privateOffice: privateOfficeBilling.length,
-      virtualOffice: virtualOfficeBilling.length,
-      dedicatedDesk: dedicatedDeskBilling.length,
-      total: allBills.length
-    };
-
-    res.json({
-      success: true,
-      data: {
-        stats,
-        billing: {
-          privateOffice: privateOfficeBilling,
-          virtualOffice: virtualOfficeBilling,
-          dedicatedDesk: dedicatedDeskBilling
-        }
-      }
-    });
-  } catch (error) {
-    console.error('❌ Get billing stats error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Internal Server Error',
-      message: error.message || 'Failed to fetch billing stats'
-    });
-  }
-};
-
-/**
- * Record payment for a bill
- * Updates bill status to "paid" and adds late fee and damage fee
- */
-export const recordPayment = async (req, res) => {
-  try {
-    const { billId } = req.params;
-    const { userId, lateFee, damageFee } = req.body;
-    const firestore = getFirestore();
-    
-    if (!firestore) {
-      return sendFirestoreError(res);
-    }
-
-    if (!userId) {
-      return res.status(400).json({
+    const db = getFirestore();
+    if (!db) {
+      return res.status(500).json({
         success: false,
-        error: 'Bad Request',
-        message: 'userId is required'
+        message: 'Firestore not initialized'
       });
     }
 
-    // Get the bill reference
-    const billRef = firestore
+    const billingRecords = [];
+
+    // Fetch all users
+    const usersSnapshot = await db.collection('accounts').doc('client').collection('users').get();
+    console.log(`[getAllBilling] Found ${usersSnapshot.docs.length} total users`);
+
+    for (const userDoc of usersSnapshot.docs) {
+      const userId = userDoc.id;
+      const userData = userDoc.data();
+
+      // Get all bills for this user, ordered by creation date
+      const billsSnapshot = await db
+        .collection('accounts')
+        .doc('client')
+        .collection('users')
+        .doc(userId)
+        .collection('bills')
+        .orderBy('createdAt', 'desc')
+        .get();
+
+      console.log(`[getAllBilling] User ${userId} has ${billsSnapshot.docs.length} bills`);
+
+      if (!billsSnapshot.empty) {
+        const bills = billsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // Group bills by assignedResource (desk/office)
+        const billsByResource = {};
+        
+        for (const bill of bills) {
+          const resource = bill.assignedResource || bill.desk || bill.room || bill.office || 'Unknown';
+          
+          if (!billsByResource[resource]) {
+            billsByResource[resource] = [];
+          }
+          
+          billsByResource[resource].push(bill);
+        }
+        
+        console.log(`[getAllBilling] User ${userId} has bills for ${Object.keys(billsByResource).length} resources`);
+        
+        // Create a billing record for each resource
+        for (const [resource, resourceBills] of Object.entries(billsByResource)) {
+          // Check if there are any overdue or unpaid bills for this resource
+          const hasOverdueBills = resourceBills.some(bill => bill.status === 'overdue');
+          const hasUnpaidBills = resourceBills.some(bill => bill.status === 'unpaid');
+          
+          // Determine the overall status based on priority
+          let overallStatus = 'paid'; // Default to paid
+          if (hasOverdueBills) {
+            overallStatus = 'overdue';
+          } else if (hasUnpaidBills) {
+            overallStatus = 'unpaid';
+          }
+          
+          console.log(`[getAllBilling] User ${userId}, Resource ${resource} status: ${overallStatus}`);
+          
+          // Find the bill to display details from (prioritize overdue > unpaid > paid)
+          let displayBill = resourceBills.find(bill => bill.status === 'overdue');
+          if (!displayBill) {
+            displayBill = resourceBills.find(bill => bill.status === 'unpaid');
+          }
+          if (!displayBill) {
+            // If no overdue or unpaid, get the most recent paid bill
+            displayBill = resourceBills.find(bill => bill.status === 'paid');
+          }
+          
+          if (displayBill) {
+            // Convert Firestore Timestamp to Date
+            const dueDate = displayBill.dueDate?.toDate ? displayBill.dueDate.toDate() : (displayBill.dueDate ? new Date(displayBill.dueDate) : new Date());
+            const startDate = displayBill.startDate?.toDate ? displayBill.startDate.toDate() : (displayBill.startDate ? new Date(displayBill.startDate) : new Date());
+
+            // Handle feePeriod - check if it exists (not null/undefined), otherwise use fallback
+            let feePeriod = 'N/A';
+            if (displayBill.feePeriod !== null && displayBill.feePeriod !== undefined) {
+              feePeriod = displayBill.feePeriod;
+            } else if (displayBill.rentFeePeriod !== null && displayBill.rentFeePeriod !== undefined) {
+              feePeriod = displayBill.rentFeePeriod;
+            }
+
+            // Check if all bills for this resource are paid
+            const allBillsPaid = resourceBills.every(bill => bill.status === 'paid');
+
+            billingRecords.push({
+              userId,
+              billId: displayBill.id,
+              name: userData.name || (userData.firstName && userData.lastName ? `${userData.firstName} ${userData.lastName}` : displayBill.clientName || 'N/A'),
+              email: userData.email || displayBill.email || 'N/A',
+              phone: userData.contactNumber || displayBill.contactNumber || 'N/A',
+              companyName: userData.companyName || displayBill.companyName || 'N/A',
+              serviceType: displayBill.serviceType || 'N/A',
+              assignedResource: resource,
+              amount: displayBill.amount || displayBill.rentFee || 0,
+              cusaFee: displayBill.cusaFee || 0,
+              parkingFee: displayBill.parkingFee || 0,
+              lateFee: displayBill.lateFee || 0,
+              damageFee: displayBill.damageFee || 0,
+              feePeriod: feePeriod,
+              status: overallStatus, // Use overall status for this resource
+              dueDate: dueDate.toISOString(),
+              startDate: startDate.toISOString(),
+              allBillsPaid: allBillsPaid, // Flag to indicate if all bills for this resource are paid
+            });
+            
+            console.log(`[getAllBilling] Added billing record for user ${userId}, resource ${resource}`);
+          }
+        }
+      } else {
+        console.log(`[getAllBilling] User ${userId} has no bills, skipping`);
+      }
+    }
+
+    console.log(`[getAllBilling] Returning ${billingRecords.length} billing records`);
+
+    res.status(200).json({
+      success: true,
+      data: billingRecords
+    });
+  } catch (error) {
+    console.error('Error fetching billing records:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch billing records',
+      error: error.message
+    });
+  }
+};
+
+// Get billing statistics for dashboard
+export const getBillingStats = async (req, res) => {
+  try {
+    const db = getFirestore();
+    if (!db) {
+      return res.status(500).json({
+        success: false,
+        message: 'Firestore not initialized'
+      });
+    }
+
+    let totalBills = 0;
+    let totalRevenue = 0;
+    let paidCount = 0;
+    let unpaidAmount = 0;
+    let overdueCount = 0;
+
+    // Fetch all users
+    const usersSnapshot = await db.collection('accounts').doc('client').collection('users').get();
+
+    for (const userDoc of usersSnapshot.docs) {
+      const userId = userDoc.id;
+
+      // Get all bills for this user
+      const billsSnapshot = await db
+        .collection('accounts')
+        .doc('client')
+        .collection('users')
+        .doc(userId)
+        .collection('bills')
+        .get();
+
+      billsSnapshot.forEach(billDoc => {
+        const bill = billDoc.data();
+        totalBills++;
+
+        if (bill.status === 'paid') {
+          paidCount++;
+          totalRevenue += (bill.amount || 0) + (bill.cusaFee || 0) + (bill.parkingFee || 0) + (bill.lateFee || 0) + (bill.damageFee || 0);
+        } else if (bill.status === 'unpaid') {
+          unpaidAmount += (bill.amount || 0) + (bill.cusaFee || 0) + (bill.parkingFee || 0);
+        } else if (bill.status === 'overdue') {
+          overdueCount++;
+          unpaidAmount += (bill.amount || 0) + (bill.cusaFee || 0) + (bill.parkingFee || 0);
+        }
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalBills,
+        totalRevenue,
+        paidCount,
+        unpaidAmount,
+        overdueCount
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching billing stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch billing statistics',
+      error: error.message
+    });
+  }
+};
+
+// Get all bills for a specific user
+export const getUserBills = async (req, res) => {
+  try {
+    const db = getFirestore();
+    if (!db) {
+      return res.status(500).json({
+        success: false,
+        message: 'Firestore not initialized'
+      });
+    }
+
+    const { userId } = req.params;
+
+    const billsSnapshot = await db
+      .collection('accounts')
+      .doc('client')
+      .collection('users')
+      .doc(userId)
+      .collection('bills')
+      .orderBy('createdAt', 'desc')
+      .get();
+
+    const bills = billsSnapshot.docs.map(doc => {
+      const data = doc.data();
+      
+      // Handle feePeriod properly
+      let feePeriod = 'N/A';
+      if (data.feePeriod !== null && data.feePeriod !== undefined) {
+        feePeriod = data.feePeriod;
+      } else if (data.rentFeePeriod !== null && data.rentFeePeriod !== undefined) {
+        feePeriod = data.rentFeePeriod;
+      }
+      
+      return {
+        id: doc.id,
+        ...data,
+        feePeriod: feePeriod,
+        dueDate: data.dueDate?.toDate ? data.dueDate.toDate().toISOString() : data.dueDate,
+        startDate: data.startDate?.toDate ? data.startDate.toDate().toISOString() : data.startDate,
+        createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : data.createdAt,
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      data: bills
+    });
+  } catch (error) {
+    console.error('Error fetching user bills:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch user bills',
+      error: error.message
+    });
+  }
+};
+
+// Record payment for a bill
+export const recordPayment = async (req, res) => {
+  try {
+    const db = getFirestore();
+    if (!db) {
+      return res.status(500).json({
+        success: false,
+        message: 'Firestore not initialized'
+      });
+    }
+
+    const { userId, billId } = req.params;
+    const { lateFee = 0, damageFee = 0 } = req.body;
+
+    await db
+      .collection('accounts')
+      .doc('client')
+      .collection('users')
+      .doc(userId)
+      .collection('bills')
+      .doc(billId)
+      .update({
+        status: 'paid',
+        lateFee: parseFloat(lateFee) || 0,
+        damageFee: parseFloat(damageFee) || 0,
+        paidAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+    res.status(200).json({
+      success: true,
+      message: 'Payment recorded successfully'
+    });
+  } catch (error) {
+    console.error('Error recording payment:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to record payment',
+      error: error.message
+    });
+  }
+};
+
+// Update bill details
+export const updateBill = async (req, res) => {
+  try {
+    const db = getFirestore();
+    if (!db) {
+      return res.status(500).json({
+        success: false,
+        message: 'Firestore not initialized'
+      });
+    }
+
+    const { userId, billId } = req.params;
+    const { amount, cusaFee, parkingFee, feePeriod, dueDate } = req.body;
+
+    console.log('[updateBill] ===== UPDATE BILL REQUEST =====');
+    console.log('[updateBill] userId:', userId);
+    console.log('[updateBill] billId:', billId);
+    console.log('[updateBill] Received request body:', JSON.stringify(req.body, null, 2));
+    console.log('[updateBill] feePeriod value:', feePeriod, 'type:', typeof feePeriod);
+    console.log('[updateBill] dueDate value:', dueDate, 'type:', typeof dueDate);
+
+    // Get the current bill to access startDate
+    const billRef = db
       .collection('accounts')
       .doc('client')
       .collection('users')
       .doc(userId)
       .collection('bills')
       .doc(billId);
-
+    
     const billDoc = await billRef.get();
-
     if (!billDoc.exists) {
       return res.status(404).json({
         success: false,
-        error: 'Not Found',
         message: 'Bill not found'
       });
     }
 
-    // Update the bill with payment information
-    await billRef.update({
-      status: 'paid',
-      lateFee: lateFee || 0,
-      damageFee: damageFee || 0,
-      paidAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    });
+    const currentBill = billDoc.data();
 
-    res.json({
-      success: true,
-      message: 'Payment recorded successfully',
-      data: {
-        billId,
-        userId,
-        status: 'paid',
-        lateFee: lateFee || 0,
-        damageFee: damageFee || 0
+    const updateData = {};
+    if (amount !== undefined) updateData.amount = parseFloat(amount) || 0;
+    if (cusaFee !== undefined) updateData.cusaFee = parseFloat(cusaFee) || 0;
+    if (parkingFee !== undefined) updateData.parkingFee = parseFloat(parkingFee) || 0;
+    
+    // Save feePeriod if provided
+    if (feePeriod !== undefined && feePeriod !== null && feePeriod !== 'N/A') {
+      updateData.feePeriod = feePeriod;
+      console.log('[updateBill] Setting feePeriod to:', feePeriod);
+    }
+    
+    // Save dueDate if provided and valid
+    if (dueDate) {
+      const dueDateObj = new Date(dueDate);
+      console.log('[updateBill] Parsed dueDate:', dueDateObj);
+      
+      if (!isNaN(dueDateObj.getTime())) {
+        updateData.dueDate = admin.firestore.Timestamp.fromDate(dueDateObj);
+        console.log('[updateBill] Setting dueDate to:', dueDateObj.toISOString());
+      } else {
+        console.error('[updateBill] Invalid dueDate provided:', dueDate);
       }
+    }
+
+    console.log('[updateBill] Final update data:', JSON.stringify(updateData, null, 2));
+
+    await billRef.update(updateData);
+
+    console.log('[updateBill] ✅ Bill updated successfully in Firestore');
+
+    res.status(200).json({
+      success: true,
+      message: 'Bill updated successfully'
     });
   } catch (error) {
-    console.error('❌ Record payment error:', error);
+    console.error('[updateBill] ❌ Error updating bill:', error);
     res.status(500).json({
       success: false,
-      error: 'Internal Server Error',
-      message: error.message || 'Failed to record payment'
+      message: 'Failed to update bill',
+      error: error.message
+    });
+  }
+};
+
+// Create initial bill for a tenant (called manually by admin)
+export const createBill = async (req, res) => {
+  try {
+    const db = getFirestore();
+    if (!db) {
+      return res.status(500).json({
+        success: false,
+        message: 'Firestore not initialized'
+      });
+    }
+
+    const { userId } = req.params;
+    const { 
+      serviceType, 
+      assignedResource, 
+      amount, 
+      cusaFee, 
+      parkingFee, 
+      feePeriod, 
+      startDate, 
+      dueDate 
+    } = req.body;
+
+    // Get user data
+    const userDoc = await db.collection('accounts').doc('client').collection('users').doc(userId).get();
+    if (!userDoc.exists) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    const userData = userDoc.data();
+
+    const billData = {
+      clientName: userData.name || (userData.firstName && userData.lastName ? `${userData.firstName} ${userData.lastName}` : 'N/A'),
+      companyName: userData.companyName || 'N/A',
+      email: userData.email || 'N/A',
+      contactNumber: userData.contactNumber || 'N/A',
+      serviceType: serviceType || 'N/A',
+      assignedResource: assignedResource || 'N/A',
+      amount: parseFloat(amount) || 0,
+      cusaFee: parseFloat(cusaFee) || 0,
+      parkingFee: parseFloat(parkingFee) || 0,
+      lateFee: 0,
+      damageFee: 0,
+      feePeriod: feePeriod || 'Monthly',
+      startDate: admin.firestore.Timestamp.fromDate(new Date(startDate)),
+      dueDate: admin.firestore.Timestamp.fromDate(new Date(dueDate)),
+      status: 'unpaid',
+      createdAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    const billRef = await db
+      .collection('accounts')
+      .doc('client')
+      .collection('users')
+      .doc(userId)
+      .collection('bills')
+      .add(billData);
+
+    res.status(201).json({
+      success: true,
+      message: 'Bill created successfully',
+      billId: billRef.id
+    });
+  } catch (error) {
+    console.error('Error creating bill:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to create bill',
+      error: error.message
     });
   }
 };
