@@ -1,9 +1,10 @@
 'use client';
 
+import { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { League_Spartan } from 'next/font/google';
-import { motion } from 'framer-motion';
+import { motion, useInView } from 'framer-motion';
 
 const leagueSpartan = League_Spartan({
   subsets: ['latin'],
@@ -11,18 +12,51 @@ const leagueSpartan = League_Spartan({
   variable: '--font-league-spartan',
 });
 
+// Counting animation component
+function CountUp({ end, duration = 2000, suffix = '' }) {
+  const [count, setCount] = useState(0);
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, amount: 0.5 });
+
+  useEffect(() => {
+    if (!isInView) return;
+
+    let startTime = null;
+    const animate = (currentTime) => {
+      if (!startTime) startTime = currentTime;
+      const progress = Math.min((currentTime - startTime) / duration, 1);
+      
+      // Easing function for smooth animation
+      const easeOutQuart = 1 - Math.pow(1 - progress, 4);
+      const currentCount = Math.floor(easeOutQuart * end);
+      
+      setCount(currentCount);
+      
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        setCount(end);
+      }
+    };
+    
+    requestAnimationFrame(animate);
+  }, [isInView, end, duration]);
+
+  return <span ref={ref}>{count}{suffix}</span>;
+}
+
 export default function Hero() {
   return (
     <div className="relative min-h-screen bg-white overflow-hidden pt-[104px]">
       {/* Organic Teal Wave Background */}
       <motion.div 
-        className="absolute bottom-[-18%] left-0 right-0 w-full h-full pointer-events-none"
+        className="absolute bottom-[-25%] left-0 right-0 w-full h-full pointer-events-none"
         initial={{ y: '100%', opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 1, ease: 'easeOut' }}
       >
         <svg
-          className="absolute bottom-[13%] left-0 w-full h-full"
+          className="absolute bottom-[15%] left-0 w-full h-full"
           viewBox="0 0 1440 800"
           preserveAspectRatio="none"
           fill="none"
@@ -40,7 +74,7 @@ export default function Hero() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 items-center min-h-[400px] sm:min-h-[500px] lg:min-h-[600px]">
           {/* Left Side - Text Content */}
           <motion.div 
-            className="space-y-4 sm:space-y-6 lg:space-y-8 ml-0 sm:-ml-[5%] lg:-ml-[10%] mt-0 sm:mt-[8%] lg:mt-[15%]"
+            className="space-y-4 sm:space-y-6 lg:space-y-8 ml-0 sm:-ml-[5%] lg:-ml-[10%] mt-0 sm:mt-[8%] lg:mt-[15%] 2xl:mt-[25%]"
             initial={{ x: '-100%', opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
@@ -61,7 +95,7 @@ export default function Hero() {
 
           {/* Right Side - Overlapping Images */}
           <motion.div 
-            className="relative h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px] hidden lg:block"
+            className="relative h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px] hidden lg:block 2xl:mt-[10%]"
             initial={{ x: '100%', opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ duration: 0.8, ease: 'easeOut', delay: 0.4 }}
@@ -121,41 +155,56 @@ export default function Hero() {
           </motion.div>
         </div>
 
-        {/* Search Bar - Bottom Center */}
-        <div className="mt-8 sm:mt-12 lg:mt-16 xl:mt-24 flex justify-center">
-          <div className="relative w-full max-w-full sm:max-w-lg lg:max-w-[44.1rem]">
-            <div className="flex items-center bg-[#0F766E] rounded-[20px] sm:rounded-[31.5px] border-[3px] sm:border-[5.25px] border-white overflow-hidden">
-              {/* Search Icon */}
-              <div className="pl-2 sm:pl-[1.05rem] pr-1 sm:pr-[0.525rem]">
-                <svg
-                  className="w-4 h-4 sm:w-[1.575rem] sm:h-[1.575rem] text-teal-300"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
+        {/* Stats Section */}
+        <motion.div 
+          className="relative z-10 mt-8 sm:mt-12 lg:mt-16 2xl:mt-[15%] 2xl:mb-8"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: 'easeOut', delay: 0.6 }}
+        >
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-8 lg:gap-12 max-w-6xl mx-auto px-4 sm:px-6">
+            {/* Stat 1 */}
+            <div className="text-center">
+              <div className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-2">
+                <CountUp end={500} duration={2000} suffix="+" />
               </div>
-              
-              {/* Input Field */}
-              <input
-                type="text"
-                placeholder="Search by room, capacity, or location..."
-                className="flex-1 px-2 sm:px-[1.05rem] py-2 sm:py-[1.05rem] bg-[#0F766E] text-teal-300 placeholder-teal-300 focus:outline-none rounded-none text-sm sm:text-base"
-              />
-              
-              {/* Search Button */}
-              <button className="h-full bg-white hover:bg-gray-100 text-[#0F766E] font-semibold px-3 sm:px-7 py-2 sm:py-[1.05rem] rounded-none rounded-r-[20px] sm:rounded-r-[31.5px] transition-colors duration-200 text-sm sm:text-base">
-                Search
-              </button>
+              <div className="text-sm sm:text-base lg:text-lg text-white font-medium">
+                Workspaces
+              </div>
+            </div>
+
+            {/* Stat 2 */}
+            <div className="text-center">
+              <div className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-2">
+                <CountUp end={1000} duration={2000} suffix="+" />
+              </div>
+              <div className="text-sm sm:text-base lg:text-lg text-white font-medium">
+                Members
+              </div>
+            </div>
+
+            {/* Stat 3 */}
+            <div className="text-center">
+              <div className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-2">
+                <CountUp end={50} duration={2000} suffix="+" />
+              </div>
+              <div className="text-sm sm:text-base lg:text-lg text-white font-medium">
+                Locations
+              </div>
+            </div>
+
+            {/* Stat 4 */}
+            <div className="text-center">
+              <div className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-white mb-2">
+                <CountUp end={98} duration={2000} suffix="%" />
+              </div>
+              <div className="text-sm sm:text-base lg:text-lg text-white font-medium">
+                Satisfaction
+              </div>
             </div>
           </div>
-        </div>
+        </motion.div>
+
       </div>
     </div>
   );
