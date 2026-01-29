@@ -357,13 +357,70 @@ export const createVirtualOfficeClient = async (req, res) => {
     });
 
     const newClient = await clientRef.get();
+    const newClientData = newClient.data();
+    const clientId = clientRef.id;
+
+    console.log(`✅ Virtual office client created with ID: ${clientId}`);
+    console.log(`📝 Client data:`, JSON.stringify(clientData, null, 2));
+
+    // Create initial bill under virtual office client (not under user account)
+    // Bill is created with null feePeriod and dueDate - admin must set these via Edit Bill
+    let billCreated = false;
+    let billError = null;
+    
+    try {
+      console.log(`🔄 Creating bill for virtual office client ${clientId}...`);
+      
+      const billRef = firestore
+        .collection('virtual-office-clients')
+        .doc(clientId)
+        .collection('bills')
+        .doc();
+
+      const startDate = new Date();
+      
+      const billData = {
+        clientName: clientData.fullName || 'N/A',
+        companyName: clientData.company || 'N/A',
+        email: clientData.email || 'N/A',
+        contactNumber: clientData.phoneNumber || 'N/A',
+        serviceType: 'virtual-office',
+        assignedResource: clientData.package || clientData.plan || 'Virtual Office',
+        amount: 0, // Admin must set via Edit Bill
+        cusaFee: 0,
+        parkingFee: 0,
+        lateFee: 0,
+        damageFee: 0,
+        feePeriod: null, // Admin must set via Edit Bill
+        startDate: admin.firestore.Timestamp.fromDate(startDate),
+        dueDate: null, // Admin must set via Edit Bill (will be calculated as startDate + feePeriod)
+        status: 'unpaid',
+        clientId: clientId, // Reference to virtual office client
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      };
+      
+      console.log(`📝 Bill data:`, JSON.stringify(billData, null, 2));
+
+      await billRef.set(billData);
+      
+      billCreated = true;
+      console.log(`✅ Created initial bill for virtual office client ${clientId} at /virtual-office-clients/${clientId}/bills/${billRef.id}`);
+    } catch (error) {
+      billError = error;
+      console.error('❌ Error creating virtual office bill:', error);
+      console.error('❌ Error stack:', error.stack);
+    }
 
     res.status(201).json({
       success: true,
-      message: 'Virtual office client created successfully',
+      message: billCreated 
+        ? 'Virtual office client and bill created successfully' 
+        : `Virtual office client created but bill creation failed: ${billError?.message || 'Unknown error'}`,
+      billCreated: billCreated,
+      billError: billError ? billError.message : null,
       data: {
         id: newClient.id,
-        ...newClient.data()
+        ...newClientData
       }
     });
   } catch (error) {

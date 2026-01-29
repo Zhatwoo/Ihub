@@ -123,6 +123,104 @@ export const getAllBilling = async (req, res) => {
       }
     }
 
+    // Fetch bills from virtual office clients (they don't have user accounts)
+    const virtualOfficeClientsSnapshot = await db.collection('virtual-office-clients').get();
+    console.log(`[getAllBilling] Found ${virtualOfficeClientsSnapshot.docs.length} virtual office clients`);
+
+    for (const clientDoc of virtualOfficeClientsSnapshot.docs) {
+      const clientId = clientDoc.id;
+      const clientData = clientDoc.data();
+
+      // Get all bills for this virtual office client
+      const billsSnapshot = await db
+        .collection('virtual-office-clients')
+        .doc(clientId)
+        .collection('bills')
+        .orderBy('createdAt', 'desc')
+        .get();
+
+      console.log(`[getAllBilling] Virtual office client ${clientId} has ${billsSnapshot.docs.length} bills`);
+
+      if (!billsSnapshot.empty) {
+        const bills = billsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // Group bills by assignedResource
+        const billsByResource = {};
+        
+        for (const bill of bills) {
+          const resource = bill.assignedResource || 'Virtual Office';
+          
+          if (!billsByResource[resource]) {
+            billsByResource[resource] = [];
+          }
+          
+          billsByResource[resource].push(bill);
+        }
+        
+        console.log(`[getAllBilling] Virtual office client ${clientId} has bills for ${Object.keys(billsByResource).length} resources`);
+        
+        // Create a billing record for each resource
+        for (const [resource, resourceBills] of Object.entries(billsByResource)) {
+          const hasOverdueBills = resourceBills.some(bill => bill.status === 'overdue');
+          const hasUnpaidBills = resourceBills.some(bill => bill.status === 'unpaid');
+          
+          let overallStatus = 'paid';
+          if (hasOverdueBills) {
+            overallStatus = 'overdue';
+          } else if (hasUnpaidBills) {
+            overallStatus = 'unpaid';
+          }
+          
+          console.log(`[getAllBilling] Virtual office client ${clientId}, Resource ${resource} status: ${overallStatus}`);
+          
+          let displayBill = resourceBills.find(bill => bill.status === 'overdue');
+          if (!displayBill) {
+            displayBill = resourceBills.find(bill => bill.status === 'unpaid');
+          }
+          if (!displayBill) {
+            displayBill = resourceBills.find(bill => bill.status === 'paid');
+          }
+          
+          if (displayBill) {
+            const dueDate = displayBill.dueDate?.toDate ? displayBill.dueDate.toDate() : (displayBill.dueDate ? new Date(displayBill.dueDate) : new Date());
+            const startDate = displayBill.startDate?.toDate ? displayBill.startDate.toDate() : (displayBill.startDate ? new Date(displayBill.startDate) : new Date());
+
+            let feePeriod = 'N/A';
+            if (displayBill.feePeriod !== null && displayBill.feePeriod !== undefined) {
+              feePeriod = displayBill.feePeriod;
+            }
+
+            const allBillsPaid = resourceBills.every(bill => bill.status === 'paid');
+
+            billingRecords.push({
+              userId: clientId, // Use clientId as userId for virtual office
+              clientId: clientId, // Add clientId to identify virtual office clients
+              isVirtualOffice: true, // Flag to identify virtual office billing
+              billId: displayBill.id,
+              name: clientData.fullName || displayBill.clientName || 'N/A',
+              email: clientData.email || displayBill.email || 'N/A',
+              phone: clientData.phoneNumber || displayBill.contactNumber || 'N/A',
+              companyName: clientData.company || displayBill.companyName || 'N/A',
+              serviceType: 'virtual-office',
+              assignedResource: resource,
+              amount: displayBill.amount || 0,
+              cusaFee: displayBill.cusaFee || 0,
+              parkingFee: displayBill.parkingFee || 0,
+              lateFee: displayBill.lateFee || 0,
+              damageFee: displayBill.damageFee || 0,
+              feePeriod: feePeriod,
+              status: overallStatus,
+              dueDate: dueDate.toISOString(),
+              startDate: startDate.toISOString(),
+              allBillsPaid: allBillsPaid,
+            });
+            
+            console.log(`[getAllBilling] Added billing record for virtual office client ${clientId}, resource ${resource}`);
+          }
+        }
+      }
+    }
+
     console.log(`[getAllBilling] Returning ${billingRecords.length} billing records`);
 
     res.status(200).json({
@@ -156,7 +254,7 @@ export const getBillingStats = async (req, res) => {
     let unpaidAmount = 0;
     let overdueCount = 0;
 
-    // Fetch all users
+    // Fetch all users and their bills
     const usersSnapshot = await db.collection('accounts').doc('client').collection('users').get();
 
     for (const userDoc of usersSnapshot.docs) {
@@ -168,6 +266,35 @@ export const getBillingStats = async (req, res) => {
         .doc('client')
         .collection('users')
         .doc(userId)
+        .collection('bills')
+        .get();
+
+      billsSnapshot.forEach(billDoc => {
+        const bill = billDoc.data();
+        totalBills++;
+
+        if (bill.status === 'paid') {
+          paidCount++;
+          totalRevenue += (bill.amount || 0) + (bill.cusaFee || 0) + (bill.parkingFee || 0) + (bill.lateFee || 0) + (bill.damageFee || 0);
+        } else if (bill.status === 'unpaid') {
+          unpaidAmount += (bill.amount || 0) + (bill.cusaFee || 0) + (bill.parkingFee || 0);
+        } else if (bill.status === 'overdue') {
+          overdueCount++;
+          unpaidAmount += (bill.amount || 0) + (bill.cusaFee || 0) + (bill.parkingFee || 0);
+        }
+      });
+    }
+
+    // Fetch all virtual office clients and their bills
+    const virtualOfficeClientsSnapshot = await db.collection('virtual-office-clients').get();
+
+    for (const clientDoc of virtualOfficeClientsSnapshot.docs) {
+      const clientId = clientDoc.id;
+
+      // Get all bills for this virtual office client
+      const billsSnapshot = await db
+        .collection('virtual-office-clients')
+        .doc(clientId)
         .collection('bills')
         .get();
 
@@ -207,7 +334,7 @@ export const getBillingStats = async (req, res) => {
   }
 };
 
-// Get all bills for a specific user
+// Get all bills for a specific user or virtual office client
 export const getUserBills = async (req, res) => {
   try {
     const db = getFirestore();
@@ -219,15 +346,29 @@ export const getUserBills = async (req, res) => {
     }
 
     const { userId } = req.params;
+    const { isVirtualOffice } = req.query; // Check if this is a virtual office client
 
-    const billsSnapshot = await db
-      .collection('accounts')
-      .doc('client')
-      .collection('users')
-      .doc(userId)
-      .collection('bills')
-      .orderBy('createdAt', 'desc')
-      .get();
+    let billsSnapshot;
+    
+    if (isVirtualOffice === 'true') {
+      // Fetch bills from virtual office client
+      billsSnapshot = await db
+        .collection('virtual-office-clients')
+        .doc(userId)
+        .collection('bills')
+        .orderBy('createdAt', 'desc')
+        .get();
+    } else {
+      // Fetch bills from user account
+      billsSnapshot = await db
+        .collection('accounts')
+        .doc('client')
+        .collection('users')
+        .doc(userId)
+        .collection('bills')
+        .orderBy('createdAt', 'desc')
+        .get();
+    }
 
     const bills = billsSnapshot.docs.map(doc => {
       const data = doc.data();
@@ -276,28 +417,51 @@ export const recordPayment = async (req, res) => {
     }
 
     const { userId, billId } = req.params;
-    const { lateFee = 0, damageFee = 0 } = req.body;
+    const { lateFee = 0, damageFee = 0, isVirtualOffice } = req.body;
 
-    await db
-      .collection('accounts')
-      .doc('client')
-      .collection('users')
-      .doc(userId)
-      .collection('bills')
-      .doc(billId)
-      .update({
-        status: 'paid',
-        lateFee: parseFloat(lateFee) || 0,
-        damageFee: parseFloat(damageFee) || 0,
-        paidAt: admin.firestore.FieldValue.serverTimestamp()
-      });
+    console.log('[recordPayment] Recording payment for:', { userId, billId, isVirtualOffice, lateFee, damageFee });
+
+    let billRef;
+    
+    if (isVirtualOffice) {
+      // Update bill in virtual office client
+      billRef = db
+        .collection('virtual-office-clients')
+        .doc(userId)
+        .collection('bills')
+        .doc(billId);
+      console.log('[recordPayment] Using virtual office path');
+    } else {
+      // Update bill in user account
+      billRef = db
+        .collection('accounts')
+        .doc('client')
+        .collection('users')
+        .doc(userId)
+        .collection('bills')
+        .doc(billId);
+      console.log('[recordPayment] Using user account path');
+    }
+
+    const updateData = {
+      status: 'paid',
+      lateFee: parseFloat(lateFee) || 0,
+      damageFee: parseFloat(damageFee) || 0,
+      paidAt: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    console.log('[recordPayment] Update data:', updateData);
+
+    await billRef.update(updateData);
+
+    console.log('[recordPayment] ✅ Payment recorded successfully');
 
     res.status(200).json({
       success: true,
       message: 'Payment recorded successfully'
     });
   } catch (error) {
-    console.error('Error recording payment:', error);
+    console.error('[recordPayment] ❌ Error recording payment:', error);
     res.status(500).json({
       success: false,
       message: 'Failed to record payment',
@@ -318,23 +482,34 @@ export const updateBill = async (req, res) => {
     }
 
     const { userId, billId } = req.params;
-    const { amount, cusaFee, parkingFee, feePeriod, dueDate } = req.body;
+    const { amount, cusaFee, parkingFee, feePeriod, dueDate, isVirtualOffice } = req.body;
 
     console.log('[updateBill] ===== UPDATE BILL REQUEST =====');
     console.log('[updateBill] userId:', userId);
     console.log('[updateBill] billId:', billId);
+    console.log('[updateBill] isVirtualOffice:', isVirtualOffice);
     console.log('[updateBill] Received request body:', JSON.stringify(req.body, null, 2));
     console.log('[updateBill] feePeriod value:', feePeriod, 'type:', typeof feePeriod);
     console.log('[updateBill] dueDate value:', dueDate, 'type:', typeof dueDate);
 
     // Get the current bill to access startDate
-    const billRef = db
-      .collection('accounts')
-      .doc('client')
-      .collection('users')
-      .doc(userId)
-      .collection('bills')
-      .doc(billId);
+    let billRef;
+    
+    if (isVirtualOffice) {
+      billRef = db
+        .collection('virtual-office-clients')
+        .doc(userId)
+        .collection('bills')
+        .doc(billId);
+    } else {
+      billRef = db
+        .collection('accounts')
+        .doc('client')
+        .collection('users')
+        .doc(userId)
+        .collection('bills')
+        .doc(billId);
+    }
     
     const billDoc = await billRef.get();
     if (!billDoc.exists) {

@@ -83,9 +83,12 @@ export default function BillDetailModal({ isOpen, onClose, bill }) {
             <div className="space-y-1 text-sm">
               <p><span className="text-gray-600">Start Date:</span> <span className="font-semibold">{formatDate(bill.startDate)}</span></p>
               <p><span className="text-gray-600">Due Date:</span> <span className="font-semibold">{formatDate(bill.dueDate)}</span></p>
-              {bill.paidAt && (
-                <p><span className="text-gray-600">Paid On:</span> <span className="font-semibold text-green-600">{formatDate(bill.paidAt)}</span></p>
-              )}
+              <p>
+                <span className="text-gray-600">Paid On:</span>{' '}
+                <span className={`font-semibold ${bill.paidAt ? 'text-green-600' : 'text-gray-500'}`}>
+                  {formatDate(bill.paidAt)}
+                </span>
+              </p>
             </div>
           </div>
 

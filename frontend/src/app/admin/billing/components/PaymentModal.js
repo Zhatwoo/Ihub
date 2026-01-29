@@ -25,7 +25,10 @@ export default function PaymentModal({ isOpen, onClose, bill, onPaymentRecorded 
     try {
       const response = await api.post(
         `/api/admin/billing/${bill.userId}/${bill.billId}/record-payment`,
-        formData
+        {
+          ...formData,
+          isVirtualOffice: bill.isVirtualOffice || false
+        }
       );
 
       if (response.success) {

@@ -22,6 +22,8 @@ const checkAndCreateNewBills = async () => {
     console.log('[Billing Service] Checking for overdue bills...');
     
     const now = new Date();
+    
+    // Process user bills
     const usersSnapshot = await db.collection('accounts').doc('client').collection('users').get();
 
     for (const userDoc of usersSnapshot.docs) {
@@ -55,112 +57,242 @@ const checkAndCreateNewBills = async () => {
       
       // Process each resource separately
       for (const [resource, resourceBills] of Object.entries(billsByResource)) {
-        // Find the latest bill for this resource
-        const latestBill = resourceBills[0];
-        
-        // Skip if bill doesn't have feePeriod or dueDate set (admin hasn't configured it yet)
-        if (!latestBill.feePeriod || !latestBill.dueDate) {
-          console.log(`[Billing Service] Skipping user ${userId}, resource ${resource} - bill not configured (missing feePeriod or dueDate)`);
-          continue;
+        await processResourceBills(db, userId, resource, resourceBills, now, userDoc.data());
+      }
+    }
+    
+    // Process virtual office client bills
+    const virtualOfficeClientsSnapshot = await db.collection('virtual-office-clients').get();
+    
+    for (const clientDoc of virtualOfficeClientsSnapshot.docs) {
+      const clientId = clientDoc.id;
+      
+      // Get all bills for this virtual office client
+      const billsSnapshot = await db
+        .collection('virtual-office-clients')
+        .doc(clientId)
+        .collection('bills')
+        .orderBy('createdAt', 'desc')
+        .get();
+      
+      if (billsSnapshot.empty) continue;
+      
+      const bills = billsSnapshot.docs.map(doc => ({ id: doc.id, ref: doc.ref, ...doc.data() }));
+      
+      // Group bills by assignedResource
+      const billsByResource = {};
+      for (const bill of bills) {
+        const resource = bill.assignedResource || 'Virtual Office';
+        if (!billsByResource[resource]) {
+          billsByResource[resource] = [];
         }
-        
-        const dueDate = latestBill.dueDate?.toDate ? latestBill.dueDate.toDate() : new Date(latestBill.dueDate);
-        
-        // Skip if dueDate is invalid (epoch time or before year 2000)
-        if (isNaN(dueDate.getTime()) || dueDate.getFullYear() < 2000) {
-          console.log(`[Billing Service] Skipping user ${userId}, resource ${resource} - invalid dueDate: ${dueDate}`);
-          continue;
-        }
-
-        // Check if due date has passed
-        if (now > dueDate) {
-          // Update status of unpaid bills to overdue for this resource
-          for (const bill of resourceBills) {
-            if (bill.status === 'unpaid') {
-              const billDueDate = bill.dueDate?.toDate ? bill.dueDate.toDate() : new Date(bill.dueDate);
-              if (now > billDueDate) {
-                await bill.ref.update({ status: 'overdue' });
-                console.log(`[Billing Service] Updated bill ${bill.id} to overdue for user ${userId}, resource ${resource}`);
-              }
-            }
-          }
-
-          // Create new bill regardless of payment status (even if previous bills are overdue)
-          // Calculate days to add based on fee period
-          const feePeriod = latestBill.feePeriod || 'Monthly';
-          const daysToAdd = FEE_PERIOD_DAYS[feePeriod] || 30;
-
-          // Calculate new dates based on the latest bill's due date
-          const newStartDate = new Date(dueDate);
-          // For time-based periods, start immediately after due date
-          // For day-based periods, start the next day
-          if (feePeriod === '5 minutes') {
-            newStartDate.setMinutes(newStartDate.getMinutes() + 1); // Start 1 minute after due date
-          } else {
-            newStartDate.setDate(newStartDate.getDate() + 1); // Start day after previous due date
-          }
-
-          const newDueDate = new Date(newStartDate);
-          if (feePeriod === '5 minutes') {
-            newDueDate.setMinutes(newDueDate.getMinutes() + 5);
-          } else {
-            newDueDate.setDate(newDueDate.getDate() + daysToAdd);
-          }
-
-          // Check if a bill already exists for this period (within tolerance for time-based periods)
-          const tolerance = feePeriod === '5 minutes' ? 60000 : 86400000; // 1 minute or 1 day in milliseconds
-          const existingBillForPeriod = resourceBills.find(bill => {
-            const billStartDate = bill.startDate?.toDate ? bill.startDate.toDate() : new Date(bill.startDate);
-            return Math.abs(billStartDate.getTime() - newStartDate.getTime()) < tolerance;
-          });
-
-          if (!existingBillForPeriod) {
-            // Get user data for client information
-            const userData = userDoc.data();
-            
-            // Create new bill with same details as previous bill
-            const newBill = {
-              clientName: latestBill.clientName || (userData.firstName && userData.lastName ? `${userData.firstName} ${userData.lastName}` : 'N/A'),
-              companyName: latestBill.companyName || userData.companyName || 'N/A',
-              email: latestBill.email || userData.email || 'N/A',
-              contactNumber: latestBill.contactNumber || userData.contactNumber || 'N/A',
-              serviceType: latestBill.serviceType,
-              assignedResource: resource,
-              amount: latestBill.amount || 0,
-              cusaFee: latestBill.cusaFee || 0,
-              parkingFee: latestBill.parkingFee || 0,
-              lateFee: 0, // Reset late fee
-              damageFee: 0, // Reset damage fee
-              feePeriod: latestBill.feePeriod,
-              status: 'unpaid',
-              startDate: admin.firestore.Timestamp.fromDate(newStartDate),
-              dueDate: admin.firestore.Timestamp.fromDate(newDueDate),
-              createdAt: admin.firestore.FieldValue.serverTimestamp()
-            };
-
-            // Copy additional fields if they exist (bookingId, roomId, etc.)
-            if (latestBill.bookingId) newBill.bookingId = latestBill.bookingId;
-            if (latestBill.roomId) newBill.roomId = latestBill.roomId;
-
-            await db
-              .collection('accounts')
-              .doc('client')
-              .collection('users')
-              .doc(userId)
-              .collection('bills')
-              .add(newBill);
-
-            console.log(`[Billing Service] Created new bill for user ${userId}, resource ${resource}, start: ${newStartDate.toISOString()}, due: ${newDueDate.toISOString()}`);
-          } else {
-            console.log(`[Billing Service] Bill already exists for user ${userId}, resource ${resource} for period starting ${newStartDate.toISOString()}`);
-          }
-        }
+        billsByResource[resource].push(bill);
+      }
+      
+      console.log(`[Billing Service] Virtual office client ${clientId} has bills for ${Object.keys(billsByResource).length} resources`);
+      
+      // Process each resource separately
+      for (const [resource, resourceBills] of Object.entries(billsByResource)) {
+        await processVirtualOfficeResourceBills(db, clientId, resource, resourceBills, now, clientDoc.data());
       }
     }
 
     console.log('[Billing Service] Billing check completed');
   } catch (error) {
     console.error('[Billing Service] Error checking bills:', error);
+  }
+};
+
+// Helper function to process bills for a resource (user accounts)
+const processResourceBills = async (db, userId, resource, resourceBills, now, userData) => {
+  // Find the latest bill for this resource
+  const latestBill = resourceBills[0];
+  
+  // Skip if bill doesn't have feePeriod or dueDate set (admin hasn't configured it yet)
+  if (!latestBill.feePeriod || !latestBill.dueDate) {
+    console.log(`[Billing Service] Skipping user ${userId}, resource ${resource} - bill not configured (missing feePeriod or dueDate)`);
+    return;
+  }
+  
+  const dueDate = latestBill.dueDate?.toDate ? latestBill.dueDate.toDate() : new Date(latestBill.dueDate);
+  
+  // Skip if dueDate is invalid (epoch time or before year 2000)
+  if (isNaN(dueDate.getTime()) || dueDate.getFullYear() < 2000) {
+    console.log(`[Billing Service] Skipping user ${userId}, resource ${resource} - invalid dueDate: ${dueDate}`);
+    return;
+  }
+
+  // Check if due date has passed
+  if (now > dueDate) {
+    // Update status of unpaid bills to overdue for this resource
+    for (const bill of resourceBills) {
+      if (bill.status === 'unpaid') {
+        const billDueDate = bill.dueDate?.toDate ? bill.dueDate.toDate() : new Date(bill.dueDate);
+        if (now > billDueDate) {
+          await bill.ref.update({ status: 'overdue' });
+          console.log(`[Billing Service] Updated bill ${bill.id} to overdue for user ${userId}, resource ${resource}`);
+        }
+      }
+    }
+
+    // Create new bill regardless of payment status (even if previous bills are overdue)
+    // Calculate days to add based on fee period
+    const feePeriod = latestBill.feePeriod || 'Monthly';
+    const daysToAdd = FEE_PERIOD_DAYS[feePeriod] || 30;
+
+    // Calculate new dates based on the latest bill's due date
+    const newStartDate = new Date(dueDate);
+    // For time-based periods, start immediately after due date
+    // For day-based periods, start the next day
+    if (feePeriod === '5 minutes') {
+      newStartDate.setMinutes(newStartDate.getMinutes() + 1); // Start 1 minute after due date
+    } else {
+      newStartDate.setDate(newStartDate.getDate() + 1); // Start day after previous due date
+    }
+
+    const newDueDate = new Date(newStartDate);
+    if (feePeriod === '5 minutes') {
+      newDueDate.setMinutes(newDueDate.getMinutes() + 5);
+    } else {
+      newDueDate.setDate(newDueDate.getDate() + daysToAdd);
+    }
+
+    // Check if a bill already exists for this period (within tolerance for time-based periods)
+    const tolerance = feePeriod === '5 minutes' ? 60000 : 86400000; // 1 minute or 1 day in milliseconds
+    const existingBillForPeriod = resourceBills.find(bill => {
+      const billStartDate = bill.startDate?.toDate ? bill.startDate.toDate() : new Date(bill.startDate);
+      return Math.abs(billStartDate.getTime() - newStartDate.getTime()) < tolerance;
+    });
+
+    if (!existingBillForPeriod) {
+      // Create new bill with same details as previous bill
+      const newBill = {
+        clientName: latestBill.clientName || (userData.firstName && userData.lastName ? `${userData.firstName} ${userData.lastName}` : 'N/A'),
+        companyName: latestBill.companyName || userData.companyName || 'N/A',
+        email: latestBill.email || userData.email || 'N/A',
+        contactNumber: latestBill.contactNumber || userData.contactNumber || 'N/A',
+        serviceType: latestBill.serviceType,
+        assignedResource: resource,
+        amount: latestBill.amount || 0,
+        cusaFee: latestBill.cusaFee || 0,
+        parkingFee: latestBill.parkingFee || 0,
+        lateFee: 0, // Reset late fee
+        damageFee: 0, // Reset damage fee
+        feePeriod: latestBill.feePeriod,
+        status: 'unpaid',
+        startDate: admin.firestore.Timestamp.fromDate(newStartDate),
+        dueDate: admin.firestore.Timestamp.fromDate(newDueDate),
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      };
+
+      // Copy additional fields if they exist (bookingId, roomId, etc.)
+      if (latestBill.bookingId) newBill.bookingId = latestBill.bookingId;
+      if (latestBill.roomId) newBill.roomId = latestBill.roomId;
+
+      await db
+        .collection('accounts')
+        .doc('client')
+        .collection('users')
+        .doc(userId)
+        .collection('bills')
+        .add(newBill);
+
+      console.log(`[Billing Service] Created new bill for user ${userId}, resource ${resource}, start: ${newStartDate.toISOString()}, due: ${newDueDate.toISOString()}`);
+    } else {
+      console.log(`[Billing Service] Bill already exists for user ${userId}, resource ${resource} for period starting ${newStartDate.toISOString()}`);
+    }
+  }
+};
+
+// Helper function to process bills for a resource (virtual office clients)
+const processVirtualOfficeResourceBills = async (db, clientId, resource, resourceBills, now, clientData) => {
+  // Find the latest bill for this resource
+  const latestBill = resourceBills[0];
+  
+  // Skip if bill doesn't have feePeriod or dueDate set (admin hasn't configured it yet)
+  if (!latestBill.feePeriod || !latestBill.dueDate) {
+    console.log(`[Billing Service] Skipping virtual office client ${clientId}, resource ${resource} - bill not configured (missing feePeriod or dueDate)`);
+    return;
+  }
+  
+  const dueDate = latestBill.dueDate?.toDate ? latestBill.dueDate.toDate() : new Date(latestBill.dueDate);
+  
+  // Skip if dueDate is invalid (epoch time or before year 2000)
+  if (isNaN(dueDate.getTime()) || dueDate.getFullYear() < 2000) {
+    console.log(`[Billing Service] Skipping virtual office client ${clientId}, resource ${resource} - invalid dueDate: ${dueDate}`);
+    return;
+  }
+
+  // Check if due date has passed
+  if (now > dueDate) {
+    // Update status of unpaid bills to overdue for this resource
+    for (const bill of resourceBills) {
+      if (bill.status === 'unpaid') {
+        const billDueDate = bill.dueDate?.toDate ? bill.dueDate.toDate() : new Date(bill.dueDate);
+        if (now > billDueDate) {
+          await bill.ref.update({ status: 'overdue' });
+          console.log(`[Billing Service] Updated bill ${bill.id} to overdue for virtual office client ${clientId}, resource ${resource}`);
+        }
+      }
+    }
+
+    // Create new bill regardless of payment status
+    const feePeriod = latestBill.feePeriod || 'Monthly';
+    const daysToAdd = FEE_PERIOD_DAYS[feePeriod] || 30;
+
+    const newStartDate = new Date(dueDate);
+    if (feePeriod === '5 minutes') {
+      newStartDate.setMinutes(newStartDate.getMinutes() + 1);
+    } else {
+      newStartDate.setDate(newStartDate.getDate() + 1);
+    }
+
+    const newDueDate = new Date(newStartDate);
+    if (feePeriod === '5 minutes') {
+      newDueDate.setMinutes(newDueDate.getMinutes() + 5);
+    } else {
+      newDueDate.setDate(newDueDate.getDate() + daysToAdd);
+    }
+
+    // Check if a bill already exists for this period
+    const tolerance = feePeriod === '5 minutes' ? 60000 : 86400000;
+    const existingBillForPeriod = resourceBills.find(bill => {
+      const billStartDate = bill.startDate?.toDate ? bill.startDate.toDate() : new Date(bill.startDate);
+      return Math.abs(billStartDate.getTime() - newStartDate.getTime()) < tolerance;
+    });
+
+    if (!existingBillForPeriod) {
+      // Create new bill with same details as previous bill
+      const newBill = {
+        clientName: latestBill.clientName || clientData.fullName || 'N/A',
+        companyName: latestBill.companyName || clientData.company || 'N/A',
+        email: latestBill.email || clientData.email || 'N/A',
+        contactNumber: latestBill.contactNumber || clientData.phoneNumber || 'N/A',
+        serviceType: 'virtual-office',
+        assignedResource: resource,
+        amount: latestBill.amount || 0,
+        cusaFee: latestBill.cusaFee || 0,
+        parkingFee: latestBill.parkingFee || 0,
+        lateFee: 0,
+        damageFee: 0,
+        feePeriod: latestBill.feePeriod,
+        status: 'unpaid',
+        clientId: clientId,
+        startDate: admin.firestore.Timestamp.fromDate(newStartDate),
+        dueDate: admin.firestore.Timestamp.fromDate(newDueDate),
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      };
+
+      await db
+        .collection('virtual-office-clients')
+        .doc(clientId)
+        .collection('bills')
+        .add(newBill);
+
+      console.log(`[Billing Service] Created new bill for virtual office client ${clientId}, resource ${resource}, start: ${newStartDate.toISOString()}, due: ${newDueDate.toISOString()}`);
+    } else {
+      console.log(`[Billing Service] Bill already exists for virtual office client ${clientId}, resource ${resource} for period starting ${newStartDate.toISOString()}`);
+    }
   }
 };
 
