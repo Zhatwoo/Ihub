@@ -20,26 +20,6 @@ export default function EditBillModal({ isOpen, onClose, bill, onSave }) {
     setMounted(true);
   }, []);
 
-  useEffect(() => {
-    if (bill) {
-      const initialFeePeriod = bill.feePeriod && bill.feePeriod !== 'N/A' ? bill.feePeriod : 'Monthly';
-      
-      setFormData({
-        amount: bill.amount || 0,
-        cusaFee: bill.cusaFee || 0,
-        parkingFee: bill.parkingFee || 0,
-        feePeriod: initialFeePeriod,
-        dueDate: bill.dueDate ? new Date(bill.dueDate).toISOString() : ''
-      });
-
-      // If dueDate is not set or invalid, calculate it based on feePeriod
-      if (!bill.dueDate || bill.dueDate === 'Invalid Date') {
-        // Trigger calculation with the initial fee period
-        setTimeout(() => handleFeePeriodChange(initialFeePeriod), 0);
-      }
-    }
-  }, [bill]);
-
   // Auto-calculate due date when fee period changes
   const handleFeePeriodChange = (newFeePeriod) => {
     console.log('[EditBillModal] handleFeePeriodChange called with:', newFeePeriod);
@@ -53,6 +33,8 @@ export default function EditBillModal({ isOpen, onClose, bill, onSave }) {
       if (bill?.startDate) {
         const startDate = new Date(bill.startDate);
         console.log('[EditBillModal] Parsed start date:', startDate);
+        console.log('[EditBillModal] Start date ISO:', startDate.toISOString());
+        console.log('[EditBillModal] Start date year:', startDate.getFullYear());
         console.log('[EditBillModal] Start date valid?', !isNaN(startDate.getTime()));
         
         if (isNaN(startDate.getTime())) {
@@ -60,7 +42,8 @@ export default function EditBillModal({ isOpen, onClose, bill, onSave }) {
           return updated;
         }
         
-        const dueDate = new Date(startDate);
+        // Create a new date object from the start date to avoid mutation
+        const dueDate = new Date(startDate.getTime());
         
         switch (newFeePeriod) {
           case '5 minutes':
@@ -84,6 +67,14 @@ export default function EditBillModal({ isOpen, onClose, bill, onSave }) {
         
         console.log('[EditBillModal] Calculated due date:', dueDate);
         console.log('[EditBillModal] Due date ISO:', dueDate.toISOString());
+        console.log('[EditBillModal] Due date year:', dueDate.getFullYear());
+        
+        // Verify the due date is after the start date
+        if (dueDate <= startDate) {
+          console.error('[EditBillModal] ERROR: Due date is not after start date!');
+          console.error('[EditBillModal] Start:', startDate.toISOString());
+          console.error('[EditBillModal] Due:', dueDate.toISOString());
+        }
         
         // Store the full ISO string to preserve time information
         updated.dueDate = dueDate.toISOString();
@@ -94,6 +85,35 @@ export default function EditBillModal({ isOpen, onClose, bill, onSave }) {
       return updated;
     });
   };
+
+  useEffect(() => {
+    if (bill) {
+      const initialFeePeriod = bill.feePeriod && bill.feePeriod !== 'N/A' ? bill.feePeriod : 'Monthly';
+      
+      // Parse dueDate carefully to preserve the correct date
+      let dueDateISO = '';
+      if (bill.dueDate) {
+        const dueDate = new Date(bill.dueDate);
+        if (!isNaN(dueDate.getTime()) && dueDate.getFullYear() > 2000) {
+          dueDateISO = dueDate.toISOString();
+        }
+      }
+      
+      setFormData({
+        amount: bill.amount || 0,
+        cusaFee: bill.cusaFee || 0,
+        parkingFee: bill.parkingFee || 0,
+        feePeriod: initialFeePeriod,
+        dueDate: dueDateISO
+      });
+
+      // Always recalculate due date when modal opens to ensure it's correct
+      setTimeout(() => {
+        console.log('[EditBillModal] Triggering due date recalculation on modal open');
+        handleFeePeriodChange(initialFeePeriod);
+      }, 100);
+    }
+  }, [bill]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -113,13 +133,15 @@ export default function EditBillModal({ isOpen, onClose, bill, onSave }) {
       cusaFee: parseFloat(formData.cusaFee) || 0,
       parkingFee: parseFloat(formData.parkingFee) || 0,
       feePeriod: formData.feePeriod,
-      dueDate: formData.dueDate
+      dueDate: formData.dueDate,
+      isVirtualOffice: bill.isVirtualOffice || false
     };
 
     console.log('[EditBillModal] Submitting form data:', dataToSend);
     console.log('[EditBillModal] feePeriod:', dataToSend.feePeriod);
     console.log('[EditBillModal] dueDate:', dataToSend.dueDate);
     console.log('[EditBillModal] dueDate as Date:', new Date(dataToSend.dueDate));
+    console.log('[EditBillModal] isVirtualOffice:', dataToSend.isVirtualOffice);
 
     try {
       const response = await api.put(
