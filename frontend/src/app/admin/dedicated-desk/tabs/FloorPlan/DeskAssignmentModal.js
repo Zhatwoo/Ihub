@@ -362,10 +362,7 @@ export default function DeskAssignmentModal({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Type of Occupant <span className="text-red-500">*</span></label>
-                <select name="type" value={formData.type} onChange={handleChange} required disabled={loading} className="w-full px-3 sm:px-4 py-2.5 sm:py-3.5 border-2 border-gray-200 rounded-xl text-sm sm:text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                  <option value="Employee">Employee</option>
-                  <option value="Tenant">Tenant</option>
-                </select>
+                <div className="w-full px-3 sm:px-4 py-2.5 sm:py-3.5 border-2 border-gray-300 rounded-xl text-sm sm:text-base text-slate-900 bg-gray-300 cursor-not-allowed">Employee</div>
               </div>
               <div>
                 <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Contact Number <span className="text-red-500">*</span></label>
@@ -398,10 +395,7 @@ export default function DeskAssignmentModal({
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Type of Occupant <span className="text-red-500">*</span></label>
-                <select name="type" value={formData.type} onChange={handleChange} required disabled={loading} className="w-full px-3 sm:px-4 py-2.5 sm:py-3.5 border-2 border-gray-200 rounded-xl text-sm sm:text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white focus:ring-4 focus:ring-teal-600/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
-                  <option value="Employee">Employee</option>
-                  <option value="Tenant">Tenant</option>
-                </select>
+                <div className="w-full px-3 sm:px-4 py-2.5 sm:py-3.5 border-2 border-gray-300 rounded-xl text-sm sm:text-base text-slate-900 bg-gray-300 cursor-not-allowed">Employee</div>
               </div>
               <div>
                 <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Contact Number <span className="text-red-500">*</span></label>
@@ -479,3 +473,5 @@ export default function DeskAssignmentModal({
 
   return createPortal(modalContent, document.body);
 }
+
+

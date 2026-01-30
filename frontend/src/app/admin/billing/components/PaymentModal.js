@@ -8,7 +8,8 @@ export default function PaymentModal({ isOpen, onClose, bill, onPaymentRecorded 
   const [mounted, setMounted] = useState(false);
   const [formData, setFormData] = useState({
     lateFee: 0,
-    damageFee: 0
+    damageFee: 0,
+    paymentMethod: 'Cash'
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -116,7 +117,7 @@ export default function PaymentModal({ isOpen, onClose, bill, onPaymentRecorded 
           )}
 
           <form id="payment-form" onSubmit={handleSubmit}>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4 mb-4">
               {/* Left Column: Bill Breakdown */}
               <div>
                 <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 space-y-2">
@@ -176,8 +177,26 @@ export default function PaymentModal({ isOpen, onClose, bill, onPaymentRecorded 
               </div>
             </div>
 
+            {/* Payment Method - Full Width */}
+            <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg mb-4">
+              <div className="flex items-center gap-3">
+                <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wide whitespace-nowrap">Payment Method:</h4>
+                <select
+                  value={formData.paymentMethod}
+                  onChange={(e) => setFormData({ ...formData, paymentMethod: e.target.value })}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm text-center focus:outline-none focus:border-purple-400"
+                  required
+                >
+                  <option value="Cash">Cash</option>
+                  <option value="Cheque">Cheque</option>
+                  <option value="Card">Card</option>
+                  <option value="Bank Transfer">Bank Transfer</option>
+                </select>
+              </div>
+            </div>
+
             {/* Total Amount */}
-            <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
+            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
               <p className="text-lg font-bold text-slate-800">
                 Total Payment: ₱{totalAmount.toLocaleString()}
               </p>

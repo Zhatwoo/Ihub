@@ -46,7 +46,9 @@ export default function DedicatedDesk() {
         if (response.success && response.data) {
           const assignments = {};
           response.data.assignments.forEach((assignment) => {
-            assignments[assignment.id] = assignment;
+            // Use deskTag as key so floor plan can find it
+            const key = assignment.deskTag || assignment.assignedDesk || assignment.desk || assignment.id;
+            assignments[key] = assignment;
           });
           setDeskAssignments(assignments);
         }
@@ -182,7 +184,9 @@ export default function DedicatedDesk() {
             if (assignmentsResponse.success && assignmentsResponse.data) {
               const assignments = {};
               assignmentsResponse.data.assignments.forEach((assignment) => {
-                assignments[assignment.id] = assignment;
+                // Use deskTag as key so floor plan can find it
+                const key = assignment.deskTag || assignment.assignedDesk || assignment.desk || assignment.id;
+                assignments[key] = assignment;
               });
               setDeskAssignments(assignments);
             }
@@ -262,7 +266,11 @@ export default function DedicatedDesk() {
     try {
       if (assignmentData === null) {
         // Delete assignment
-        const response = await api.delete(`/api/desk-assignments/${deskTag}`);
+        // Get the actual assignment ID from deskAssignments
+        const existingAssignment = deskAssignments[deskTag];
+        const assignmentId = existingAssignment?.id || deskTag; // Fallback to deskTag for employees
+        
+        const response = await api.delete(`/api/desk-assignments/${assignmentId}`);
         if (!response.success) {
           throw new Error(response.message || 'Failed to delete assignment');
         }
@@ -285,16 +293,24 @@ export default function DedicatedDesk() {
           assignedAt: new Date().toISOString()
         };
         
-        // Try to update first, if fails, create new
-        let response = await api.put(`/api/desk-assignments/${deskTag}`, assignmentPayload).catch(() => null);
+        // Check if assignment exists
+        const existingAssignment = deskAssignments[deskTag];
         
-        if (!response || !response.success) {
-          // Try creating new
-          response = await api.post('/api/desk-assignments', assignmentPayload);
-        }
-        
-        if (!response.success) {
-          throw new Error(response.message || 'Failed to save assignment');
+        if (existingAssignment) {
+          // Update existing assignment using its actual ID
+          const assignmentId = existingAssignment.id || deskTag;
+          const response = await api.put(`/api/desk-assignments/${assignmentId}`, assignmentPayload);
+          
+          if (!response.success) {
+            throw new Error(response.message || 'Failed to update assignment');
+          }
+        } else {
+          // Create new assignment
+          const response = await api.post('/api/desk-assignments', assignmentPayload);
+          
+          if (!response.success) {
+            throw new Error(response.message || 'Failed to create assignment');
+          }
         }
       }
       
@@ -304,7 +320,9 @@ export default function DedicatedDesk() {
         if (assignmentsResponse.success && assignmentsResponse.data) {
           const assignments = {};
           assignmentsResponse.data.forEach((assignment) => {
-            assignments[assignment.id] = assignment;
+            // Use deskTag as key so floor plan can find it
+            const key = assignment.deskTag || assignment.assignedDesk || assignment.desk || assignment.id;
+            assignments[key] = assignment;
           });
           setDeskAssignments(assignments);
         }

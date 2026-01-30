@@ -6,7 +6,31 @@ import admin from 'firebase-admin';
 import { sendFirestoreError } from '../../../utils/firestoreHelper.js';
 
 /**
+ * Helper function to check if a document path is a desk request
+ */
+const isDeskRequestPath = (path) => {
+  // Path must contain: /request/ AND /desk/ AND /requests/
+  // Example: /accounts/client/users/{userId}/request/desk/requests/{requestId}
+  return path.includes('/request/') && path.includes('/desk/') && path.includes('/requests/');
+};
+
+/**
+ * Helper function to convert Firestore timestamp to ISO string
+ */
+const convertTimestamp = (ts) => {
+  if (!ts) return null;
+  if (typeof ts === 'object' && ts.toDate) return ts.toDate().toISOString();
+  if (typeof ts === 'string') return ts;
+  try {
+    return new Date(ts).toISOString();
+  } catch {
+    return null;
+  }
+};
+
+/**
  * Get desk assignments with filtering and processing
+ * Fetches from approved desk requests instead of desk-assignments collection
  */
 export const getDeskAssignments = async (req, res) => {
   try {
@@ -16,21 +40,82 @@ export const getDeskAssignments = async (req, res) => {
     if (!firestore) {
       return sendFirestoreError(res);
     }
+    
+    let requestsSnapshot;
+    try {
+      // Try with where clause first (requires index)
+      requestsSnapshot = await firestore
+        .collectionGroup('requests')
+        .where('status', '==', 'approved')
+        .get();
+    } catch (indexError) {
+      // If index error, fall back to fetching without filter
+      if (indexError.code === 9 || indexError.message?.includes('index')) {
+        console.warn('⚠️ Firestore index not found, using fallback method...');
+        requestsSnapshot = await firestore
+          .collectionGroup('requests')
+          .get();
+      } else {
+        throw indexError;
+      }
+    }
+    
+    // Filter to only desk requests (path contains /request/desk/requests/) and approved status
+    let assignments = requestsSnapshot.docs
+      .filter(doc => {
+        const path = doc.ref.path;
+        const data = doc.data();
+        // Path must contain: /request/desk/requests/
+        // This ensures we only get desk requests, not office requests
+        const isDeskRequest = path.includes('/request/') && path.includes('/desk/') && path.includes('/requests/');
+        return isDeskRequest && data.status === 'approved';
+      })
+      .map(doc => {
+        const data = doc.data();
+        
+        // Convert Firestore timestamps to ISO strings
+        const convertTimestamp = (ts) => {
+          if (!ts) return null;
+          if (typeof ts === 'object' && ts.toDate) return ts.toDate().toISOString();
+          if (typeof ts === 'string') return ts;
+          return new Date(ts).toISOString();
+        };
+        
+        return {
+          id: doc.id,
+          ...data,
+          // Normalize deskTag - use assignedDesk if available, otherwise use desk
+          deskTag: data.assignedDesk || data.desk || doc.id,
+          // Convert Firestore timestamp to ISO string for JSON serialization
+          assignedAt: convertTimestamp(data.approvedAt || data.assignedAt),
+          assignedAtISO: convertTimestamp(data.approvedAt || data.assignedAt)
+        };
+      });
 
-    console.log('📖 FIRESTORE READ: desk-assignments - executing query...');
-    const assignmentsSnapshot = await firestore.collection('desk-assignments').get();
-    console.log(`📖 FIRESTORE READ: desk-assignments - ${assignmentsSnapshot.docs.length} documents read`);
-    let assignments = assignmentsSnapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        ...data,
-        // Normalize deskTag - use deskTag if available, otherwise use desk, otherwise use document ID
-        deskTag: data.deskTag || data.desk || doc.id,
-        // Convert Firestore timestamp to ISO string for JSON serialization
-        assignedAt: data.assignedAt ? (data.assignedAt.toDate ? data.assignedAt.toDate().toISOString() : data.assignedAt) : null
-      };
-    });
+    // Also fetch employee assignments from /accounts/desk-emp/assignments
+    try {
+      const employeeSnapshot = await firestore
+        .collection('accounts')
+        .doc('desk-emp')
+        .collection('assignments')
+        .get();
+      
+      const employeeAssignments = employeeSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          deskTag: data.deskTag || data.assignedDesk || data.desk || doc.id,
+          assignedAt: convertTimestamp(data.assignedAt),
+          assignedAtISO: convertTimestamp(data.assignedAt)
+        };
+      });
+      
+      // Combine tenant and employee assignments
+      assignments = [...assignments, ...employeeAssignments];
+    } catch (empError) {
+      console.warn('⚠️ Could not fetch employee assignments:', empError.message);
+    }
 
     // Apply part filter
     if (part && part !== 'all') {
@@ -68,7 +153,9 @@ export const getDeskAssignments = async (req, res) => {
       } else if (sortBy === 'type') {
         comparison = (a.type || '').localeCompare(b.type || '');
       } else if (sortBy === 'assignedAt') {
-        comparison = new Date(a.assignedAt || 0) - new Date(b.assignedAt || 0);
+        const dateA = a.assignedAtISO ? new Date(a.assignedAtISO) : new Date(0);
+        const dateB = b.assignedAtISO ? new Date(b.assignedAtISO) : new Date(0);
+        comparison = dateA - dateB;
       }
       return sortOrder === 'desc' ? -comparison : comparison;
     });
@@ -120,20 +207,15 @@ export const getDeskRequests = async (req, res) => {
     // This queries all 'requests' subcollections across all users
     // Path: /accounts/client/users/{userId}/request/desk/requests/{requestId}
     // Collection group ID: 'requests' (must match the subcollection name)
-    console.log('📖 FIRESTORE READ: collectionGroup("requests") - executing query...');
     const deskRequestsSnapshot = await firestore
       .collectionGroup('requests')
       .get();
-    console.log(`📖 FIRESTORE READ: collectionGroup("requests") - ${deskRequestsSnapshot.docs.length} total documents read`);
     
     // Filter to only get desk requests (from /request/desk/requests path)
     const deskRequestDocs = deskRequestsSnapshot.docs.filter(doc => {
       const path = doc.ref.path;
-      return path.includes('/request/desk/requests/');
+      return isDeskRequestPath(path);
     });
-    console.log(`📖 FIRESTORE READ: collectionGroup("requests") - ${deskRequestDocs.length} desk requests after filtering`);
-
-    // Removed: Log containing request count (may expose data)
 
     const deskRequests = [];
     const userIds = new Set(); // Track user IDs to fetch user info in batch
@@ -175,13 +257,12 @@ export const getDeskRequests = async (req, res) => {
       const userIdsArray = Array.from(userIds);
       const userPromises = userIdsArray.map(async (userId) => {
         try {
-            const userDoc = await firestore
+          const userDoc = await firestore
             .collection('accounts')
             .doc('client')
             .collection('users')
             .doc(userId)
             .get();
-            console.log(`📖 FIRESTORE READ: accounts/client/users/${userId} - ${userDoc.exists ? '1 document' : 'not found'}`);
           
           if (userDoc.exists) {
             return { userId, userData: userDoc.data() };
@@ -225,13 +306,7 @@ export const getDeskRequests = async (req, res) => {
 
     // Default: only show pending requests (unless status filter is explicitly provided)
     if (!status || status === 'all') {
-      filteredRequests = filteredRequests.filter(request => {
-        const isPending = request.status === 'pending';
-        if (!isPending) {
-          // Removed: Log containing private user names
-        }
-        return isPending;
-      });
+      filteredRequests = filteredRequests.filter(request => request.status === 'pending');
     } else {
       // Apply specific status filter if provided
       filteredRequests = filteredRequests.filter(request => request.status === status);
@@ -312,10 +387,8 @@ export const updateDeskRequestStatus = async (req, res) => {
     }
 
     // Get user data first
-    console.log(`📖 FIRESTORE READ: accounts/client/users/${userId} - executing query...`);
     const userRef = firestore.collection('accounts').doc('client').collection('users').doc(userId);
     const userDoc = await userRef.get();
-    console.log(`📖 FIRESTORE READ: accounts/client/users/${userId} - ${userDoc.exists ? '1 document' : 'not found'}`);
 
     if (!userDoc.exists) {
       return res.status(404).json({
@@ -327,20 +400,16 @@ export const updateDeskRequestStatus = async (req, res) => {
 
     const userData = userDoc.data();
 
-    // Get desk request from new nested path: /accounts/client/users/{userId}/request/desk/requests/{requestId}
+    // NEW PATH: /accounts/client/users/{userId}/request/desk/{requestId}
     const deskRequestRef = firestore
       .collection('accounts')
       .doc('client')
       .collection('users')
       .doc(userId)
-      .collection('request')
-      .doc('desk')
-      .collection('requests')
+      .collection('request').doc('desk').collection('requests')
       .doc(requestId);
       
-    console.log(`📖 FIRESTORE READ: accounts/client/users/${userId}/request/desk/requests/${requestId} - executing query...`);
     const deskRequestDoc = await deskRequestRef.get();
-    console.log(`📖 FIRESTORE READ: accounts/client/users/${userId}/request/desk/requests/${requestId} - ${deskRequestDoc.exists ? '1 document' : 'not found'}`);
 
     if (!deskRequestDoc.exists) {
       return res.status(404).json({
@@ -352,82 +421,69 @@ export const updateDeskRequestStatus = async (req, res) => {
 
     const deskRequestData = deskRequestDoc.data();
 
-    // Update request status in the correct path - only update the status and timestamp
-    await deskRequestRef.update({
+    // Extract company and contact from request data
+    const requestedBy = deskRequestData.requestedBy || {};
+    const company = deskRequestData.company || requestedBy.companyName || userData.companyName || '';
+    const contact = deskRequestData.contact || requestedBy.contact || userData.contact || userData.phoneNumber || '';
+
+    // Update request with status, assignedDesk, and additional info
+    const updateData = {
       status: status,
       adminNotes: adminNotes || '',
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
-    });
+    };
 
-    // If approving, create desk assignment and bill
+    // If approving, store assignment data directly in the request
     if (status === 'approved' && assignedDesk) {
-      // Extract company and contact from request data (try multiple locations)
-      const requestedBy = deskRequestData.requestedBy || {};
-      const company = deskRequestData.company || requestedBy.companyName || userData.companyName || '';
-      const contact = deskRequestData.contact || requestedBy.contact || userData.contact || userData.phoneNumber || '';
-      
-      // Removed: Debug log (may contain private data)
-      // Removed: Debug logs containing private user data (company, contact)
-      console.log('Extracted contact:', contact);
-      
-      const assignmentData = {
-        desk: assignedDesk, // Use 'desk' field, not 'deskTag'
-        name: `${userData.firstName} ${userData.lastName}`,
-        email: userData.email,
-        contactNumber: contact,
-        type: deskRequestData.occupantType || 'Tenant',
-        company: company,
-        assignedAt: admin.firestore.FieldValue.serverTimestamp(),
-        userId: userId
-      };
+      updateData.assignedDesk = assignedDesk;
+      updateData.approvedAt = admin.firestore.FieldValue.serverTimestamp();
+      updateData.name = `${userData.firstName} ${userData.lastName}`;
+      updateData.email = userData.email;
+      updateData.contactNumber = contact;
+      updateData.company = company;
+      updateData.type = deskRequestData.occupantType || 'Tenant';
+    }
 
-      // Removed: Log containing private user data (assignmentData)
-      await firestore.collection('desk-assignments').doc(assignedDesk).set(assignmentData);
+    await deskRequestRef.update(updateData);
 
-      // Create initial bill in user's bills collection (only for Tenants, not Employees)
-      // Bill is created with null feePeriod and dueDate - admin must set these via Edit Bill
-      if ((deskRequestData.occupantType || 'Tenant') === 'Tenant') {
-        try {
-          const billRef = firestore
-            .collection('accounts')
-            .doc('client')
-            .collection('users')
-            .doc(userId)
-            .collection('bills')
-            .doc();
+    // Create initial bill if approving and occupant is a Tenant
+    if (status === 'approved' && assignedDesk && (deskRequestData.occupantType || 'Tenant') === 'Tenant') {
+      try {
+        const billRef = firestore
+          .collection('accounts')
+          .doc('client')
+          .collection('users')
+          .doc(userId)
+          .collection('bills')
+          .doc();
 
-          const startDate = new Date();
+        const startDate = new Date();
 
-          await billRef.set({
-            clientName: `${userData.firstName} ${userData.lastName}`,
-            companyName: company,
-            email: userData.email,
-            contactNumber: contact,
-            serviceType: 'dedicated-desk',
-            assignedResource: assignedDesk,
-            amount: 0, // Admin must set via Edit Bill
-            cusaFee: 0,
-            parkingFee: 0,
-            lateFee: 0,
-            damageFee: 0,
-            feePeriod: null, // Admin must set via Edit Bill
-            startDate: admin.firestore.Timestamp.fromDate(startDate),
-            dueDate: null, // Admin must set via Edit Bill (will be calculated as startDate + feePeriod)
-            status: 'unpaid',
-            createdAt: admin.firestore.FieldValue.serverTimestamp()
-          });
-
-          console.log(`✅ Created initial bill for user ${userId} in bills collection (feePeriod and dueDate must be set by admin)`);
-        } catch (billError) {
-          console.error('Error creating bill:', billError);
-        }
+        await billRef.set({
+          clientName: `${userData.firstName} ${userData.lastName}`,
+          companyName: company,
+          email: userData.email,
+          contactNumber: contact,
+          serviceType: 'dedicated-desk',
+          assignedResource: assignedDesk,
+          amount: 0, // Admin must set via Edit Bill
+          cusaFee: 0,
+          parkingFee: 0,
+          lateFee: 0,
+          damageFee: 0,
+          feePeriod: null, // Admin must set via Edit Bill
+          startDate: admin.firestore.Timestamp.fromDate(startDate),
+          dueDate: null, // Admin must set via Edit Bill
+          status: 'unpaid',
+          createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+      } catch (billError) {
+        console.error('Error creating bill:', billError);
       }
     }
 
-    // Verify the update was saved
-    console.log(`📖 FIRESTORE READ: accounts/client/users/${userId}/request/desk/requests/${requestId} - verification read...`);
+    // Verify the update
     const verifyDoc = await deskRequestRef.get();
-    console.log(`📖 FIRESTORE READ: accounts/client/users/${userId}/request/desk/requests/${requestId} - ${verifyDoc.exists ? '1 document verified' : 'not found'}`);
     const verifyData = verifyDoc.data();
 
     res.json({
@@ -447,7 +503,7 @@ export const updateDeskRequestStatus = async (req, res) => {
 
 /**
  * Get occupants by part for floor plan
- * IMPORTANT: Fetches ONLY from /desk-assignments collection
+ * Fetches from approved desk requests
  */
 export const getOccupantsByPart = async (req, res) => {
   try {
@@ -458,21 +514,45 @@ export const getOccupantsByPart = async (req, res) => {
       return sendFirestoreError(res);
     }
 
-    // Fetch from desk-assignments collection ONLY
-    console.log('📖 FIRESTORE READ: desk-assignments - executing query...');
-    const assignmentsSnapshot = await firestore.collection('desk-assignments').get();
-    console.log(`📖 FIRESTORE READ: desk-assignments - ${assignmentsSnapshot.docs.length} documents read`);
-    const assignments = assignmentsSnapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        ...data,
-        // Normalize deskTag - use deskTag if available, otherwise use desk, otherwise use document ID
-        deskTag: data.deskTag || data.desk || doc.id,
-        // Convert Firestore timestamp to ISO string for JSON serialization
-        assignedAt: data.assignedAt ? (data.assignedAt.toDate ? data.assignedAt.toDate().toISOString() : data.assignedAt) : null
-      };
-    });
+    // Fetch from approved desk requests using collection group
+    let requestsSnapshot;
+    try {
+      // Try with where clause first (requires index)
+      requestsSnapshot = await firestore
+        .collectionGroup('requests')
+        .where('status', '==', 'approved')
+        .get();
+    } catch (indexError) {
+      // If index error, fall back to fetching without filter
+      if (indexError.code === 9 || indexError.message?.includes('index')) {
+        console.warn('⚠️ Firestore index not found, using fallback method...');
+        requestsSnapshot = await firestore
+          .collectionGroup('requests')
+          .get();
+      } else {
+        throw indexError;
+      }
+    }
+    
+    // Filter to only desk requests and approved status
+    const assignments = requestsSnapshot.docs
+      .filter(doc => {
+        const path = doc.ref.path;
+        const data = doc.data();
+        return isDeskRequestPath(path) && data.status === 'approved';
+      })
+      .map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          // Normalize deskTag - use assignedDesk if available
+          deskTag: data.assignedDesk || data.desk || doc.id,
+          // Convert Firestore timestamp to ISO string for JSON serialization
+          assignedAt: convertTimestamp(data.approvedAt || data.assignedAt),
+          assignedAtISO: convertTimestamp(data.approvedAt || data.assignedAt)
+        };
+      });
 
     // Filter by part and sort by desk number
     const partOccupants = assignments
@@ -505,6 +585,7 @@ export const getOccupantsByPart = async (req, res) => {
 
 /**
  * Get all desk assignments
+ * Fetches from approved desk requests
  */
 export const getAllDeskAssignments = async (req, res) => {
   try {
@@ -514,24 +595,67 @@ export const getAllDeskAssignments = async (req, res) => {
       return sendFirestoreError(res);
     }
     
-    console.log('📖 FIRESTORE READ: desk-assignments - executing query...');
-    const assignmentsSnapshot = await firestore.collection('desk-assignments').get();
-    console.log(`📖 FIRESTORE READ: desk-assignments - ${assignmentsSnapshot.docs.length} documents read`);
-    
-    const assignments = assignmentsSnapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        ...data,
-        // Normalize deskTag - use deskTag if available, otherwise use desk, otherwise use document ID
-        deskTag: data.deskTag || data.desk || doc.id
-      };
-    });
+    try {
+      // Try with where clause first (requires index)
+      const requestsSnapshot = await firestore
+        .collectionGroup('requests')
+        .where('status', '==', 'approved')
+        .get();
+      
+      // Filter to only desk requests
+      const assignments = requestsSnapshot.docs
+        .filter(doc => isDeskRequestPath(doc.ref.path))
+        .map(doc => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            ...data,
+            // Normalize deskTag - use assignedDesk if available
+            deskTag: data.assignedDesk || data.desk || doc.id,
+            assignedAt: convertTimestamp(data.approvedAt || data.assignedAt)
+          };
+        });
 
-    res.json({
-      success: true,
-      data: assignments
-    });
+      res.json({
+        success: true,
+        data: assignments
+      });
+    } catch (indexError) {
+      // If index error, fall back to fetching without filter and filter in memory
+      if (indexError.code === 9 || indexError.message?.includes('index')) {
+        console.warn('⚠️ Firestore index not found, using fallback method...');
+        console.warn('⚠️ Create index at: https://console.firebase.google.com/project/_/firestore/indexes');
+        
+        const requestsSnapshot = await firestore
+          .collectionGroup('requests')
+          .get();
+        
+        // Filter in memory
+        const assignments = requestsSnapshot.docs
+          .filter(doc => {
+            const path = doc.ref.path;
+            const data = doc.data();
+            return isDeskRequestPath(path) && data.status === 'approved';
+          })
+          .map(doc => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              ...data,
+              deskTag: data.assignedDesk || data.desk || doc.id,
+              assignedAt: convertTimestamp(data.approvedAt || data.assignedAt)
+            };
+          });
+
+        res.json({
+          success: true,
+          data: assignments,
+          warning: 'Using fallback query method. Please create Firestore index for better performance.'
+        });
+      } else {
+        throw indexError;
+      }
+    }
   } catch (error) {
     console.error('Get all desk assignments error:', error);
     
@@ -553,35 +677,90 @@ export const getAllDeskAssignments = async (req, res) => {
 
 /**
  * Get desk assignment by ID
+ * Fetches from approved desk request by userId and requestId
+ * Expected params: userId, requestId (assignmentId is kept for backward compatibility)
  */
 export const getDeskAssignmentById = async (req, res) => {
   try {
-    const { assignmentId } = req.params;
+    const { assignmentId, userId, requestId } = req.params;
     const firestore = getFirestore();
     
     if (!firestore) {
       return sendFirestoreError(res);
     }
     
-    console.log(`📖 FIRESTORE READ: desk-assignments/${assignmentId} - executing query...`);
-    const assignmentDoc = await firestore.collection('desk-assignments').doc(assignmentId).get();
-    console.log(`📖 FIRESTORE READ: desk-assignments/${assignmentId} - ${assignmentDoc.exists ? '1 document' : 'not found'}`);
+    // Support both old (assignmentId) and new (userId + requestId) patterns
+    if (userId && requestId) {
+      // New pattern: fetch from request path
+      const requestRef = firestore
+        .collection('accounts')
+        .doc('client')
+        .collection('users')
+        .doc(userId)
+        .collection('request')
+        .doc('desk')
+        .collection('requests')
+        .doc(requestId);
+        
+      const requestDoc = await requestRef.get();
 
-    if (!assignmentDoc.exists) {
-      return res.status(404).json({
+      if (!requestDoc.exists) {
+        return res.status(404).json({
+          success: false,
+          error: 'Not Found',
+          message: 'Desk assignment not found'
+        });
+      }
+
+      const data = requestDoc.data();
+      if (data.status !== 'approved') {
+        return res.status(404).json({
+          success: false,
+          error: 'Not Found',
+          message: 'Desk assignment not found (request not approved)'
+        });
+      }
+
+      res.json({
+        success: true,
+        data: {
+          id: requestDoc.id,
+          ...data
+        }
+      });
+    } else if (assignmentId) {
+      // Old pattern: search for assignment by ID using collection group
+      const requestsSnapshot = await firestore
+        .collectionGroup('requests')
+        .where('status', '==', 'approved')
+        .get();
+      
+      const matchingDoc = requestsSnapshot.docs.find(doc => 
+        doc.id === assignmentId && doc.ref.isDeskRequestPath(path)
+      );
+
+      if (!matchingDoc) {
+        return res.status(404).json({
+          success: false,
+          error: 'Not Found',
+          message: 'Desk assignment not found'
+        });
+      }
+
+      res.json({
+        success: true,
+        data: {
+          id: matchingDoc.id,
+          ...matchingDoc.data()
+        }
+      });
+    } else {
+      return res.status(400).json({
         success: false,
-        error: 'Not Found',
-        message: 'Desk assignment not found'
+        error: 'Bad Request',
+        message: 'Either assignmentId or (userId + requestId) is required'
       });
     }
-
-    res.json({
-      success: true,
-      data: {
-        id: assignmentDoc.id,
-        ...assignmentDoc.data()
-      }
-    });
   } catch (error) {
     console.error('Get desk assignment by ID error:', error);
     res.status(500).json({
@@ -594,7 +773,8 @@ export const getDeskAssignmentById = async (req, res) => {
 
 /**
  * Create new desk assignment
- * If deskId is provided in assignmentData, use it as document ID
+ * For admin-assigned employees (no user account), store in /accounts/desk-emp/assignments/{deskId}
+ * For tenants with user accounts, create an approved request
  */
 export const createDeskAssignment = async (req, res) => {
   try {
@@ -605,39 +785,93 @@ export const createDeskAssignment = async (req, res) => {
       return sendFirestoreError(res);
     }
     
-    // If desk field exists, use it as document ID (for direct assignment by desk tag)
-    const docId = assignmentData.desk || null;
-    
-    let assignmentRef;
-    if (docId) {
-      // Use specific document ID (desk tag)
-      assignmentRef = firestore.collection('desk-assignments').doc(docId);
-      await assignmentRef.set({
-        ...assignmentData,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-    } else {
-      // Let Firestore generate ID
-      assignmentRef = await firestore.collection('desk-assignments').add({
-        ...assignmentData,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+    // Validate required fields
+    if (!assignmentData.desk) {
+      return res.status(400).json({
+        success: false,
+        error: 'Bad Request',
+        message: 'desk is required'
       });
     }
 
-    console.log(`📖 FIRESTORE READ: desk-assignments/${docId} - verification read...`);
-    const newAssignment = await assignmentRef.get();
-    console.log(`📖 FIRESTORE READ: desk-assignments/${docId} - ${newAssignment.exists ? '1 document verified' : 'not found'}`);
+    // Check if this is an employee (no userId) or tenant (has userId)
+    const isEmployee = !assignmentData.userId || assignmentData.type === 'Employee';
 
-    res.status(201).json({
-      success: true,
-      message: 'Desk assignment created successfully',
-      data: {
-        id: newAssignment.id,
-        ...newAssignment.data()
-      }
-    });
+    if (isEmployee) {
+      // For employees: Store in /accounts/desk-emp/assignments/{deskId}
+      const employeeRef = firestore
+        .collection('accounts')
+        .doc('desk-emp')
+        .collection('assignments')
+        .doc(assignmentData.desk);
+
+      const employeeData = {
+        desk: assignmentData.desk,
+        deskTag: assignmentData.desk,
+        assignedDesk: assignmentData.desk,
+        name: assignmentData.name || '',
+        email: assignmentData.email || '',
+        contactNumber: assignmentData.contactNumber || assignmentData.contact || '',
+        company: assignmentData.company || '',
+        type: 'Employee',
+        status: 'active',
+        assignedAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      };
+
+      await employeeRef.set(employeeData);
+
+      const newAssignment = await employeeRef.get();
+
+      res.status(201).json({
+        success: true,
+        message: 'Employee desk assignment created successfully',
+        data: {
+          id: newAssignment.id,
+          ...newAssignment.data()
+        }
+      });
+    } else {
+      // For tenants: Create an approved request in user's request collection
+      const requestRef = firestore
+        .collection('accounts')
+        .doc('client')
+        .collection('users')
+        .doc(assignmentData.userId)
+        .collection('request').doc('desk').collection('requests')
+        .doc();
+
+      const requestData = {
+        status: 'approved',
+        assignedDesk: assignmentData.desk,
+        desk: assignmentData.desk,
+        deskTag: assignmentData.desk,
+        name: assignmentData.name || '',
+        email: assignmentData.email || '',
+        contactNumber: assignmentData.contactNumber || assignmentData.contact || '',
+        company: assignmentData.company || '',
+        type: 'Tenant',
+        approvedAt: admin.firestore.FieldValue.serverTimestamp(),
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        requestDate: assignmentData.requestDate || admin.firestore.FieldValue.serverTimestamp(),
+        adminNotes: 'Created via admin assignment'
+      };
+
+      await requestRef.set(requestData);
+
+      const newRequest = await requestRef.get();
+
+      res.status(201).json({
+        success: true,
+        message: 'Tenant desk assignment created successfully',
+        data: {
+          id: newRequest.id,
+          ...newRequest.data()
+        }
+      });
+    }
   } catch (error) {
     console.error('Create desk assignment error:', error);
     
@@ -658,12 +892,214 @@ export const createDeskAssignment = async (req, res) => {
 };
 
 /**
+ * Delete desk assignment
+ * Handles both employee assignments and tenant requests
+ * For employees: Deletes from /accounts/desk-emp/assignments/{deskId}
+ * For tenants: Updates request status to 'cancelled' and deletes associated bills
+ * Expected params: userId, requestId (assignmentId is kept for backward compatibility)
+ */
+export const deleteDeskAssignment = async (req, res) => {
+  try {
+    const { assignmentId, userId, requestId } = req.params;
+    const firestore = getFirestore();
+    
+    if (!firestore) {
+      return sendFirestoreError(res);
+    }
+    
+    // Support both old (assignmentId) and new (userId + requestId) patterns
+    if (userId && requestId) {
+      // New pattern: update request status to cancelled
+      const requestRef = firestore
+        .collection('accounts')
+        .doc('client')
+        .collection('users')
+        .doc(userId)
+        .collection('request').doc('desk').collection('requests')
+        .doc(requestId);
+        
+      const requestDoc = await requestRef.get();
+
+      if (!requestDoc.exists) {
+        return res.status(404).json({
+          success: false,
+          error: 'Not Found',
+          message: 'Desk assignment not found'
+        });
+      }
+
+      const requestData = requestDoc.data();
+      const deskTag = requestData.assignedDesk || requestData.desk;
+
+      // Update status to cancelled (keeps history)
+      await requestRef.update({
+        status: 'cancelled',
+        cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+      // Delete associated bills for tenants
+      if (requestData.type === 'Tenant' || !requestData.type) {
+        try {
+          const billsSnapshot = await firestore
+            .collection('accounts')
+            .doc('client')
+            .collection('users')
+            .doc(userId)
+            .collection('bills')
+            .where('serviceType', '==', 'dedicated-desk')
+            .where('assignedResource', '==', deskTag)
+            .get();
+
+          if (billsSnapshot.docs.length > 0) {
+            const batch = firestore.batch();
+            billsSnapshot.docs.forEach(doc => {
+              batch.delete(doc.ref);
+            });
+            await batch.commit();
+            console.log(`✅ Deleted ${billsSnapshot.docs.length} bill(s) for desk ${deskTag}`);
+          }
+        } catch (billError) {
+          console.error('Error deleting bills:', billError);
+          // Continue even if bill deletion fails
+        }
+      }
+
+      res.json({
+        success: true,
+        message: 'Desk assignment deleted successfully'
+      });
+    } else if (assignmentId) {
+      // Old pattern: search for assignment by ID and delete
+      // First check if it's an employee assignment
+      const employeeRef = firestore
+        .collection('accounts')
+        .doc('desk-emp')
+        .collection('assignments')
+        .doc(assignmentId);
+      
+      const employeeDoc = await employeeRef.get();
+
+      if (employeeDoc.exists) {
+        // It's an employee assignment - delete it (no bills to delete)
+        await employeeRef.delete();
+        
+        return res.json({
+          success: true,
+          message: 'Employee desk assignment deleted successfully'
+        });
+      }
+
+      // Not an employee, search in tenant requests using collection group
+      let requestsSnapshot;
+      try {
+        // Try with where clause first (requires index)
+        requestsSnapshot = await firestore
+          .collectionGroup('requests')
+          .where('status', '==', 'approved')
+          .get();
+      } catch (indexError) {
+        // If index error, fall back to fetching without filter
+        if (indexError.code === 9 || indexError.message?.includes('index')) {
+          console.warn('⚠️ Firestore index not found, using fallback method...');
+          requestsSnapshot = await firestore
+            .collectionGroup('requests')
+            .get();
+        } else {
+          throw indexError;
+        }
+      }
+      
+      // Fixed: Use isDeskRequestPath helper function correctly
+      const matchingDoc = requestsSnapshot.docs.find(doc => {
+        const path = doc.ref.path;
+        const data = doc.data();
+        return doc.id === assignmentId && isDeskRequestPath(path) && data.status === 'approved';
+      });
+
+      if (!matchingDoc) {
+        return res.status(404).json({
+          success: false,
+          error: 'Not Found',
+          message: 'Desk assignment not found'
+        });
+      }
+
+      const matchingData = matchingDoc.data();
+      const deskTag = matchingData.assignedDesk || matchingData.desk;
+      
+      // Extract userId from path
+      const pathParts = matchingDoc.ref.path.split('/');
+      const userIdIndex = pathParts.indexOf('users');
+      const extractedUserId = userIdIndex !== -1 && userIdIndex + 1 < pathParts.length 
+        ? pathParts[userIdIndex + 1] 
+        : null;
+
+      // Update status to cancelled (keeps history)
+      await matchingDoc.ref.update({
+        status: 'cancelled',
+        cancelledAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+      // Delete associated bills for tenants
+      if (extractedUserId && (matchingData.type === 'Tenant' || !matchingData.type)) {
+        try {
+          const billsSnapshot = await firestore
+            .collection('accounts')
+            .doc('client')
+            .collection('users')
+            .doc(extractedUserId)
+            .collection('bills')
+            .where('serviceType', '==', 'dedicated-desk')
+            .where('assignedResource', '==', deskTag)
+            .get();
+
+          if (billsSnapshot.docs.length > 0) {
+            const batch = firestore.batch();
+            billsSnapshot.docs.forEach(doc => {
+              batch.delete(doc.ref);
+            });
+            await batch.commit();
+            console.log(`✅ Deleted ${billsSnapshot.docs.length} bill(s) for desk ${deskTag}`);
+          }
+        } catch (billError) {
+          console.error('Error deleting bills:', billError);
+          // Continue even if bill deletion fails
+        }
+      }
+
+      res.json({
+        success: true,
+        message: 'Desk assignment deleted successfully'
+      });
+    } else {
+      return res.status(400).json({
+        success: false,
+        error: 'Bad Request',
+        message: 'Either assignmentId or (userId + requestId) is required'
+      });
+    }
+  } catch (error) {
+    console.error('Delete desk assignment error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal Server Error',
+      message: error.message || 'Failed to delete desk assignment'
+    });
+  }
+};
+
+/**
  * Update desk assignment
- * Also supports create-if-not-exists behavior
+ * Handles both employee assignments and tenant requests
+ * For employees: Updates in /accounts/desk-emp/assignments/{deskId}
+ * For tenants: Updates the approved desk request document
+ * Expected params: userId, requestId (assignmentId is kept for backward compatibility)
  */
 export const updateDeskAssignment = async (req, res) => {
   try {
-    const { assignmentId } = req.params;
+    const { assignmentId, userId, requestId } = req.params;
     const updateData = req.body;
     const firestore = getFirestore();
     
@@ -671,36 +1107,131 @@ export const updateDeskAssignment = async (req, res) => {
       return sendFirestoreError(res);
     }
     
-    const assignmentRef = firestore.collection('desk-assignments').doc(assignmentId);
-    const assignmentDoc = await assignmentRef.get();
+    // Support both old (assignmentId) and new (userId + requestId) patterns
+    if (userId && requestId) {
+      // New pattern: update request document
+      const requestRef = firestore
+        .collection('accounts')
+        .doc('client')
+        .collection('users')
+        .doc(userId)
+        .collection('request').doc('desk').collection('requests')
+        .doc(requestId);
+        
+      const requestDoc = await requestRef.get();
 
-    if (!assignmentDoc.exists) {
-      // Create if doesn't exist
-      await assignmentRef.set({
+      if (!requestDoc.exists) {
+        return res.status(404).json({
+          success: false,
+          error: 'Not Found',
+          message: 'Desk assignment not found'
+        });
+      }
+
+      await requestRef.update({
         ...updateData,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
         updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+      const updatedRequest = await requestRef.get();
+
+      res.json({
+        success: true,
+        message: 'Desk assignment updated successfully',
+        data: {
+          id: updatedRequest.id,
+          ...updatedRequest.data()
+        }
+      });
+    } else if (assignmentId) {
+      // Old pattern: search for assignment by ID and update
+      // First check if it's an employee assignment
+      const employeeRef = firestore
+        .collection('accounts')
+        .doc('desk-emp')
+        .collection('assignments')
+        .doc(assignmentId);
+      
+      const employeeDoc = await employeeRef.get();
+
+      if (employeeDoc.exists) {
+        // It's an employee assignment - update it
+        await employeeRef.update({
+          ...updateData,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+        
+        const updatedEmployee = await employeeRef.get();
+        
+        return res.json({
+          success: true,
+          message: 'Employee desk assignment updated successfully',
+          data: {
+            id: updatedEmployee.id,
+            ...updatedEmployee.data()
+          }
+        });
+      }
+
+      // Not an employee, search in tenant requests using collection group
+      
+      let requestsSnapshot;
+      try {
+        // Try with where clause first (requires index)
+        requestsSnapshot = await firestore
+          .collectionGroup('requests')
+          .where('status', '==', 'approved')
+          .get();
+      } catch (indexError) {
+        // If index error, fall back to fetching without filter
+        if (indexError.code === 9 || indexError.message?.includes('index')) {
+          console.warn('⚠️ Firestore index not found, using fallback method...');
+          requestsSnapshot = await firestore
+            .collectionGroup('requests')
+            .get();
+        } else {
+          throw indexError;
+        }
+      }
+      
+      
+      // Fixed: Use isDeskRequestPath helper function correctly
+      const matchingDoc = requestsSnapshot.docs.find(doc => {
+        const path = doc.ref.path;
+        const data = doc.data();
+        return doc.id === assignmentId && isDeskRequestPath(path) && data.status === 'approved';
+      });
+
+      if (!matchingDoc) {
+        return res.status(404).json({
+          success: false,
+          error: 'Not Found',
+          message: 'Desk assignment not found'
+        });
+      }
+
+      await matchingDoc.ref.update({
+        ...updateData,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      });
+
+      const updatedDoc = await matchingDoc.ref.get();
+
+      res.json({
+        success: true,
+        message: 'Desk assignment updated successfully',
+        data: {
+          id: updatedDoc.id,
+          ...updatedDoc.data()
+        }
       });
     } else {
-      // Update existing
-      await assignmentRef.update({
-        ...updateData,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      return res.status(400).json({
+        success: false,
+        error: 'Bad Request',
+        message: 'Either assignmentId or (userId + requestId) is required'
       });
     }
-
-    console.log(`📖 FIRESTORE READ: desk-assignments/${assignmentId} - verification read...`);
-    const updatedAssignment = await assignmentRef.get();
-    console.log(`📖 FIRESTORE READ: desk-assignments/${assignmentId} - ${updatedAssignment.exists ? '1 document verified' : 'not found'}`);
-
-    res.json({
-      success: true,
-      message: 'Desk assignment saved successfully',
-      data: {
-        id: updatedAssignment.id,
-        ...updatedAssignment.data()
-      }
-    });
   } catch (error) {
     console.error('Update desk assignment error:', error);
     
@@ -720,41 +1251,9 @@ export const updateDeskAssignment = async (req, res) => {
   }
 };
 
-/**
- * Delete desk assignment
- */
-export const deleteDeskAssignment = async (req, res) => {
-  try {
-    const { assignmentId } = req.params;
-    const firestore = getFirestore();
-    
-    if (!firestore) {
-      return sendFirestoreError(res);
-    }
-    
-    const assignmentRef = firestore.collection('desk-assignments').doc(assignmentId);
-    const assignmentDoc = await assignmentRef.get();
 
-    if (!assignmentDoc.exists) {
-      return res.status(404).json({
-        success: false,
-        error: 'Not Found',
-        message: 'Desk assignment not found'
-      });
-    }
 
-    await assignmentRef.delete();
 
-    res.json({
-      success: true,
-      message: 'Desk assignment deleted successfully'
-    });
-  } catch (error) {
-    console.error('Delete desk assignment error:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Internal Server Error',
-      message: error.message || 'Failed to delete desk assignment'
-    });
-  }
-};
+
+
+
