@@ -61,16 +61,22 @@ const checkAndCreateNewBills = async () => {
       }
     }
     
-    // Process virtual office client bills
-    const virtualOfficeClientsSnapshot = await db.collection('virtual-office-clients').get();
+    // Process virtual office tenant bills
+    const virtualOfficeTenantsSnapshot = await db
+      .collection('accounts')
+      .doc('virtual-tenants')
+      .collection('tenants')
+      .get();
     
-    for (const clientDoc of virtualOfficeClientsSnapshot.docs) {
-      const clientId = clientDoc.id;
+    for (const tenantDoc of virtualOfficeTenantsSnapshot.docs) {
+      const tenantId = tenantDoc.id;
       
-      // Get all bills for this virtual office client
+      // Get all bills for this virtual office tenant
       const billsSnapshot = await db
-        .collection('virtual-office-clients')
-        .doc(clientId)
+        .collection('accounts')
+        .doc('virtual-tenants')
+        .collection('tenants')
+        .doc(tenantId)
         .collection('bills')
         .orderBy('createdAt', 'desc')
         .get();
@@ -89,11 +95,11 @@ const checkAndCreateNewBills = async () => {
         billsByResource[resource].push(bill);
       }
       
-      console.log(`[Billing Service] Virtual office client ${clientId} has bills for ${Object.keys(billsByResource).length} resources`);
+      console.log(`[Billing Service] Virtual office tenant ${tenantId} has bills for ${Object.keys(billsByResource).length} resources`);
       
       // Process each resource separately
       for (const [resource, resourceBills] of Object.entries(billsByResource)) {
-        await processVirtualOfficeResourceBills(db, clientId, resource, resourceBills, now, clientDoc.data());
+        await processVirtualOfficeResourceBills(db, tenantId, resource, resourceBills, now, tenantDoc.data());
       }
     }
 
@@ -284,7 +290,9 @@ const processVirtualOfficeResourceBills = async (db, clientId, resource, resourc
       };
 
       await db
-        .collection('virtual-office-clients')
+        .collection('accounts')
+        .doc('virtual-tenants')
+        .collection('tenants')
         .doc(clientId)
         .collection('bills')
         .add(newBill);

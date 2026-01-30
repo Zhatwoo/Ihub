@@ -132,15 +132,25 @@ export const getBillingDetails = async (req, res) => {
         };
       }
     } else if (serviceType === 'dedicated-desk') {
-      const doc = await firestore
-        .collection('desk-assignments')
-        .doc(billingId)
+      // Fetch from approved desk requests using collection group query
+      console.log('📖 FIRESTORE READ: Searching for approved desk request...');
+      const requestsSnapshot = await firestore
+        .collectionGroup('requests')
+        .where('status', '==', 'approved')
         .get();
-
-      if (doc.exists) {
+      
+      // Find the matching desk assignment by ID or assignedDesk
+      const matchingDoc = requestsSnapshot.docs.find(doc => {
+        const path = doc.ref.path;
         const data = doc.data();
+        return path.includes('/request/desk/') && 
+               (doc.id === billingId || data.assignedDesk === billingId || data.desk === billingId);
+      });
+
+      if (matchingDoc) {
+        const data = matchingDoc.data();
         billingData = convertTimestamps({
-          id: doc.id,
+          id: matchingDoc.id,
           ...data,
           type: 'dedicated-desk'
         });
@@ -150,7 +160,7 @@ export const getBillingDetails = async (req, res) => {
           email: billingData.email || '',
           contactNumber: billingData.contactNumber || billingData.phone || '',
           companyName: billingData.company || billingData.companyName || '',
-          desk: billingData.desk || billingData.deskTag || '',
+          desk: billingData.assignedDesk || billingData.desk || billingData.deskTag || '',
           status: 'active'
         };
 
@@ -224,9 +234,30 @@ export const updateBillingDetails = async (req, res) => {
         .collection('virtual-office-clients')
         .doc(billingId);
     } else if (serviceType === 'dedicated-desk') {
-      updateRef = firestore
-        .collection('desk-assignments')
-        .doc(billingId);
+      // Update approved desk request
+      console.log('📖 FIRESTORE READ: Searching for approved desk request to update...');
+      const requestsSnapshot = await firestore
+        .collectionGroup('requests')
+        .where('status', '==', 'approved')
+        .get();
+      
+      // Find the matching desk assignment by ID or assignedDesk
+      const matchingDoc = requestsSnapshot.docs.find(doc => {
+        const path = doc.ref.path;
+        const data = doc.data();
+        return path.includes('/request/desk/') && 
+               (doc.id === billingId || data.assignedDesk === billingId || data.desk === billingId);
+      });
+
+      if (!matchingDoc) {
+        return res.status(404).json({
+          success: false,
+          error: 'Not Found',
+          message: 'Desk assignment not found'
+        });
+      }
+
+      updateRef = matchingDoc.ref;
     } else {
       return res.status(400).json({
         success: false,
@@ -271,3 +302,5 @@ export const updateBillingDetails = async (req, res) => {
     });
   }
 };
+
+

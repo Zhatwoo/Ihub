@@ -27,7 +27,7 @@ export default function BillsListModal({ isOpen, onClose, bill, onBillClick }) {
       
       // Add isVirtualOffice query parameter if this is a virtual office client
       const queryParam = bill.isVirtualOffice ? '?isVirtualOffice=true' : '';
-      const response = await api.get(`/api/admin/billing/user/${bill.userId}/bills${queryParam}`);
+      const response = await api.get(`/api/admin/billing/user/${bill.userId}/bills${queryParam}`, { skipCache: true });
       
       if (response.success) {
         // Filter bills to only show bills for the same assignedResource
