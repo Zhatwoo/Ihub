@@ -168,9 +168,19 @@ export const getDashboardStats = async (req, res) => {
     }
 
     // Calculate Private Office stats
+    // Count unique tenants from approved/active schedules only
+    const uniqueTenantIds = new Set();
+    schedules.forEach(schedule => {
+      // Only count tenants with approved/active bookings
+      if (schedule.userId && ['approved', 'upcoming', 'ongoing', 'active', 'completed'].includes(schedule.status)) {
+        uniqueTenantIds.add(schedule.userId);
+      }
+    });
+    
     const privateOfficeStats = {
-      totalRooms: rooms.length,
+      totalRooms: rooms.length, // Total offices (occupied + vacant)
       totalBookings: schedules.length,
+      totalTenants: uniqueTenantIds.size, // Number of unique occupants with approved bookings
       approved: schedules.filter(s => ['approved', 'upcoming', 'ongoing', 'active', 'completed'].includes(s.status)).length,
       rejected: schedules.filter(s => s.status === 'rejected').length,
       pending: schedules.filter(s => s.status === 'pending').length,
@@ -207,11 +217,59 @@ export const getDashboardStats = async (req, res) => {
     }
 
     // Calculate Dedicated Desk stats
+    // Fetch employee assignments from /accounts/desk-emp/assignments
+    let employeeAssignments = [];
+    try {
+      const employeeAssignmentsSnapshot = await firestore
+        .collection('accounts')
+        .doc('desk-emp')
+        .collection('assignments')
+        .get();
+      
+      employeeAssignments = employeeAssignmentsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          type: data.type || 'Employee' // Use type from data, fallback to 'Employee'
+        };
+      });
+      
+      console.log(`📖 FIRESTORE READ: accounts/desk-emp/assignments - ${employeeAssignments.length} employee assignments`);
+    } catch (err) {
+      console.warn('⚠️ Could not fetch employee assignments:', err.message);
+    }
+
+    // Process tenant assignments (approved desk requests)
+    const tenantAssignments = deskAssignments.map(assignment => {
+      const data = assignment;
+      return {
+        ...data,
+        type: data.type || 'Tenant' // Use type from data, fallback to 'Tenant'
+      };
+    });
+
+    // Combine all assignments to count by type
+    const allAssignments = [...employeeAssignments, ...tenantAssignments];
+    
+    // Count by actual type field
+    const tenantCount = allAssignments.filter(a => a.type === 'Tenant').length;
+    const employeeCount = allAssignments.filter(a => a.type === 'Employee').length;
+    
+    // Total seats (you can configure this or fetch from a config)
+    const totalSeats = 267; // Configure this based on your actual desk count
+    const occupiedSeats = allAssignments.length;
+
     const dedicatedDeskStats = {
+      totalSeats: totalSeats,
+      occupiedSeats: occupiedSeats,
+      availableSeats: totalSeats - occupiedSeats,
+      tenantCount: tenantCount,
+      employeeCount: employeeCount,
       approved: deskRequests.filter(r => r.status === 'approved').length,
       pending: deskRequests.filter(r => r.status === 'pending').length,
       rejected: deskRequests.filter(r => r.status === 'rejected').length,
-      totalAssigned: deskAssignments.length, // Count of approved requests
+      totalAssigned: allAssignments.length, // Count of all assignments (tenants + employees)
       recentRequests: deskRequests
         .sort((a, b) => new Date(b.requestDate || b.createdAt || 0) - new Date(a.requestDate || a.createdAt || 0))
         .slice(0, 5)
@@ -227,8 +285,8 @@ export const getDashboardStats = async (req, res) => {
           rooms,
           schedules: schedules.slice(0, 10), // Limit for performance
           virtualOfficeClients: virtualOfficeTenants.slice(0, 10),
-          deskAssignments: deskAssignments.slice(0, 10),
-          deskRequests: deskRequests.slice(0, 10)
+          deskAssignments: allAssignments.slice(0, 20), // All assignments (employees + tenants)
+          deskRequests: deskRequests.slice(0, 20)
         }
       }
     });

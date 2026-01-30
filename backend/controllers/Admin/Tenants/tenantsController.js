@@ -71,21 +71,26 @@ export const getTenantStats = async (req, res) => {
       console.log('📖 FIRESTORE READ: Fetching approved desk requests using collection group...');
       const requestsSnapshot = await firestore
         .collectionGroup('requests')
-        .where('status', '==', 'approved')
-        .get();
+        .get(); // Remove .where() to avoid index requirement
       console.log(`📖 FIRESTORE READ: collectionGroup("requests") - ${requestsSnapshot.docs.length} documents`);
       
-      // Filter to only desk requests and map to assignment format
+      // Filter to only desk requests (path must contain /request/desk/requests/) AND status is approved
       deskAssignmentsSnapshot = {
         docs: requestsSnapshot.docs
-          .filter(doc => doc.ref.path.includes('/request/desk/'))
+          .filter(doc => {
+            const path = doc.ref.path;
+            const data = doc.data();
+            // Path must contain: /request/ AND /desk/ AND /requests/ AND status must be approved
+            return path.includes('/request/') && path.includes('/desk/') && path.includes('/requests/') && data.status === 'approved';
+          })
           .map(doc => ({
             id: doc.id,
             data: () => {
               const data = doc.data();
               return {
                 ...data,
-                desk: data.assignedDesk || data.desk || doc.id
+                desk: data.assignedDesk || data.desk || doc.id,
+                deskTag: data.assignedDesk || data.deskTag || data.desk || doc.id
               };
             }
           }))
@@ -158,8 +163,17 @@ export const getTenantStats = async (req, res) => {
       }));
 
     // Process Dedicated Desk tenants - ONLY show "Tenant" type, exclude "Employee" type
+    console.log('📊 DEBUG getTenantStats: Processing desk assignments:', deskAssignments.length);
+    console.log('📊 DEBUG getTenantStats: Desk assignments sample:', deskAssignments.slice(0, 3).map(a => ({ id: a.id, type: a.type, name: a.name, desk: a.desk })));
+    
     const dedicatedDeskTenants = deskAssignments
-      .filter(a => a.type === 'Tenant') // Only include Tenant type
+      .filter(a => {
+        const isTenant = a.type === 'Tenant';
+        if (!isTenant) {
+          console.log(`📊 DEBUG getTenantStats: Filtering out ${a.id} with type="${a.type}"`);
+        }
+        return isTenant;
+      })
       .map(assignment => ({
         id: assignment.id,
         type: 'dedicated-desk',
@@ -173,6 +187,9 @@ export const getTenantStats = async (req, res) => {
         status: 'active',
         createdAt: assignment.assignedAt || assignment.createdAt || null
       }));
+    
+    console.log('📊 DEBUG getTenantStats: Filtered dedicated desk tenants:', dedicatedDeskTenants.length);
+    console.log('📊 DEBUG getTenantStats: Dedicated desk tenants:', dedicatedDeskTenants);
 
     // Calculate counts
     const stats = {
@@ -242,21 +259,26 @@ export const getFilteredTenants = async (req, res) => {
       console.log('📖 FIRESTORE READ: Fetching approved desk requests using collection group...');
       const requestsSnapshot = await firestore
         .collectionGroup('requests')
-        .where('status', '==', 'approved')
-        .get();
+        .get(); // Remove .where() to avoid index requirement
       console.log(`📖 FIRESTORE READ: collectionGroup("requests") - ${requestsSnapshot.docs.length} documents`);
       
-      // Filter to only desk requests and map to assignment format
+      // Filter to only desk requests (path must contain /request/desk/requests/) AND status is approved
       deskAssignmentsSnapshot = {
         docs: requestsSnapshot.docs
-          .filter(doc => doc.ref.path.includes('/request/desk/'))
+          .filter(doc => {
+            const path = doc.ref.path;
+            const data = doc.data();
+            // Path must contain: /request/ AND /desk/ AND /requests/ AND status must be approved
+            return path.includes('/request/') && path.includes('/desk/') && path.includes('/requests/') && data.status === 'approved';
+          })
           .map(doc => ({
             id: doc.id,
             data: () => {
               const data = doc.data();
               return {
                 ...data,
-                desk: data.assignedDesk || data.desk || doc.id
+                desk: data.assignedDesk || data.desk || doc.id,
+                deskTag: data.assignedDesk || data.deskTag || data.desk || doc.id
               };
             }
           }))
