@@ -409,18 +409,9 @@ export default function PrivateOffices() {
                     <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Rent Fee</label>
                     <div className="flex flex-col gap-2">
                       <div className="flex gap-2">
-                        <select 
-                          name="currency" 
-                          value={formData.currency} 
-                          onChange={handleChange} 
-                          className="w-24 px-2 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all cursor-pointer"
-                        >
-                          <option value="PHP">₱ PHP</option>
-                          <option value="USD">$ USD</option>
-                          <option value="EUR">€ EUR</option>
-                          <option value="GBP">£ GBP</option>
-                          <option value="JPY">¥ JPY</option>
-                        </select>
+                        <div className="w-24 px-2 py-2.5 sm:py-3 border-2 border-gray-300 rounded-xl text-sm text-slate-900 bg-gray-300 cursor-not-allowed flex items-center justify-center font-semibold">
+                          ₱ PHP
+                        </div>
                         <input 
                           type="number" 
                           name="rentFee" 

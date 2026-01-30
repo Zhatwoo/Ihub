@@ -97,7 +97,7 @@ export default function AdminLayout({ children }) {
       
       {/* Sidebar - Hidden on register page */}
       {!isRegisterPage && (
-        <aside className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 w-64 bg-gradient-to-b from-slate-800 to-slate-900 text-white flex flex-col fixed h-screen shadow-xl justify-between z-50 transition-all duration-300 ease-out`}>
+        <aside className={`${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} lg:translate-x-0 w-64 bg-gradient-to-b from-slate-800 to-slate-900 text-white flex flex-col fixed h-screen shadow-xl justify-between z-50 transition-all duration-300 ease-out ${isLoaded ? 'lg:animate-[slideInFromLeft_0.5s_ease-out]' : 'lg:opacity-0 lg:-translate-x-full'}`}>
         <div>
           <div className={`p-4 lg:p-6 border-b border-white/10 bg-black/10 transition-all duration-500 ${isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2'}`}>
             <div className="flex items-center gap-3">
