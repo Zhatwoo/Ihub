@@ -103,11 +103,13 @@ export default function DedicatedDeskSection() {
   useEffect(() => {
     const fetchDeskAssignments = async () => {
       try {
-        const response = await api.get('/api/desk-assignments');
+        const response = await api.get('/api/admin/dedicated-desk/assignments');
         if (response.success && response.data) {
           const assignments = {};
-          response.data.forEach((assignment) => {
-            assignments[assignment.id] = assignment;
+          response.data.assignments.forEach((assignment) => {
+            // Use deskTag as key so floor plan can find it
+            const key = assignment.deskTag || assignment.assignedDesk || assignment.desk || assignment.id;
+            assignments[key] = assignment;
           });
           setDeskAssignments(assignments);
         }

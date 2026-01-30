@@ -66,8 +66,8 @@ export default function DeskWithChair({ onClick, orientation = "horizontal-top",
         {/* Color overlay for occupied desks */}
         {isOccupied && (
           <div 
-            className={`absolute inset-0 ${overlayColor} rounded-sm z-10 pointer-events-none`}
-            style={{ opacity: 0.35 }}
+            className={`absolute inset-0 ${overlayColor} rounded-sm pointer-events-none`}
+            style={{ opacity: 0.4, zIndex: 20 }}
           />
         )}
         {orientation === "horizontal-top" ? (
