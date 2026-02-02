@@ -54,27 +54,33 @@ export const getAllBilling = async (req, res) => {
         
         // Create a billing record for each resource
         for (const [resource, resourceBills] of Object.entries(billsByResource)) {
-          // Check if there are any overdue or unpaid bills for this resource
+          // Check if there are any overdue, unpaid, or inactive bills for this resource
           const hasOverdueBills = resourceBills.some(bill => bill.status === 'overdue');
           const hasUnpaidBills = resourceBills.some(bill => bill.status === 'unpaid');
+          const hasInactiveBills = resourceBills.some(bill => bill.status === 'inactive');
           
-          // Determine the overall status based on priority
+          // Determine the overall status based on priority: overdue > unpaid > inactive > paid
           let overallStatus = 'paid'; // Default to paid
           if (hasOverdueBills) {
             overallStatus = 'overdue';
           } else if (hasUnpaidBills) {
             overallStatus = 'unpaid';
+          } else if (hasInactiveBills) {
+            overallStatus = 'inactive';
           }
           
           console.log(`[getAllBilling] User ${userId}, Resource ${resource} status: ${overallStatus}`);
           
-          // Find the bill to display details from (prioritize overdue > unpaid > paid)
+          // Find the bill to display details from (prioritize overdue > unpaid > inactive > paid)
           let displayBill = resourceBills.find(bill => bill.status === 'overdue');
           if (!displayBill) {
             displayBill = resourceBills.find(bill => bill.status === 'unpaid');
           }
           if (!displayBill) {
-            // If no overdue or unpaid, get the most recent paid bill
+            displayBill = resourceBills.find(bill => bill.status === 'inactive');
+          }
+          if (!displayBill) {
+            // If no overdue, unpaid, or inactive, get the most recent paid bill
             displayBill = resourceBills.find(bill => bill.status === 'paid');
           }
           
@@ -171,12 +177,15 @@ export const getAllBilling = async (req, res) => {
         for (const [resource, resourceBills] of Object.entries(billsByResource)) {
           const hasOverdueBills = resourceBills.some(bill => bill.status === 'overdue');
           const hasUnpaidBills = resourceBills.some(bill => bill.status === 'unpaid');
+          const hasInactiveBills = resourceBills.some(bill => bill.status === 'inactive');
           
           let overallStatus = 'paid';
           if (hasOverdueBills) {
             overallStatus = 'overdue';
           } else if (hasUnpaidBills) {
             overallStatus = 'unpaid';
+          } else if (hasInactiveBills) {
+            overallStatus = 'inactive';
           }
           
           console.log(`[getAllBilling] Virtual office tenant ${tenantId}, Resource ${resource} status: ${overallStatus}`);
@@ -184,6 +193,9 @@ export const getAllBilling = async (req, res) => {
           let displayBill = resourceBills.find(bill => bill.status === 'overdue');
           if (!displayBill) {
             displayBill = resourceBills.find(bill => bill.status === 'unpaid');
+          }
+          if (!displayBill) {
+            displayBill = resourceBills.find(bill => bill.status === 'inactive');
           }
           if (!displayBill) {
             displayBill = resourceBills.find(bill => bill.status === 'paid');
@@ -261,8 +273,10 @@ export const getBillingStats = async (req, res) => {
     let totalBills = 0;
     let totalRevenue = 0;
     let paidCount = 0;
+    let unpaidCount = 0; // Count of unpaid bills
     let unpaidAmount = 0;
     let overdueCount = 0;
+    let inactiveCount = 0; // Count of inactive bills
 
     // Fetch all users and their bills
     const usersSnapshot = await db.collection('accounts').doc('client').collection('users').get();
@@ -287,10 +301,13 @@ export const getBillingStats = async (req, res) => {
           paidCount++;
           totalRevenue += (bill.amount || 0) + (bill.cusaFee || 0) + (bill.parkingFee || 0) + (bill.lateFee || 0) + (bill.damageFee || 0);
         } else if (bill.status === 'unpaid') {
+          unpaidCount++;
           unpaidAmount += (bill.amount || 0) + (bill.cusaFee || 0) + (bill.parkingFee || 0);
         } else if (bill.status === 'overdue') {
           overdueCount++;
           unpaidAmount += (bill.amount || 0) + (bill.cusaFee || 0) + (bill.parkingFee || 0);
+        } else if (bill.status === 'inactive') {
+          inactiveCount++;
         }
       });
     }
@@ -322,10 +339,13 @@ export const getBillingStats = async (req, res) => {
           paidCount++;
           totalRevenue += (bill.amount || 0) + (bill.cusaFee || 0) + (bill.parkingFee || 0) + (bill.lateFee || 0) + (bill.damageFee || 0);
         } else if (bill.status === 'unpaid') {
+          unpaidCount++;
           unpaidAmount += (bill.amount || 0) + (bill.cusaFee || 0) + (bill.parkingFee || 0);
         } else if (bill.status === 'overdue') {
           overdueCount++;
           unpaidAmount += (bill.amount || 0) + (bill.cusaFee || 0) + (bill.parkingFee || 0);
+        } else if (bill.status === 'inactive') {
+          inactiveCount++;
         }
       });
     }
@@ -336,9 +356,20 @@ export const getBillingStats = async (req, res) => {
         totalBills,
         totalRevenue,
         paidCount,
+        unpaidCount, // Add unpaid count to response
         unpaidAmount,
-        overdueCount
+        overdueCount,
+        inactiveCount // Add inactive count to response
       }
+    });
+    
+    console.log('[getBillingStats] Returning stats:', {
+      totalBills,
+      totalRevenue,
+      paidCount,
+      unpaidCount,
+      overdueCount,
+      inactiveCount
     });
   } catch (error) {
     console.error('Error fetching billing stats:', error);
@@ -571,6 +602,13 @@ export const updateBill = async (req, res) => {
 
     console.log('[updateBill] Final update data:', JSON.stringify(updateData, null, 2));
 
+    // If bill status is currently inactive, activate it (change to unpaid)
+    if (currentBill.status === 'inactive') {
+      updateData.status = 'unpaid';
+      updateData.activatedAt = admin.firestore.FieldValue.serverTimestamp();
+      console.log('[updateBill] 🔄 Activating bill: changing status from inactive to unpaid');
+    }
+
     await billRef.update(updateData);
 
     console.log('[updateBill] ✅ Bill updated successfully in Firestore');
@@ -638,7 +676,7 @@ export const createBill = async (req, res) => {
       feePeriod: feePeriod || 'Monthly',
       startDate: admin.firestore.Timestamp.fromDate(new Date(startDate)),
       dueDate: admin.firestore.Timestamp.fromDate(new Date(dueDate)),
-      status: 'unpaid',
+      status: 'inactive', // Newly created bills start as inactive
       createdAt: admin.firestore.FieldValue.serverTimestamp()
     };
 

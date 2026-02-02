@@ -474,7 +474,7 @@ export const updateDeskRequestStatus = async (req, res) => {
           feePeriod: null, // Admin must set via Edit Bill
           startDate: admin.firestore.Timestamp.fromDate(startDate),
           dueDate: null, // Admin must set via Edit Bill
-          status: 'unpaid',
+          status: 'inactive', // Newly created bills start as inactive
           createdAt: admin.firestore.FieldValue.serverTimestamp()
         });
       } catch (billError) {
