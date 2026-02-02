@@ -277,6 +277,72 @@ export const updateBillingDetails = async (req, res) => {
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
 
+    // For dedicated-desk and virtual-office, activate any inactive bills by changing status to unpaid
+    if (serviceType === 'dedicated-desk' || serviceType === 'virtual-office') {
+      try {
+        let billsRef;
+        let userId;
+
+        if (serviceType === 'dedicated-desk') {
+          // Extract userId from the desk request path
+          const pathParts = updateRef.path.split('/');
+          console.log(`📍 Desk request path: ${updateRef.path}`);
+          console.log(`📍 Path parts:`, pathParts);
+          const userIdIndex = pathParts.indexOf('users') + 1;
+          userId = pathParts[userIdIndex];
+          console.log(`📍 Extracted userId: ${userId}`);
+          
+          if (!userId) {
+            console.error('⚠️ Could not extract userId from path');
+            throw new Error('Could not extract userId from desk request path');
+          }
+          
+          billsRef = firestore
+            .collection('accounts')
+            .doc('client')
+            .collection('users')
+            .doc(userId)
+            .collection('bills');
+        } else if (serviceType === 'virtual-office') {
+          console.log(`📍 Virtual office billingId: ${billingId}`);
+          billsRef = firestore
+            .collection('accounts')
+            .doc('virtual-tenants')
+            .collection('tenants')
+            .doc(billingId)
+            .collection('bills');
+        }
+
+        console.log(`📖 FIRESTORE READ: Searching for inactive bills...`);
+        // Find and activate inactive bills
+        const inactiveBillsSnapshot = await billsRef
+          .where('status', '==', 'inactive')
+          .get();
+
+        console.log(`📊 Found ${inactiveBillsSnapshot.size} inactive bill(s)`);
+
+        if (!inactiveBillsSnapshot.empty) {
+          const batch = firestore.batch();
+          inactiveBillsSnapshot.docs.forEach(billDoc => {
+            console.log(`🔄 Activating bill ${billDoc.id}`);
+            batch.update(billDoc.ref, {
+              status: 'unpaid',
+              activatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+          });
+
+          await batch.commit();
+          console.log(`✅ Activated ${inactiveBillsSnapshot.size} inactive bill(s) for ${serviceType}/${billingId}`);
+        } else {
+          console.log(`ℹ️ No inactive bills found for ${serviceType}/${billingId}`);
+        }
+      } catch (billError) {
+        console.error('⚠️ Error activating bills:', billError);
+        console.error('⚠️ Error stack:', billError.stack);
+        // Don't fail the main update if bill activation fails
+      }
+    }
+
     console.log(`✅ Updated billing details for ${serviceType}/${billingId}`);
 
     res.json({

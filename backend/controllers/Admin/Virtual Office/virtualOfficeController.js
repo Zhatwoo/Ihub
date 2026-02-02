@@ -438,7 +438,7 @@ export const createVirtualOfficeClient = async (req, res) => {
         feePeriod: null, // Admin must set via Edit Bill
         startDate: admin.firestore.Timestamp.fromDate(startDate),
         dueDate: null, // Admin must set via Edit Bill
-        status: 'unpaid',
+        status: 'inactive', // Newly created bills start as inactive
         tenantId: tenantId, // Reference to virtual office tenant
         createdAt: admin.firestore.FieldValue.serverTimestamp()
       };

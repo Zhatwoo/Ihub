@@ -185,7 +185,7 @@ const processResourceBills = async (db, userId, resource, resourceBills, now, us
         lateFee: 0, // Reset late fee
         damageFee: 0, // Reset damage fee
         feePeriod: latestBill.feePeriod,
-        status: 'unpaid',
+        status: 'unpaid', // Recurring bills are active (unpaid)
         startDate: admin.firestore.Timestamp.fromDate(newStartDate),
         dueDate: admin.firestore.Timestamp.fromDate(newDueDate),
         createdAt: admin.firestore.FieldValue.serverTimestamp()
@@ -282,7 +282,7 @@ const processVirtualOfficeResourceBills = async (db, clientId, resource, resourc
         lateFee: 0,
         damageFee: 0,
         feePeriod: latestBill.feePeriod,
-        status: 'unpaid',
+        status: 'unpaid', // Recurring bills are active (unpaid)
         clientId: clientId,
         startDate: admin.firestore.Timestamp.fromDate(newStartDate),
         dueDate: admin.firestore.Timestamp.fromDate(newDueDate),
