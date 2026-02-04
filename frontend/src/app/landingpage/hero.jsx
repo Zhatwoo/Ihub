@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { League_Spartan } from 'next/font/google';
 import { motion, useInView } from 'framer-motion';
+import { useTranslation } from '@/lib/TranslationContext';
 
 const leagueSpartan = League_Spartan({
   subsets: ['latin'],
@@ -45,6 +46,7 @@ function CountUp({ end, duration = 2000, suffix = '' }) {
 }
 
 export default function Hero() {
+  const { t } = useTranslation();
   return (
     <div className="relative min-h-screen bg-white overflow-hidden pt-[104px]">
       {/* Organic Teal Wave Background */}
@@ -79,16 +81,16 @@ export default function Hero() {
             transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
           >
             <h1 className={`${leagueSpartan.className} text-4xl sm:text-5xl md:text-6xl lg:text-[91.08px] xl:text-[113.85px] font-bold text-slate-800 leading-[0.85]`}>
-              Welcome to <br/> Inspire Hub
+              {t('landing.hero.welcome')} <br/> {t('landing.hero.appName')}
             </h1>
             <p className="text-base sm:text-lg md:text-xl lg:text-[20.7px] xl:text-[23px] text-slate-700 leading-relaxed max-w-lg">
-              The community, workspaces, and technology to make a good impression and get down to business.
+              {t('landing.hero.tagline')}
             </p>
             <Link 
               href="/landingpage/contacts" 
               className="inline-block bg-[#0F766E] hover:bg-[#0d6b64] text-white font-semibold px-6 py-3 sm:px-8 sm:py-4 rounded-lg border-2 border-white transition-colors duration-200 text-sm sm:text-base"
             >
-              Inquire
+              {t('landing.hero.inquire')}
             </Link>
           </motion.div>
 
@@ -105,7 +107,7 @@ export default function Hero() {
               whileHover={{ y: -20, zIndex: 100, scale: 1.05 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
             >
-              <span className="text-slate-500 text-sm font-medium">Placeholder</span>
+              <span className="text-slate-500 text-sm font-medium">{t('common.placeholder')}</span>
             </motion.div>
 
             {/* Top Image - Placeholder */}
@@ -114,7 +116,7 @@ export default function Hero() {
               whileHover={{ y: -20, zIndex: 100, scale: 1.05 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
             >
-              <span className="text-slate-500 text-sm font-medium">Placeholder</span>
+              <span className="text-slate-500 text-sm font-medium">{t('common.placeholder')}</span>
             </motion.div>
 
             {/* Bottom Image - Placeholder */}
@@ -123,7 +125,7 @@ export default function Hero() {
               whileHover={{ y: -20, zIndex: 100, scale: 1.05 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
             >
-              <span className="text-slate-500 text-sm font-medium">Placeholder</span>
+              <span className="text-slate-500 text-sm font-medium">{t('common.placeholder')}</span>
             </motion.div>
           </motion.div>
         </div>
@@ -142,7 +144,7 @@ export default function Hero() {
                 <CountUp end={500} duration={2000} suffix="+" />
               </div>
               <div className="text-sm sm:text-base lg:text-lg text-white font-medium">
-                Workspaces
+                {t('landing.stats.workspaces')}
               </div>
             </div>
 
@@ -152,7 +154,7 @@ export default function Hero() {
                 <CountUp end={1000} duration={2000} suffix="+" />
               </div>
               <div className="text-sm sm:text-base lg:text-lg text-white font-medium">
-                Members
+                {t('landing.stats.members')}
               </div>
             </div>
 
@@ -162,7 +164,7 @@ export default function Hero() {
                 <CountUp end={50} duration={2000} suffix="+" />
               </div>
               <div className="text-sm sm:text-base lg:text-lg text-white font-medium">
-                Locations
+                {t('landing.stats.locations')}
               </div>
             </div>
 
@@ -172,7 +174,7 @@ export default function Hero() {
                 <CountUp end={98} duration={2000} suffix="%" />
               </div>
               <div className="text-sm sm:text-base lg:text-lg text-white font-medium">
-                Satisfaction
+                {t('landing.stats.satisfaction')}
               </div>
             </div>
           </div>

@@ -4,6 +4,7 @@ import { useRef } from 'react';
 import Image from 'next/image';
 import { League_Spartan, Roboto } from 'next/font/google';
 import { motion, useInView } from 'framer-motion';
+import { useTranslation } from '@/lib/TranslationContext';
 
 const leagueSpartan = League_Spartan({
   subsets: ['latin'],
@@ -17,33 +18,34 @@ const roboto = Roboto({
   variable: '--font-roboto',
 });
 
-const rentalOptions = [
-  {
-    id: 1,
-    title: 'Dedicated Desks',
-    description: 'Enjoy a personal, reserved workspace in a dynamic environment—perfect for focused productivity with the flexibility of a shared office.',
-    image: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=800&h=600&fit=crop',
-    color: '#0F766E', // Teal
-  },
-  {
-    id: 3,
-    title: 'Private Offices',
-    description: 'Designed for growing teams, our medium offices provide ample space, premium amenities, and a collaborative atmosphere to help your business thrive.',
-    image: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=800&h=600&fit=crop',
-    color: '#1F2937', // Dark slate
-  },
-  {
-    id: 4,
-    title: 'Virtual Office',
-    description: 'A virtual office provides businesses with a professional address, mail handling, and access to administrative support—without the cost of maintaining a physical workspace.',
-    image: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=600&h=800&fit=crop',
-    color: '#0d6b64', // Darker teal
-  },
-];
-
 export default function AvailableRentals() {
+  const { t } = useTranslation();
   const sectionRef = useRef(null);
   const isSectionInView = useInView(sectionRef, { once: true, amount: 0.2 });
+
+  const rentalOptions = [
+    {
+      id: 1,
+      titleKey: 'landing.availableRentals.dedicatedDesks',
+      descKey: 'landing.availableRentals.dedicatedDesksDesc',
+      image: 'https://images.unsplash.com/photo-1521737604893-d14cc237f11d?w=800&h=600&fit=crop',
+      color: '#0F766E',
+    },
+    {
+      id: 3,
+      titleKey: 'landing.availableRentals.privateOffices',
+      descKey: 'landing.availableRentals.privateOfficesDesc',
+      image: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=800&h=600&fit=crop',
+      color: '#1F2937',
+    },
+    {
+      id: 4,
+      titleKey: 'landing.availableRentals.virtualOffice',
+      descKey: 'landing.availableRentals.virtualOfficeDesc',
+      image: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=600&h=800&fit=crop',
+      color: '#0d6b64',
+    },
+  ];
 
   return (
     <section ref={sectionRef} className="relative bg-white py-12 sm:py-16 lg:py-24 overflow-hidden">
@@ -63,7 +65,7 @@ export default function AvailableRentals() {
         transition={{ duration: 0.6, ease: 'easeOut' }}
       >
         <h2 className={`${leagueSpartan.className} text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-800 mb-2`}>
-          Available Rental Spaces
+          {t('landing.availableRentals.title')}
         </h2>
         <div className="w-20 sm:w-24 h-1 bg-[#0F766E]"></div>
       </motion.div>
@@ -92,7 +94,7 @@ export default function AvailableRentals() {
                 <div className="absolute inset-0 opacity-20 group-hover:opacity-30 transition-opacity duration-300">
                   <Image
                     src={option.image}
-                    alt={option.title}
+                    alt={t(option.titleKey)}
                     fill
                     className="object-cover"
                     sizes="(max-width: 1024px) 33vw, 33vw"
@@ -105,16 +107,16 @@ export default function AvailableRentals() {
                   {/* Title and Details - Always centered vertically */}
                   <div className="flex flex-col items-center justify-center space-y-2 sm:space-y-4">
                     <h3 className={`${leagueSpartan.className} text-lg sm:text-xl lg:text-2xl font-bold`}>
-                      {option.title}
+                      {t(option.titleKey)}
                     </h3>
                     
                     {/* Description and Button - Show on hover */}
                     <div className="flex flex-col items-center opacity-0 group-hover:opacity-100 transition-opacity duration-100 ease-linear overflow-hidden max-h-0 group-hover:max-h-96 space-y-2 sm:space-y-4">
                       <p className={`${leagueSpartan.className} text-xs sm:text-sm lg:text-base leading-relaxed max-w-xs px-2`}>
-                        {option.description}
+                        {t(option.descKey)}
                       </p>
                       <button className={`${leagueSpartan.className} bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white font-semibold px-4 sm:px-6 py-1.5 sm:py-2 rounded-full transition-all duration-200 text-xs sm:text-sm`}>
-                        Inquire
+                        {t('common.inquire')}
                       </button>
                     </div>
                   </div>

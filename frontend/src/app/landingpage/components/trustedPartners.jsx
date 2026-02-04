@@ -3,8 +3,10 @@
 import { useRef } from 'react';
 import Image from 'next/image';
 import { motion, useInView } from 'framer-motion';
+import { useTranslation } from '@/lib/TranslationContext';
 
 export default function TrustedPartners() {
+  const { t } = useTranslation();
   const sectionRef = useRef(null);
   const isSectionInView = useInView(sectionRef, { once: true, amount: 0.2 });
 
@@ -19,7 +21,7 @@ export default function TrustedPartners() {
           transition={{ duration: 0.6, ease: 'easeOut' }}
         >
           <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-[#1F2937] mb-3 sm:mb-4">
-            Our Trusted Partners
+            {t('landing.trustedPartners.title')}
           </h2>
           <div className="w-24 sm:w-32 h-1 bg-[#0F766E] mx-auto"></div>
         </motion.div>

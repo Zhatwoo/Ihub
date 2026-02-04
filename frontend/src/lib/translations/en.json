@@ -1,0 +1,169 @@
+{
+  "common": {
+    "appName": "Inspire Hub",
+    "inquire": "Inquire",
+    "contact": "Contact",
+    "login": "Login",
+    "signUp": "Sign up",
+    "logout": "Logout",
+    "home": "Home",
+    "placeholder": "Placeholder"
+  },
+  "landing": {
+    "hero": {
+      "welcome": "Welcome to",
+      "appName": "Inspire Hub",
+      "tagline": "The community, workspaces, and technology to make a good impression and get down to business.",
+      "inquire": "Inquire"
+    },
+    "stats": {
+      "workspaces": "Workspaces",
+      "members": "Members",
+      "locations": "Locations",
+      "satisfaction": "Satisfaction"
+    },
+    "header": {
+      "signUp": "Sign up",
+      "login": "Login",
+      "toggleMenu": "Toggle menu"
+    },
+    "trustedPartners": {
+      "title": "Our Trusted Partners"
+    },
+    "availableRentals": {
+      "title": "Available Rental Spaces",
+      "dedicatedDesks": "Dedicated Desks",
+      "dedicatedDesksDesc": "Enjoy a personal, reserved workspace in a dynamic environment—perfect for focused productivity with the flexibility of a shared office.",
+      "privateOffices": "Private Offices",
+      "privateOfficesDesc": "Designed for growing teams, our medium offices provide ample space, premium amenities, and a collaborative atmosphere to help your business thrive.",
+      "virtualOffice": "Virtual Office",
+      "virtualOfficeDesc": "A virtual office provides businesses with a professional address, mail handling, and access to administrative support—without the cost of maintaining a physical workspace."
+    },
+    "footer": {
+      "tagline": "Premium workspaces in Alliance Global Tower with flexible offices, dedicated desks, virtual offices, and thoughtfully designed amenities to keep teams productive.",
+      "address": "Alliance Global Tower, Taguig, Metro Manila",
+      "contactNum": "Contact #: (02) 5322 1002",
+      "email": "Email: inspire-ihub@gmail.com",
+      "product": "Product",
+      "dedicatedDesks": "Dedicated Desks",
+      "privateOffices": "Private Offices",
+      "virtualOffice": "Virtual Office",
+      "company": "Company",
+      "aboutUs": "About Us",
+      "faq": "FAQ",
+      "contact": "Contact",
+      "legal": "Legal",
+      "privacyPolicy": "Privacy Policy",
+      "termsOfService": "Terms of Service",
+      "cookiePolicy": "Cookie Policy",
+      "copyright": "Inspire Hub. All rights reserved.",
+      "resources": "Resources",
+      "connectWithUs": "Connect With Us",
+      "followUs": "Follow us for updates and workspace news.",
+      "locationMap": "Location Map",
+      "aboutIHub": "About I-Hub",
+      "terms": "Terms"
+    },
+    "aboutInspire": {
+      "title": "About Inspire Hub",
+      "subtitle": "Where Business Meets Inspiration",
+      "body": "We provide premium workspaces in the heart of Metro Manila, designed for professionals and teams who value flexibility, community, and productivity.",
+      "aboutTitle": "About Inspire Hub",
+      "aboutBody": "At Inspire Hub, we create environments where productivity meets comfort. Our co-working spaces are designed to empower professionals, entrepreneurs, and businesses to thrive in a collaborative and inspiring atmosphere.",
+      "amenitiesTitle": "Complimentary Amenities",
+      "amenitiesBody": "From high-speed internet to free coffee, our complimentary offerings ensure that you can focus on what truly matters—growing your business and connecting with others in a comfortable and productive environment."
+    },
+    "flexibleWorkspace": {
+      "title": "Flexible Workspace",
+      "subtitle": "Work your way",
+      "heading": "Flexible Workspaces for Modern Professionals",
+      "body": "Whether you're a freelancer, a startup, or remote team, our beautifully furnished desks are ready to support your productivity. Enjoy a comfortable environment, and a vibrant community all at an affordable rate."
+    },
+    "locationCta": {
+      "title": "Visit Us",
+      "subtitle": "Alliance Global Tower, Taguig",
+      "notClient": "Not an I-Hub client?",
+      "networkText": "Become part of a network of over 60,000 professionals. With offices and workspaces in 23 countries in some of the world's most prestigious locations.",
+      "scheduleTitle": "Schedule a Meeting Now!!!",
+      "fullName": "Full Name:",
+      "emailAddress": "Email address:",
+      "fullNamePlaceholder": "Enter your full name",
+      "emailPlaceholder": "Enter your email address",
+      "sending": "Sending...",
+      "schedule": "Schedule"
+    },
+    "contacts": {
+      "title": "Contact Us",
+      "subtitle": "Get in touch"
+    },
+    "faq": {
+      "title": "Frequently Asked Questions"
+    },
+    "policy": {
+      "title": "Privacy Policy & Terms"
+    }
+  },
+  "client": {
+    "header": {
+      "home": "Home",
+      "virtualOffice": "Virtual Office",
+      "myBookings": "My Bookings",
+      "contact": "Contact",
+      "logout": "Logout"
+    },
+    "bookings": {
+      "title": "Active Bookings",
+      "subtitle": "View and manage your current reservations",
+      "totalActive": "Total Active Bookings",
+      "allSystems": "All systems operational",
+      "noBookings": "No Active Bookings",
+      "noBookingsDesc": "You don't have any active bookings at the moment. Book a room to get started!",
+      "loading": "Loading your bookings...",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "cancelBooking": "Cancel Booking",
+      "cancelConfirm": "Are you sure you want to cancel this booking? This action cannot be undone.",
+      "canceling": "Canceling...",
+      "cancel": "Cancel",
+      "confirmCancel": "Yes, cancel",
+      "dedicatedDesk": "Dedicated Desk",
+      "virtualOffice": "Virtual Office",
+      "privateRoom": "Private Room",
+      "desk": "Desk",
+      "booking": "Booking",
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "cancelled": "Cancelled",
+      "active": "Active",
+      "upcoming": "Upcoming",
+      "ongoing": "Ongoing",
+      "confirmed": "Confirmed"
+    },
+    "contact": {
+      "title": "Contact Us"
+    },
+    "dedicatedDesk": {
+      "title": "Dedicated Desk"
+    },
+    "home": {
+      "heroTitle": "Welcome to Inspire Hub",
+      "heroSubtitle": "Flexible workspaces for modern teams",
+      "privateOffices": "Private Offices",
+      "dedicatedDesks": "Dedicated Desks",
+      "bookPrivateOffice": "Book Private Office",
+      "viewDetails": "View Details",
+      "amenities": "Amenities",
+      "whyChooseUs": "Why Choose Us",
+      "ctaTitle": "Ready to get started?",
+      "ctaSubtitle": "Contact us for a tour or more information."
+    },
+    "virtualOffice": {
+      "title": "Virtual Office",
+      "inquiryForm": "Inquiry Form"
+    },
+    "privateOffices": {
+      "title": "Private Offices"
+    }
+  }
+}

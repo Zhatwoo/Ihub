@@ -1,0 +1,169 @@
+{
+  "common": {
+    "appName": "インスパイア・ハブ",
+    "inquire": "お問い合わせ",
+    "contact": "コンタクト",
+    "login": "ログイン",
+    "signUp": "新規登録",
+    "logout": "ログアウト",
+    "home": "ホーム",
+    "placeholder": "プレースホルダー"
+  },
+  "landing": {
+    "hero": {
+      "welcome": "ようこそ",
+      "appName": "インスパイア・ハブ",
+      "tagline": "良い印象を与え、ビジネスに集中できるコミュニティ、ワークスペース、テクノロジーを提供します。",
+      "inquire": "お問い合わせ"
+    },
+    "stats": {
+      "workspaces": "ワークスペース",
+      "members": "メンバー",
+      "locations": "拠点",
+      "satisfaction": "満足度"
+    },
+    "header": {
+      "signUp": "新規登録",
+      "login": "ログイン",
+      "toggleMenu": "メニューを開く"
+    },
+    "trustedPartners": {
+      "title": "信頼のパートナー"
+    },
+    "availableRentals": {
+      "title": "ご利用可能なレンタルスペース",
+      "dedicatedDesks": "専用デスク",
+      "dedicatedDesksDesc": "共有オフィスの柔軟性を持ちながら、集中して仕事ができる、自分専用のワークスペースをご用意しています。",
+      "privateOffices": "プライベートオフィス",
+      "privateOfficesDesc": "成長するチーム向けに設計された中規模オフィス。十分なスペース、充実したアメニティ、コラボレーションを促進する環境でビジネスの成長をサポートします。",
+      "virtualOffice": "バーチャルオフィス",
+      "virtualOfficeDesc": "バーチャルオフィスでは、物理的なスペースを維持するコストをかけずに、ビジネス用住所、メール handling、事務サポートをご利用いただけます。"
+    },
+    "footer": {
+      "tagline": "アリアンス・グローバル・タワー内のプレミアムワークスペース。フレキシブルオフィス、専用デスク、バーチャルオフィス、チームの生産性を支えるアメニティをご用意しています。",
+      "address": "アリアンス・グローバル・タワー、タギグ、メトロ・マニラ",
+      "contactNum": "お問い合わせ: (02) 5322 1002",
+      "email": "メール: inspire-ihub@gmail.com",
+      "product": "製品",
+      "dedicatedDesks": "専用デスク",
+      "privateOffices": "プライベートオフィス",
+      "virtualOffice": "バーチャルオフィス",
+      "company": "会社",
+      "aboutUs": "私たちについて",
+      "faq": "よくある質問",
+      "contact": "お問い合わせ",
+      "legal": "法的情報",
+      "privacyPolicy": "プライバシーポリシー",
+      "termsOfService": "利用規約",
+      "cookiePolicy": "Cookieポリシー",
+      "copyright": "インスパイア・ハブ。無断転載を禁じます。",
+      "resources": "リソース",
+      "connectWithUs": "お問い合わせ",
+      "followUs": "更新情報とワークスペースのニュースをお届けします。",
+      "locationMap": "地図",
+      "aboutIHub": "I-Hubについて",
+      "terms": "利用規約"
+    },
+    "aboutInspire": {
+      "title": "インスパイア・ハブについて",
+      "subtitle": "ビジネスとインスピレーションが出会う場所",
+      "body": "マニラの中心で、柔軟性、コミュニティ、生産性を大切にするプロフェッショナルとチームのためのプレミアムワークスペースを提供しています。",
+      "aboutTitle": "インスパイア・ハブについて",
+      "aboutBody": "インスパイア・ハブでは、生産性と快適さが調和した環境を創り出しています。コワーキングスペースは、プロフェッショナル、起業家、企業が協働とインスピレーションに満ちた雰囲気の中で成長できるよう設計されています。",
+      "amenitiesTitle": "無料アメニティ",
+      "amenitiesBody": "高速インターネットから無料コーヒーまで、無料でご利用いただけるサービスで、本当に大切なこと—ビジネスの成長と快適で生産的な環境での人とのつながり—に集中していただけます。"
+    },
+    "flexibleWorkspace": {
+      "title": "フレキシブルワークスペース",
+      "subtitle": "あなたの働き方で",
+      "heading": "現代のプロフェッショナルのためのフレキシブルワークスペース",
+      "body": "フリーランス、スタートアップ、リモートチームの皆様に、美しく整えられたデスクで生産性をサポートします。快適な環境と活気あるコミュニティを、お手頃な料金でご利用いただけます。"
+    },
+    "locationCta": {
+      "title": "アクセス",
+      "subtitle": "アリアンス・グローバル・タワー、タギグ",
+      "notClient": "I-Hubのクライアントではありませんか？",
+      "networkText": "60,000人以上のプロフェッショナルのネットワークに参加しませんか。世界有数のプレステージあるロケーションに、23か国でオフィスとワークスペースを展開しています。",
+      "scheduleTitle": "今すぐミーティングを予約！！！",
+      "fullName": "氏名：",
+      "emailAddress": "メールアドレス：",
+      "fullNamePlaceholder": "氏名を入力",
+      "emailPlaceholder": "メールアドレスを入力",
+      "sending": "送信中...",
+      "schedule": "予約する"
+    },
+    "contacts": {
+      "title": "お問い合わせ",
+      "subtitle": "ご連絡ください"
+    },
+    "faq": {
+      "title": "よくある質問"
+    },
+    "policy": {
+      "title": "プライバシーポリシー・利用規約"
+    }
+  },
+  "client": {
+    "header": {
+      "home": "ホーム",
+      "virtualOffice": "バーチャルオフィス",
+      "myBookings": "予約一覧",
+      "contact": "お問い合わせ",
+      "logout": "ログアウト"
+    },
+    "bookings": {
+      "title": "アクティブな予約",
+      "subtitle": "現在の予約を表示・管理",
+      "totalActive": "アクティブな予約数",
+      "allSystems": "すべて正常に稼働中",
+      "noBookings": "アクティブな予約はありません",
+      "noBookingsDesc": "現在、アクティブな予約はありません。ルームを予約して始めましょう。",
+      "loading": "予約を読み込み中...",
+      "startDate": "開始日",
+      "endDate": "終了日",
+      "cancelBooking": "予約をキャンセル",
+      "cancelConfirm": "この予約をキャンセルしてもよろしいですか？この操作は元に戻せません。",
+      "canceling": "キャンセル中...",
+      "cancel": "キャンセル",
+      "confirmCancel": "はい、キャンセルします",
+      "dedicatedDesk": "専用デスク",
+      "virtualOffice": "バーチャルオフィス",
+      "privateRoom": "プライベートルーム",
+      "desk": "デスク",
+      "booking": "予約",
+      "pending": "保留中",
+      "approved": "承認済み",
+      "rejected": "却下",
+      "cancelled": "キャンセル済み",
+      "active": "アクティブ",
+      "upcoming": "予定",
+      "ongoing": "利用中",
+      "confirmed": "確定"
+    },
+    "contact": {
+      "title": "お問い合わせ"
+    },
+    "dedicatedDesk": {
+      "title": "専用デスク"
+    },
+    "home": {
+      "heroTitle": "インスパイア・ハブへようこそ",
+      "heroSubtitle": "現代のチームのためのフレキシブルワークスペース",
+      "privateOffices": "プライベートオフィス",
+      "dedicatedDesks": "専用デスク",
+      "bookPrivateOffice": "プライベートオフィスを予約",
+      "viewDetails": "詳細を見る",
+      "amenities": "アメニティ",
+      "whyChooseUs": "選ばれる理由",
+      "ctaTitle": "始める準備はできましたか？",
+      "ctaSubtitle": "見学や詳細はお問い合わせください。"
+    },
+    "virtualOffice": {
+      "title": "バーチャルオフィス",
+      "inquiryForm": "お問い合わせフォーム"
+    },
+    "privateOffices": {
+      "title": "プライベートオフィス"
+    }
+  }
+}
