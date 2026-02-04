@@ -4,16 +4,16 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
-
-// Tailwind CSS classes are validated - no gradient classes in this file
-
-const navItems = [
-  { name: 'Home', href: '/client' },
-  { name: 'Virtual Office', href: '/client/virtual-office' },
-  { name: 'My Bookings', href: '/client/bookings' },
-];
+import { useTranslation } from '@/lib/TranslationContext';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 export default function Header() {
+  const { t } = useTranslation();
+  const navItems = [
+    { name: t('client.header.home'), href: '/client' },
+    { name: t('client.header.virtualOffice'), href: '/client/virtual-office' },
+    { name: t('client.header.myBookings'), href: '/client/bookings' },
+  ];
   const pathname = usePathname();
   const router = useRouter();
   const [isScrolled, setIsScrolled] = useState(false);
@@ -77,11 +77,11 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         <Link href="/client" className="flex items-center gap-3">
           <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-xl shadow-lg">🏢</div>
-          <span className="text-xl font-bold text-white">Inspire Hub</span>
+          <span className="text-xl font-bold text-white">{t('common.appName')}</span>
         </Link>
         <nav className="flex items-center gap-1">
           {navItems.map((item) => (
-            <Link key={item.name} href={item.href} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${pathname === item.href ? 'bg-white/20 text-white' : 'text-white/90 hover:bg-white/10 hover:text-white'}`}>
+            <Link key={item.href} href={item.href} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${pathname === item.href ? 'bg-white/20 text-white' : 'text-white/90 hover:bg-white/10 hover:text-white'}`}>
               {item.name}
             </Link>
           ))}
@@ -90,14 +90,15 @@ export default function Header() {
             onClick={handleContactClick}
             className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${pathname === '/landingpage/contacts' ? 'bg-white/20 text-white' : 'text-white/90 hover:bg-white/10 hover:text-white'}`}
           >
-            Contact
+            {t('client.header.contact')}
           </Link>
+          <LanguageSwitcher variant="dark" className="ml-1" />
           <button
             id="logout-btn"
             onClick={handleLogout}
             className="px-4 py-2 rounded-lg text-sm font-medium transition-all text-white/90 hover:bg-white/10 hover:text-white"
           >
-            Logout
+            {t('client.header.logout')}
           </button>
         </nav>
       </div>

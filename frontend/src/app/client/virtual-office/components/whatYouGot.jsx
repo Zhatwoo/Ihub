@@ -3,8 +3,10 @@
 import Image from 'next/image';
 import { motion, useInView } from 'framer-motion';
 import { useRef } from 'react';
+import { useTranslation } from '@/lib/TranslationContext';
 
 export default function WhatYouGot({ children }) {
+  const { t } = useTranslation();
   const sectionRef = useRef(null);
   const headingRef = useRef(null);
   const cardsRef = useRef(null);
@@ -47,7 +49,7 @@ export default function WhatYouGot({ children }) {
             transition={{ duration: 0.6, ease: 'easeOut', delay: 0.3 }}
             className="text-gray-800 text-2xl sm:text-3xl md:text-4xl font-bold"
           >
-            What You Get
+            {t('client.virtualOffice.whatYouGet')}
           </motion.h2>
         </div>
       </motion.div>
@@ -72,9 +74,9 @@ export default function WhatYouGot({ children }) {
           </div>
           {/* Bottom Section - White */}
           <div className="w-full p-4 sm:p-6 bg-white flex-1 flex flex-col">
-            <h3 className="text-gray-800 text-lg sm:text-xl font-bold mb-2 sm:mb-3">Your Address</h3>
+            <h3 className="text-gray-800 text-lg sm:text-xl font-bold mb-2 sm:mb-3">{t('client.virtualOffice.yourAddress')}</h3>
             <p className="text-gray-700 text-xs sm:text-sm leading-relaxed flex-1">
-              Your address becomes 6F Alliance Global Tower, 11th Avenue, corner 36th St, Taguig, Metro Manila – to use on your website and business collateral. A great address should improve your SEO rankings.
+              {t('client.virtualOffice.yourAddressDesc')}
             </p>
           </div>
         </motion.div>
@@ -98,9 +100,9 @@ export default function WhatYouGot({ children }) {
           </div>
           {/* Bottom Section - White */}
           <div className="w-full p-4 sm:p-6 bg-white flex-1 flex flex-col">
-            <h3 className="text-gray-800 text-lg sm:text-xl font-bold mb-2 sm:mb-3">Local Phone Number</h3>
+            <h3 className="text-gray-800 text-lg sm:text-xl font-bold mb-2 sm:mb-3">{t('client.virtualOffice.localPhoneNumber')}</h3>
             <p className="text-gray-700 text-xs sm:text-sm leading-relaxed flex-1">
-              Local phone number with dedicated receptionists to answer your calls the way you would like and extend them to you wherever you are.
+              {t('client.virtualOffice.localPhoneNumberDesc')}
             </p>
           </div>
         </motion.div>
@@ -124,9 +126,9 @@ export default function WhatYouGot({ children }) {
           </div>
           {/* Bottom Section - White */}
           <div className="w-full p-4 sm:p-6 bg-white flex-1 flex flex-col">
-            <h3 className="text-gray-800 text-lg sm:text-xl font-bold mb-2 sm:mb-3">On-Site Support</h3>
+            <h3 className="text-gray-800 text-lg sm:text-xl font-bold mb-2 sm:mb-3">{t('client.virtualOffice.onSiteSupport')}</h3>
             <p className="text-gray-700 text-xs sm:text-sm leading-relaxed flex-1">
-              Secretaries and in-house IT support team available to assist your business on-site.
+              {t('client.virtualOffice.onSiteSupportDesc')}
             </p>
           </div>
         </motion.div>
@@ -150,9 +152,9 @@ export default function WhatYouGot({ children }) {
           </div>
           {/* Bottom Section - White */}
           <div className="w-full p-4 sm:p-6 bg-white flex-1 flex flex-col">
-            <h3 className="text-gray-800 text-lg sm:text-xl font-bold mb-2 sm:mb-3">Mobile Business Phone</h3>
+            <h3 className="text-gray-800 text-lg sm:text-xl font-bold mb-2 sm:mb-3">{t('client.virtualOffice.mobileBusinessPhone')}</h3>
             <p className="text-gray-700 text-xs sm:text-sm leading-relaxed flex-1">
-              Take your business phone on your mobile anywhere outside your home location.
+              {t('client.virtualOffice.mobileBusinessPhoneDesc')}
             </p>
           </div>
         </motion.div>

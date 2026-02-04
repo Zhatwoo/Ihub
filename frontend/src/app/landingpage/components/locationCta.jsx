@@ -5,6 +5,7 @@ import { League_Spartan, Roboto } from 'next/font/google';
 import { motion, useInView } from 'framer-motion';
 import ConfirmationModal from './ConfirmationModal';
 import { api } from '@/lib/api';
+import { useTranslation } from '@/lib/TranslationContext';
 
 const leagueSpartan = League_Spartan({
   subsets: ['latin'],
@@ -19,6 +20,7 @@ const roboto = Roboto({
 });
 
 export default function LocationCta() {
+  const { t } = useTranslation();
   const sectionRef = useRef(null);
   const isInView = useInView(sectionRef, { once: true, amount: 0.2 });
   const [formData, setFormData] = useState({
@@ -117,7 +119,7 @@ export default function LocationCta() {
             transition={{ duration: 0.6 }}
             className={`${leagueSpartan.className} text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-800 mb-3 sm:mb-4`}
           >
-            Not an I-Hub client?
+            {t('landing.locationCta.notClient')}
           </motion.h2>
           <motion.p
             initial={{ opacity: 0, y: 30 }}
@@ -125,7 +127,7 @@ export default function LocationCta() {
             transition={{ duration: 0.6, delay: 0.1 }}
             className={`${roboto.className} text-sm sm:text-base lg:text-lg text-slate-600 leading-relaxed px-2`}
           >
-            Become part of a network of over 60,000 professionals. With offices and workspaces in 23 countries in some of the world's most prestigious locations.
+            {t('landing.locationCta.networkText')}
           </motion.p>
         </div>
       </div>
@@ -172,7 +174,7 @@ export default function LocationCta() {
           >
             {/* Form Heading */}
             <h2 className={`${leagueSpartan.className} text-2xl sm:text-3xl lg:text-4xl font-bold text-[#0F766E] mb-6 sm:mb-8 text-center`}>
-              Schedule a Meeting Now!!!
+              {t('landing.locationCta.scheduleTitle')}
             </h2>
 
             {/* Form */} 
@@ -185,7 +187,7 @@ export default function LocationCta() {
                     htmlFor="fullName"
                     className={`${roboto.className} block text-sm font-medium text-slate-700 mb-2`}
                   >
-                    Full Name:
+                    {t('landing.locationCta.fullName')}
                   </label>
                   <input
                     type="text"
@@ -195,7 +197,7 @@ export default function LocationCta() {
                     onChange={handleChange}
                     required
                     className={`${roboto.className} w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0F766E] focus:border-transparent text-sm sm:text-base`}
-                    placeholder="Enter your full name"
+                    placeholder={t('landing.locationCta.fullNamePlaceholder')}
                   />
                 </div>
 
@@ -205,7 +207,7 @@ export default function LocationCta() {
                     htmlFor="schedule-email"
                     className={`${roboto.className} block text-sm font-medium text-slate-700 mb-2`}
                   >
-                    Email address:
+                    {t('landing.locationCta.emailAddress')}
                   </label>
                   <input
                     type="email"
@@ -215,7 +217,7 @@ export default function LocationCta() {
                     onChange={handleChange}
                     required
                     className={`${roboto.className} w-full px-3 sm:px-4 py-2 sm:py-3 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-[#0F766E] focus:border-transparent text-sm sm:text-base`}
-                    placeholder="Enter your email address"
+                    placeholder={t('landing.locationCta.emailPlaceholder')}
                   />
                 </div>
               </div>
@@ -227,7 +229,7 @@ export default function LocationCta() {
                   disabled={loading}
                   className={`${leagueSpartan.className} bg-[#0F766E] text-white font-semibold px-6 sm:px-8 py-2.5 sm:py-3 rounded-lg hover:bg-[#0d6b64] transition-colors duration-200 text-base sm:text-lg w-full sm:w-auto disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
-                  {loading ? 'Sending...' : 'Schedule'}
+                  {loading ? t('landing.locationCta.sending') : t('landing.locationCta.schedule')}
                 </button>
               </div>
             </form>

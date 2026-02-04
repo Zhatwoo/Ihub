@@ -10,6 +10,7 @@ import ClientHeader from '@/app/client/home/components/header.jsx';
 import Footer from '../components/footer.jsx';
 import ConfirmationModal from '../components/ConfirmationModal.jsx';
 import { api } from '@/lib/api';
+import { useTranslation } from '@/lib/TranslationContext';
 
 const leagueSpartan = League_Spartan({
   subsets: ['latin'],
@@ -22,6 +23,7 @@ const roboto = Roboto({
 });
 
 function ContactsContent() {
+  const { t } = useTranslation();
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnTo = searchParams.get('returnTo');
@@ -74,8 +76,8 @@ function ContactsContent() {
         setModal({
           isOpen: true,
           type: 'success',
-          title: 'Message Sent Successfully!',
-          message: response.message || 'Thank you for contacting us! We have received your message and will get back to you soon.',
+          title: t('landing.contacts.successTitle'),
+          message: response.message || t('landing.contacts.successMessage'),
         });
 
         // Reset form
@@ -94,8 +96,8 @@ function ContactsContent() {
       setModal({
         isOpen: true,
         type: 'error',
-        title: 'Failed to Send Message',
-        message: error.message || 'There was an error sending your message. Please try again later.',
+        title: t('landing.contacts.failedTitle'),
+        message: error.message || t('landing.contacts.failedMessage'),
       });
     } finally {
       setLoading(false);
@@ -114,8 +116,8 @@ function ContactsContent() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
         </svg>
       ),
-      title: 'Address',
-      content: 'Alliance Global Tower, 11th Avenue, corner 36th St, Taguig, Metro Manila',
+      title: t('landing.contacts.address'),
+      content: t('landing.contacts.addressContent'),
       link: null
     },
     {
@@ -124,7 +126,7 @@ function ContactsContent() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
         </svg>
       ),
-      title: 'Phone',
+      title: t('landing.contacts.phone'),
       content: '(02) 5322 1002',
       link: 'tel:(02) 5322 1002'
     },
@@ -134,7 +136,7 @@ function ContactsContent() {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
         </svg>
       ),
-      title: 'Email',
+      title: t('landing.contacts.email'),
       content: 'inspire-ihub@gmail.com',
       link: 'mailto:inspire-ihub@gmail.com'
     }
@@ -154,20 +156,20 @@ function ContactsContent() {
           <button
             onClick={handleBack}
             className="absolute top-6 left-6 lg:left-12 flex items-center gap-2 text-white hover:text-gray-200 transition-colors"
-            aria-label="Go back"
+            aria-label={t('landing.contacts.goBack')}
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            <span className={`${roboto.className} font-medium`}>Back</span>
+            <span className={`${roboto.className} font-medium`}>{t('landing.contacts.back')}</span>
           </button>
         )}
         <div className="max-w-7xl mx-auto px-6 lg:px-8 text-center">
           <h1 className={`${leagueSpartan.className} text-4xl lg:text-5xl font-bold text-white mb-4`}>
-            Contact Us
+            {t('landing.contacts.title')}
           </h1>
           <p className={`${roboto.className} text-lg lg:text-xl text-white/90 max-w-2xl mx-auto`}>
-            Get in touch with us. We're here to help you find the perfect workspace solution for your business.
+            {t('landing.contacts.subtitle')}
           </p>
         </div>
       </motion.div>
@@ -182,10 +184,10 @@ function ContactsContent() {
           >
             <div>
               <h2 className={`${leagueSpartan.className} text-3xl font-bold text-slate-800 mb-6`}>
-                Get in Touch
+                {t('landing.contacts.getInTouch')}
               </h2>
               <p className={`${roboto.className} text-base text-slate-700 leading-relaxed mb-8`}>
-                Whether you're looking for a dedicated desk, private office, or virtual office solution, our team is ready to assist you. Reach out to us through any of the channels below.
+                {t('landing.contacts.getInTouchDesc')}
               </p>
             </div>
 
@@ -229,7 +231,7 @@ function ContactsContent() {
               className="pt-6"
             >
               <h3 className={`${leagueSpartan.className} text-xl font-semibold text-slate-800 mb-4`}>
-                Follow Us
+                {t('landing.contacts.followUs')}
               </h3>
               <div className="flex items-center gap-4">
                 {[
@@ -261,7 +263,7 @@ function ContactsContent() {
             className="bg-[#1F2937] rounded-2xl p-8 lg:p-10"
           >
             <h2 className={`${leagueSpartan.className} text-3xl font-bold text-white mb-6`}>
-              Send us a Message
+              {t('landing.contacts.sendMessageTitle')}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-6">
               <motion.div
@@ -270,7 +272,7 @@ function ContactsContent() {
                 transition={{ duration: 0.6, delay: 0.3 }}
               >
                 <label htmlFor="name" className={`block ${roboto.className} text-white text-base font-medium mb-2`}>
-                  Full Name<span className="text-red-400 ml-1">*</span>
+                  {t('landing.contacts.fullName')}<span className="text-red-400 ml-1">*</span>
                 </label>
                 <input
                   type="text"
@@ -280,7 +282,7 @@ function ContactsContent() {
                   onChange={handleChange}
                   required
                   className="w-full px-4 py-3 bg-white rounded-lg border-none outline-none focus:ring-2 focus:ring-[#0F766E] transition-all text-base hover:bg-gray-50"
-                  placeholder="Enter your full name"
+                  placeholder={t('landing.contacts.placeholderFullName')}
                 />
               </motion.div>
 
@@ -290,7 +292,7 @@ function ContactsContent() {
                 transition={{ duration: 0.6, delay: 0.4 }}
               >
                 <label htmlFor="contact-email" className={`block ${roboto.className} text-white text-base font-medium mb-2`}>
-                  Email Address<span className="text-red-400 ml-1">*</span>
+                  {t('landing.contacts.emailAddress')}<span className="text-red-400 ml-1">*</span>
                 </label>
                 <input
                   type="email"
@@ -300,7 +302,7 @@ function ContactsContent() {
                   onChange={handleChange}
                   required
                   className="w-full px-4 py-3 bg-white rounded-lg border-none outline-none focus:ring-2 focus:ring-[#0F766E] transition-all text-base hover:bg-gray-50"
-                  placeholder="Enter your email address"
+                  placeholder={t('landing.contacts.placeholderEmail')}
                 />
               </motion.div>
 
@@ -310,7 +312,7 @@ function ContactsContent() {
                 transition={{ duration: 0.6, delay: 0.5 }}
               >
                 <label htmlFor="phone" className={`block ${roboto.className} text-white text-base font-medium mb-2`}>
-                  Phone Number
+                  {t('landing.contacts.phoneNumber')}
                 </label>
                 <input
                   type="tel"
@@ -319,7 +321,7 @@ function ContactsContent() {
                   value={formData.phone}
                   onChange={handleChange}
                   className="w-full px-4 py-3 bg-white rounded-lg border-none outline-none focus:ring-2 focus:ring-[#0F766E] transition-all text-base hover:bg-gray-50"
-                  placeholder="Enter your phone number"
+                  placeholder={t('landing.contacts.placeholderPhone')}
                 />
               </motion.div>
 
@@ -329,7 +331,7 @@ function ContactsContent() {
                 transition={{ duration: 0.6, delay: 0.6 }}
               >
                 <label htmlFor="subject" className={`block ${roboto.className} text-white text-base font-medium mb-2`}>
-                  Subject<span className="text-red-400 ml-1">*</span>
+                  {t('landing.contacts.subject')}<span className="text-red-400 ml-1">*</span>
                 </label>
                 <input
                   type="text"
@@ -339,7 +341,7 @@ function ContactsContent() {
                   onChange={handleChange}
                   required
                   className="w-full px-4 py-3 bg-white rounded-lg border-none outline-none focus:ring-2 focus:ring-[#0F766E] transition-all text-base hover:bg-gray-50"
-                  placeholder="What is this regarding?"
+                  placeholder={t('landing.contacts.placeholderSubject')}
                 />
               </motion.div>
 
@@ -349,7 +351,7 @@ function ContactsContent() {
                 transition={{ duration: 0.6, delay: 0.7 }}
               >
                 <label htmlFor="message" className={`block ${roboto.className} text-white text-base font-medium mb-2`}>
-                  Message<span className="text-red-400 ml-1">*</span>
+                  {t('landing.contacts.message')}<span className="text-red-400 ml-1">*</span>
                 </label>
                 <textarea
                   id="message"
@@ -359,7 +361,7 @@ function ContactsContent() {
                   required
                   rows={5}
                   className="w-full px-4 py-3 bg-white rounded-lg border-none outline-none focus:ring-2 focus:ring-[#0F766E] transition-all text-base hover:bg-gray-50 resize-none"
-                  placeholder="Tell us how we can help you..."
+                  placeholder={t('landing.contacts.placeholderMessage')}
                 />
               </motion.div>
 
@@ -376,7 +378,7 @@ function ContactsContent() {
                   whileTap={{ scale: loading ? 1 : 0.95 }}
                   className={`w-full px-8 py-4 bg-[#0F766E] text-white ${leagueSpartan.className} font-semibold rounded-lg hover:bg-[#0d7a71] transition-all duration-300 shadow-lg text-lg disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
-                  {loading ? 'Sending...' : 'Send Message'}
+                  {loading ? t('landing.contacts.sending') : t('landing.contacts.sendMessage')}
                 </motion.button>
               </motion.div>
             </form>
@@ -397,16 +399,21 @@ function ContactsContent() {
   );
 }
 
+function ContactsLoadingFallback() {
+  const { t } = useTranslation();
+  return (
+    <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0F766E] mx-auto mb-4"></div>
+        <p className="text-slate-600">{t('landing.contacts.loading')}</p>
+      </div>
+    </div>
+  );
+}
+
 export default function ContactsPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0F766E] mx-auto mb-4"></div>
-          <p className="text-slate-600">Loading...</p>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<ContactsLoadingFallback />}>
       <ContactsContent />
     </Suspense>
   );
