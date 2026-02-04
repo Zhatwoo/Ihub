@@ -5,8 +5,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { api } from '@/lib/api';
+import { useTranslation } from '@/lib/TranslationContext';
 
 export default function VirtualOfficeHeader() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -38,7 +40,7 @@ export default function VirtualOfficeHeader() {
               priority
             />
           </div>
-          <span className="text-white text-base sm:text-[1.378125rem] font-semibold">Inspire Hub</span>
+          <span className="text-white text-base sm:text-[1.378125rem] font-semibold">{t('common.appName')}</span>
         </div>
 
         {/* Desktop Navigation */}
@@ -47,19 +49,19 @@ export default function VirtualOfficeHeader() {
             href="/client/home"
             className="text-white text-[0.9646875rem] font-medium hover:text-teal-100 transition-colors"
           >
-            Home
+            {t('client.header.home')}
           </Link>
           <Link
             href="/client/virtual-office"
             className="text-white text-[0.9646875rem] font-medium hover:text-teal-100 transition-colors"
           >
-            Inquire Virtual Office
+            {t('client.virtualOfficeHeader.inquireVirtualOffice')}
           </Link>
           <button
             onClick={handleLogout}
             className="text-white text-[0.9646875rem] font-medium cursor-pointer hover:text-red-500 transition-colors"
           >
-            Logout
+            {t('client.header.logout')}
           </button>
         </nav>
 
@@ -67,7 +69,7 @@ export default function VirtualOfficeHeader() {
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
           className="md:hidden text-white p-2"
-          aria-label="Toggle menu"
+          aria-label={t('client.virtualOfficeHeader.toggleMenu')}
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             {isMenuOpen ? (
@@ -88,14 +90,14 @@ export default function VirtualOfficeHeader() {
               onClick={() => setIsMenuOpen(false)}
               className="text-white text-sm font-medium hover:text-teal-100 transition-colors px-4 py-2"
             >
-              Home
+              {t('client.header.home')}
             </Link>
             <Link
               href="/client/virtual-office"
               onClick={() => setIsMenuOpen(false)}
               className="text-white text-sm font-medium hover:text-teal-100 transition-colors px-4 py-2"
             >
-              Inquire Virtual Office
+              {t('client.virtualOfficeHeader.inquireVirtualOffice')}
             </Link>
             <button
               onClick={() => {
@@ -104,7 +106,7 @@ export default function VirtualOfficeHeader() {
               }}
               className="text-white text-sm font-medium hover:text-teal-100 transition-colors px-4 py-2 text-left"
             >
-              Logout
+              {t('client.header.logout')}
             </button>
           </div>
         </nav>

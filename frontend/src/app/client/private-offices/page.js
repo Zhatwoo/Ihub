@@ -4,8 +4,10 @@ import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { api, getUserFromCookie } from '@/lib/api';
+import { useTranslation } from '@/lib/TranslationContext';
 
 export default function PrivateOffices() {
+  const { t } = useTranslation();
   const searchParams = useSearchParams();
   // Ref to track rooms polling interval
   const roomsIntervalRef = useRef(null);
@@ -118,12 +120,12 @@ export default function PrivateOffices() {
         } else {
           console.error('Failed to fetch rooms:', response.message);
           setRooms([]);
-          showAlert('error', response.message || 'Failed to load rooms. Please try again.');
+          showAlert('error', response.message || t('client.privateOffices.failedToLoadRooms'));
         }
       } catch (error) {
         console.error('Error fetching rooms:', error);
         setRooms([]);
-        showAlert('error', error.message || 'Failed to load rooms. Please try again later.');
+        showAlert('error', error.message || t('client.privateOffices.failedToLoadRoomsLater'));
       } finally {
         setRoomsLoading(false);
       }
@@ -168,36 +170,36 @@ export default function PrivateOffices() {
     const errors = {};
     
     if (step === 1) {
-      if (!formData.fullName.trim()) errors.fullName = 'Full name is required';
+      if (!formData.fullName.trim()) errors.fullName = t('client.privateOffices.validationFullNameRequired');
       if (!formData.email.trim()) {
-        errors.email = 'Email is required';
+        errors.email = t('client.privateOffices.validationEmailRequired');
       } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-        errors.email = 'Please enter a valid email address';
+        errors.email = t('client.privateOffices.validationEmailInvalid');
       }
       if (!formData.contactNumber.trim()) {
-        errors.contactNumber = 'Contact number is required';
+        errors.contactNumber = t('client.privateOffices.validationContactRequired');
       } else if (!/^[\d\s\-\+\(\)]+$/.test(formData.contactNumber.trim())) {
-        errors.contactNumber = 'Please enter a valid contact number';
+        errors.contactNumber = t('client.privateOffices.validationContactInvalid');
       }
     } else if (step === 2) {
       if (!formData.startDate) {
-        errors.startDate = 'Start date is required';
+        errors.startDate = t('client.privateOffices.validationStartDateRequired');
       } else {
         const startDate = new Date(formData.startDate);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         if (startDate < today) {
-          errors.startDate = 'Start date cannot be in the past';
+          errors.startDate = t('client.privateOffices.validationStartDatePast');
         }
       }
       if (formData.endDate) {
         if (formData.endDate < formData.startDate) {
-          errors.endDate = 'End date must be after start date';
+          errors.endDate = t('client.privateOffices.validationEndDateAfter');
         }
       }
       if (formData.startTime && formData.endTime) {
         if (formData.startTime >= formData.endTime) {
-          errors.endTime = 'End time must be after start time';
+          errors.endTime = t('client.privateOffices.validationEndTimeAfter');
         }
       }
     }
@@ -225,7 +227,7 @@ export default function PrivateOffices() {
     // Dynamically set the selected room for booking
     if (!room) {
       console.error('No room provided for booking');
-      showAlert('error', 'Unable to open booking form. Please try again.');
+      showAlert('error', t('client.privateOffices.unableToOpenBooking'));
       return;
     }
     
@@ -280,15 +282,15 @@ export default function PrivateOffices() {
   // Calculate booking duration
   const calculateDuration = () => {
     if (!formData.startDate) return null;
-    if (!formData.endDate) return 'Single day';
+    if (!formData.endDate) return t('client.privateOffices.singleDay');
     
     const start = new Date(formData.startDate);
     const end = new Date(formData.endDate);
     const diffTime = Math.abs(end - start);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
     
-    if (diffDays === 1) return '1 day';
-    return `${diffDays} days`;
+    if (diffDays === 1) return t('client.privateOffices.oneDay');
+    return t('client.privateOffices.days').replace('{{count}}', String(diffDays));
   };
 
   // Calculate estimated total cost
@@ -309,7 +311,7 @@ export default function PrivateOffices() {
     const dailyRate = selectedRoom.rentFee || 0;
     return {
       amount: dailyRate * days,
-      period: 'estimated for ' + duration
+      period: t('client.privateOffices.estimatedFor').replace('{{duration}}', duration)
     };
   };
 
@@ -325,7 +327,7 @@ export default function PrivateOffices() {
     
     // Validate that we have a selected room
     if (!selectedRoom || !selectedRoom.id) {
-      showAlert('error', 'Please select an office to book. Please try again.');
+      showAlert('error', t('client.privateOffices.selectOfficeToBook'));
       return;
     }
     
@@ -358,21 +360,22 @@ export default function PrivateOffices() {
       if (response.success) {
         // Show success animation before closing
         setBookingStep(4); // Success step
+        const successMsg = t('client.privateOffices.bookingSuccess').replace('{{name}}', selectedRoom.name);
         setTimeout(() => {
       closeReservationModal();
-          showAlert('success', `Booking request for "${selectedRoom.name}" submitted successfully! We will contact you soon to confirm your reservation.`);
+          showAlert('success', successMsg);
         }, 2000);
       } else {
-        showAlert('error', response.message || 'Failed to submit booking request. Please try again.');
+        showAlert('error', response.message || t('client.privateOffices.failedToSubmit'));
       }
     } catch (error) {
       console.error('Error submitting booking:', error);
       
-      let errorMessage = 'Failed to submit booking request. Please try again.';
+      let errorMessage = t('client.privateOffices.failedToSubmit');
       if (error.response?.status === 503) {
-        errorMessage = 'Service temporarily unavailable. Please try again later.';
+        errorMessage = t('client.privateOffices.serviceUnavailable');
       } else if (error.response?.status === 400) {
-        errorMessage = 'Invalid booking data. Please check your information and try again.';
+        errorMessage = t('client.privateOffices.invalidBookingData');
       } else if (error.message) {
         errorMessage = error.message;
       }
@@ -388,12 +391,12 @@ export default function PrivateOffices() {
       <div className="max-w-7xl mx-auto w-full flex-1 flex flex-col">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6 lg:mb-8">
           <div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-800">Private Offices</h1>
-            <p className="text-gray-600 mt-1 text-sm lg:text-base">Browse and book available private offices</p>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-slate-800">{t('client.privateOffices.title')}</h1>
+            <p className="text-gray-600 mt-1 text-sm lg:text-base">{t('client.privateOffices.subtitle')}</p>
           </div>
           <input 
             type="text" 
-            placeholder="Search offices..." 
+            placeholder={t('client.privateOffices.searchPlaceholder')} 
             value={searchTerm} 
             onChange={(e) => setSearchTerm(e.target.value)} 
             className="px-4 py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white w-full md:w-72 transition-all" 
@@ -404,14 +407,14 @@ export default function PrivateOffices() {
           <div className="flex-1 flex items-center justify-center bg-white rounded-2xl border border-gray-200">
             <div className="text-center py-12">
               <div className="text-5xl lg:text-6xl mb-4 animate-pulse">🏢</div>
-              <p className="text-gray-500 text-base lg:text-lg">Loading private offices...</p>
+              <p className="text-gray-500 text-base lg:text-lg">{t('client.privateOffices.loading')}</p>
             </div>
           </div>
         ) : filteredRooms.length === 0 ? (
           <div className="flex-1 flex items-center justify-center bg-white rounded-2xl border border-gray-200">
             <div className="text-center py-12">
               <div className="text-5xl lg:text-6xl mb-4">🏢</div>
-              <p className="text-gray-500 text-base lg:text-lg">{searchTerm ? 'No offices found.' : 'No private offices available yet.'}</p>
+              <p className="text-gray-500 text-base lg:text-lg">{searchTerm ? t('client.privateOffices.noOfficesFound') : t('client.privateOffices.noOfficesAvailable')}</p>
             </div>
           </div>
         ) : (
@@ -433,7 +436,7 @@ export default function PrivateOffices() {
                   <h3 className="text-slate-800 font-bold text-lg lg:text-xl mb-2">{room.name}</h3>
                   <div className="flex items-center gap-2 text-gray-500 text-xs lg:text-sm mb-2">
                     <span className="text-teal-600">💰</span>
-                    <span>Rental Fee: {getCurrencySymbol(room.currency || 'PHP')}{room.rentFee?.toLocaleString() || '0'} {room.rentFeePeriod || 'per hour'}</span>
+                    <span>{t('client.privateOffices.rentalFee')}: {getCurrencySymbol(room.currency || 'PHP')}{room.rentFee?.toLocaleString() || '0'} {room.rentFeePeriod || t('client.privateOffices.perHour')}</span>
                   </div>
                   <button
                     onClick={(e) => {
@@ -443,7 +446,7 @@ export default function PrivateOffices() {
                     }}
                     className="text-teal-600 hover:text-teal-700 text-xs lg:text-sm font-semibold mb-2 transition-colors text-left"
                   >
-                    Full Details
+                    {t('client.privateOffices.fullDetails')}
                   </button>
                   <button 
                     onClick={() => openReservationModal(room)}
@@ -452,7 +455,7 @@ export default function PrivateOffices() {
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <span>Book Now</span>
+                    <span>{t('client.privateOffices.bookNow')}</span>
                   </button>
                 </div>
               </div>
@@ -471,7 +474,7 @@ export default function PrivateOffices() {
             <div className="shrink-0 px-6 pt-6 pb-4 border-b-2 border-gray-100">
               <div className="flex justify-between items-start mb-4">
                 <div className="flex-1">
-                  <h2 className="text-slate-800 text-2xl font-bold">Book Private Office</h2>
+                  <h2 className="text-slate-800 text-2xl font-bold">{t('client.privateOffices.bookPrivateOffice')}</h2>
                   <p className="text-gray-500 text-sm mt-1">
                     <span className="font-semibold text-teal-600">{selectedRoom.name}</span>
                   </p>
@@ -500,7 +503,7 @@ export default function PrivateOffices() {
                           {bookingStep > step ? '✓' : step}
                         </div>
                         <span className={`text-xs mt-1 font-medium ${bookingStep >= step ? 'text-teal-600' : 'text-gray-400'}`}>
-                          {step === 1 ? 'Details' : step === 2 ? 'Schedule' : 'Review'}
+                          {step === 1 ? t('client.privateOffices.stepDetails') : step === 2 ? t('client.privateOffices.stepSchedule') : t('client.privateOffices.stepReview')}
                         </span>
                       </div>
                       {step < 3 && (
@@ -523,13 +526,13 @@ export default function PrivateOffices() {
                 {bookingStep === 1 && (
                   <div className="space-y-5 animate-[fadeIn_0.3s_ease]">
                     <div className="mb-6">
-                      <h3 className="text-lg font-bold text-slate-800 mb-2">Personal Information</h3>
-                      <p className="text-sm text-gray-600">Please provide your contact details for booking confirmation</p>
+                      <h3 className="text-lg font-bold text-slate-800 mb-2">{t('client.privateOffices.personalInfo')}</h3>
+                      <p className="text-sm text-gray-600">{t('client.privateOffices.personalInfoDesc')}</p>
                     </div>
 
                     <div>
                       <label className="block text-slate-800 mb-2 font-semibold text-sm flex items-center gap-1">
-                        Full Name <span className="text-red-500">*</span>
+                        {t('client.privateOffices.fullName')} <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -551,7 +554,7 @@ export default function PrivateOffices() {
 
                     <div>
                       <label className="block text-slate-800 mb-2 font-semibold text-sm flex items-center gap-1">
-                        Email Address <span className="text-red-500">*</span>
+                        {t('client.privateOffices.emailAddress')} <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="email"
@@ -573,7 +576,7 @@ export default function PrivateOffices() {
 
                     <div>
                       <label className="block text-slate-800 mb-2 font-semibold text-sm flex items-center gap-1">
-                        Contact Number <span className="text-red-500">*</span>
+                        {t('client.privateOffices.contactNumber')} <span className="text-red-500">*</span>
                       </label>
                       <input
                         type="tel"
@@ -591,7 +594,7 @@ export default function PrivateOffices() {
                           <span>⚠</span> {formErrors.contactNumber}
                         </p>
                       )}
-                      <p className="text-gray-500 text-xs mt-1">We'll use this to confirm your booking</p>
+                      <p className="text-gray-500 text-xs mt-1">{t('client.privateOffices.contactConfirmNote')}</p>
                     </div>
                   </div>
                 )}
@@ -600,14 +603,14 @@ export default function PrivateOffices() {
                 {bookingStep === 2 && (
                   <div className="space-y-5 animate-[fadeIn_0.3s_ease]">
                     <div className="mb-6">
-                      <h3 className="text-lg font-bold text-slate-800 mb-2">Booking Schedule</h3>
-                      <p className="text-sm text-gray-600">Select your preferred dates and times</p>
+                      <h3 className="text-lg font-bold text-slate-800 mb-2">{t('client.privateOffices.bookingSchedule')}</h3>
+                      <p className="text-sm text-gray-600">{t('client.privateOffices.bookingScheduleDesc')}</p>
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-slate-800 mb-2 font-semibold text-sm flex items-center gap-1">
-                          Start Date <span className="text-red-500">*</span>
+                          {t('client.privateOffices.startDate')} <span className="text-red-500">*</span>
                         </label>
                         <input
                           type="date"
@@ -629,7 +632,7 @@ export default function PrivateOffices() {
 
                       <div>
                         <label className="block text-slate-800 mb-2 font-semibold text-sm">
-                          End Date <span className="text-gray-400 text-xs">(Optional)</span>
+                          {t('client.privateOffices.endDateOptional')}
                         </label>
                         <input
                           type="date"
@@ -655,7 +658,7 @@ export default function PrivateOffices() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-slate-800 mb-2 font-semibold text-sm">
-                          Start Time <span className="text-gray-400 text-xs">(Optional)</span>
+                          {t('client.privateOffices.startTimeOptional')}
                         </label>
                         <input
                           type="time"
@@ -668,7 +671,7 @@ export default function PrivateOffices() {
 
                       <div>
                         <label className="block text-slate-800 mb-2 font-semibold text-sm">
-                          End Time <span className="text-gray-400 text-xs">(Optional)</span>
+                          {t('client.privateOffices.endTimeOptional')}
                         </label>
                         <input
                           type="time"
@@ -690,17 +693,17 @@ export default function PrivateOffices() {
 
                     <div>
                       <label className="block text-slate-800 mb-2 font-semibold text-sm">
-                        Additional Notes <span className="text-gray-400 text-xs">(Optional)</span>
+                        {t('client.privateOffices.additionalNotes')}
                       </label>
                       <textarea
                         name="notes"
                         value={formData.notes}
                         onChange={handleChange}
-                        placeholder="Any special requests, equipment needs, or additional information..."
+                        placeholder={t('client.privateOffices.notesPlaceholder')}
                         rows="3"
                         className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-base text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all resize-none"
                       />
-                      <p className="text-gray-500 text-xs mt-1">Let us know if you have any special requirements</p>
+                      <p className="text-gray-500 text-xs mt-1">{t('client.privateOffices.specialReqsNote')}</p>
                     </div>
                   </div>
                 )}
@@ -709,8 +712,8 @@ export default function PrivateOffices() {
                 {bookingStep === 3 && (
                   <div className="space-y-5 animate-[fadeIn_0.3s_ease]">
               <div className="mb-6">
-                      <h3 className="text-lg font-bold text-slate-800 mb-2">Review Your Booking</h3>
-                      <p className="text-sm text-gray-600">Please review all details before submitting</p>
+                      <h3 className="text-lg font-bold text-slate-800 mb-2">{t('client.privateOffices.reviewBooking')}</h3>
+                      <p className="text-sm text-gray-600">{t('client.privateOffices.reviewDesc')}</p>
                     </div>
 
                     <div className="bg-gray-50 rounded-xl p-5 space-y-4">
@@ -719,12 +722,12 @@ export default function PrivateOffices() {
                           <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                           </svg>
-                          Office Details
+                          {t('client.privateOffices.officeDetails')}
                         </h4>
                         <div className="bg-white rounded-lg p-4 space-y-2">
-                          <p className="text-slate-800"><span className="font-semibold">Office:</span> {selectedRoom.name}</p>
+                          <p className="text-slate-800"><span className="font-semibold">{t('client.privateOffices.officeName')}:</span> {selectedRoom.name}</p>
                           <p className="text-teal-600 font-bold">
-                            <span className="font-semibold text-slate-800">Rate:</span> {getCurrencySymbol(selectedRoom.currency || 'PHP')}{selectedRoom.rentFee?.toLocaleString() || '0'} {selectedRoom.rentFeePeriod || 'per hour'}
+                            <span className="font-semibold text-slate-800">{t('client.privateOffices.rentalFee')}:</span> {getCurrencySymbol(selectedRoom.currency || 'PHP')}{selectedRoom.rentFee?.toLocaleString() || '0'} {selectedRoom.rentFeePeriod || t('client.privateOffices.perHour')}
                           </p>
                         </div>
                       </div>
@@ -734,12 +737,12 @@ export default function PrivateOffices() {
                           <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                           </svg>
-                          Contact Information
+                          {t('client.privateOffices.contactInfo')}
                         </h4>
                         <div className="bg-white rounded-lg p-4 space-y-2">
-                          <p><span className="font-semibold">Name:</span> {formData.fullName}</p>
-                          <p><span className="font-semibold">Email:</span> {formData.email}</p>
-                          <p><span className="font-semibold">Contact:</span> {formData.contactNumber}</p>
+                          <p><span className="font-semibold">{t('client.privateOffices.fullName')}:</span> {formData.fullName}</p>
+                          <p><span className="font-semibold">{t('client.privateOffices.emailAddress')}:</span> {formData.email}</p>
+                          <p><span className="font-semibold">{t('client.privateOffices.contactNumber')}:</span> {formData.contactNumber}</p>
                         </div>
                       </div>
 
@@ -748,7 +751,7 @@ export default function PrivateOffices() {
                           <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
-                          Schedule
+                          {t('client.privateOffices.schedule')}
                         </h4>
                         <div className="bg-white rounded-lg p-4 space-y-2">
                           <p><span className="font-semibold">Start:</span> {new Date(formData.startDate).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}{formData.startTime && ` at ${formData.startTime}`}</p>
@@ -756,7 +759,7 @@ export default function PrivateOffices() {
                             <p><span className="font-semibold">End:</span> {new Date(formData.endDate).toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' })}{formData.endTime && ` at ${formData.endTime}`}</p>
                           )}
                           {formData.endDate && (
-                            <p className="text-teal-600 font-semibold">Duration: {calculateDuration()}</p>
+                            <p className="text-teal-600 font-semibold">{t('client.privateOffices.durationLabel')}: {calculateDuration()}</p>
                           )}
                         </div>
                       </div>
@@ -767,7 +770,7 @@ export default function PrivateOffices() {
                             <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                             </svg>
-                            Notes
+                            {t('client.privateOffices.notes')}
                           </h4>
                           <div className="bg-white rounded-lg p-4">
                             <p className="whitespace-pre-line">{formData.notes}</p>
@@ -778,7 +781,7 @@ export default function PrivateOffices() {
 
                     <div className="bg-teal-50 border-2 border-teal-200 rounded-xl p-5">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-slate-800 font-semibold">Estimated Total</span>
+                        <span className="text-slate-800 font-semibold">{t('client.privateOffices.estimatedTotal')}</span>
                         <span className="text-teal-700 font-bold text-xl">
                           {(() => {
                             const cost = calculateEstimatedCost();
@@ -787,7 +790,7 @@ export default function PrivateOffices() {
                           })()}
                         </span>
                       </div>
-                      <p className="text-xs text-gray-600">Final pricing will be confirmed after review</p>
+                      <p className="text-xs text-gray-600">{t('client.privateOffices.finalPricingNote')}</p>
                     </div>
                   </div>
                 )}
@@ -800,9 +803,9 @@ export default function PrivateOffices() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                       </svg>
                     </div>
-                    <h3 className="text-2xl font-bold text-slate-800 mb-2">Booking Submitted!</h3>
+                    <h3 className="text-2xl font-bold text-slate-800 mb-2">{t('client.privateOffices.bookingSubmitted')}</h3>
                     <p className="text-gray-600 text-center mb-6">
-                      Your booking request has been received. We'll contact you shortly to confirm your reservation.
+                      {t('client.privateOffices.bookingSubmittedDesc')}
                     </p>
                   </div>
                 )}
@@ -819,7 +822,7 @@ export default function PrivateOffices() {
                       onClick={prevStep}
                       className="px-6 py-3 bg-white text-gray-600 rounded-xl font-semibold hover:bg-gray-100 transition-all border-2 border-gray-200"
                     >
-                      ← Previous
+                      {t('client.privateOffices.previous')}
                     </button>
                   )}
                   <button
@@ -827,7 +830,7 @@ export default function PrivateOffices() {
                     onClick={closeReservationModal}
                     className={`px-6 py-3 bg-white text-gray-600 rounded-xl font-semibold hover:bg-gray-100 transition-all border-2 border-gray-200 ${bookingStep === 1 ? 'flex-1' : ''}`}
                   >
-                    Cancel
+                    {t('client.privateOffices.cancel')}
                   </button>
                   {bookingStep < 3 ? (
                     <button
@@ -835,7 +838,7 @@ export default function PrivateOffices() {
                       onClick={nextStep}
                       className="flex-1 py-3 bg-linear-to-r from-teal-600 to-teal-700 text-white rounded-xl font-bold shadow-lg shadow-teal-600/30 hover:-translate-y-0.5 hover:shadow-xl transition-all"
                     >
-                      Next Step →
+                      {t('client.privateOffices.nextStep')}
                     </button>
                   ) : (
                     <button
@@ -850,14 +853,14 @@ export default function PrivateOffices() {
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                           </svg>
-                          Submitting...
+                          {t('client.privateOffices.submitting')}
                         </>
                       ) : (
                         <>
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                          Confirm Booking
+                          {t('client.privateOffices.confirmBooking')}
                         </>
                       )}
                 </button>
@@ -876,7 +879,7 @@ export default function PrivateOffices() {
             <div className="flex justify-between items-center p-6 pb-4 border-b-2 border-gray-100 flex-shrink-0">
               <div className="flex-1">
                 <h2 className="text-slate-800 text-2xl font-bold">{detailsRoom.name}</h2>
-                <p className="text-gray-500 text-sm mt-1">Private Office Details</p>
+                <p className="text-gray-500 text-sm mt-1">{t('client.privateOffices.privateOfficeDetails')}</p>
               </div>
               <div className="flex items-center gap-3">
                 {/* Book Now Button in Header - Always Visible */}
@@ -896,7 +899,7 @@ export default function PrivateOffices() {
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <span>Book Now</span>
+                  <span>{t('client.privateOffices.bookNow')}</span>
                 </button>
               <button 
                 onClick={() => {
@@ -922,27 +925,27 @@ export default function PrivateOffices() {
 
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-1 p-4 bg-gray-50 rounded-xl">
-                <span className="text-gray-500 text-xs uppercase tracking-wide font-semibold">Office Name</span>
+                <span className="text-gray-500 text-xs uppercase tracking-wide font-semibold">{t('client.privateOffices.officeName')}</span>
                 <span className="text-slate-800 text-xl font-semibold">{detailsRoom.name}</span>
               </div>
 
               <div className="flex flex-col gap-1 p-4 bg-gray-50 rounded-xl">
-                <span className="text-gray-500 text-xs uppercase tracking-wide font-semibold">Rental Fee</span>
+                <span className="text-gray-500 text-xs uppercase tracking-wide font-semibold">{t('client.privateOffices.rentalFeeLabel')}</span>
                 <span className="text-slate-800 text-xl font-semibold">
-                  {getCurrencySymbol(detailsRoom.currency || 'PHP')}{detailsRoom.rentFee?.toLocaleString() || '0'} {detailsRoom.rentFeePeriod || 'per hour'}
+                  {getCurrencySymbol(detailsRoom.currency || 'PHP')}{detailsRoom.rentFee?.toLocaleString() || '0'} {detailsRoom.rentFeePeriod || t('client.privateOffices.perHour')}
                 </span>
               </div>
 
                 {detailsRoom.description && (
                   <div className="flex flex-col gap-1 p-4 bg-gray-50 rounded-xl">
-                    <span className="text-gray-500 text-xs uppercase tracking-wide font-semibold">Description</span>
+                    <span className="text-gray-500 text-xs uppercase tracking-wide font-semibold">{t('client.privateOffices.description')}</span>
                     <span className="text-slate-800 text-lg whitespace-pre-line">{detailsRoom.description}</span>
                   </div>
                 )}
 
               {detailsRoom.inclusions && (
                 <div className="flex flex-col gap-1 p-4 bg-gray-50 rounded-xl">
-                  <span className="text-gray-500 text-xs uppercase tracking-wide font-semibold">Inclusions</span>
+                  <span className="text-gray-500 text-xs uppercase tracking-wide font-semibold">{t('client.privateOffices.inclusions')}</span>
                   <span className="text-slate-800 text-lg whitespace-pre-line">{detailsRoom.inclusions}</span>
                 </div>
               )}
@@ -954,11 +957,11 @@ export default function PrivateOffices() {
               {/* Prominent Booking CTA Box */}
               <div className="bg-gradient-to-br from-teal-50 to-teal-100 border-2 border-teal-300 rounded-xl p-6 mb-4 shadow-lg">
                 <div className="text-center mb-5">
-                  <p className="text-gray-700 text-base font-medium mb-3">Ready to book this private office?</p>
+                  <p className="text-gray-700 text-base font-medium mb-3">{t('client.privateOffices.readyToBook')}</p>
                   <div className="bg-white rounded-lg p-3 inline-block mb-3">
-                    <p className="text-gray-600 text-xs mb-1">Rental Fee</p>
+                    <p className="text-gray-600 text-xs mb-1">{t('client.privateOffices.rentalFeeShort')}</p>
                     <p className="text-teal-700 font-bold text-2xl">
-                      {getCurrencySymbol(detailsRoom.currency || 'PHP')}{detailsRoom.rentFee?.toLocaleString() || '0'} {detailsRoom.rentFeePeriod || 'per hour'}
+                      {getCurrencySymbol(detailsRoom.currency || 'PHP')}{detailsRoom.rentFee?.toLocaleString() || '0'} {detailsRoom.rentFeePeriod || t('client.privateOffices.perHour')}
                     </p>
                   </div>
             </div>
@@ -982,10 +985,10 @@ export default function PrivateOffices() {
                   <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <span>Book "{detailsRoom.name}" Now</span>
+                  <span>{t('client.privateOffices.bookRoomNow').replace('{{name}}', detailsRoom.name)}</span>
                 </button>
                 <p className="text-center text-gray-600 text-xs mt-3">
-                  Click to fill out the booking form and submit your reservation request
+                  {t('client.privateOffices.clickToFillForm')}
                 </p>
               </div>
 
@@ -998,7 +1001,7 @@ export default function PrivateOffices() {
                 }}
                 className="w-full px-6 py-2.5 bg-gray-100 text-gray-600 rounded-xl font-semibold hover:bg-gray-200 transition-all text-sm"
               >
-                Close
+                {t('client.privateOffices.close')}
               </button>
             </div>
           </div>

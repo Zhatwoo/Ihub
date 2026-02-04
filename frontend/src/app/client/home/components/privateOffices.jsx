@@ -4,7 +4,8 @@ import { useState, useEffect, useRef } from 'react';
 import { api } from '@/lib/api';
 
 // Custom hook to fetch private offices from backend API
-export function usePrivateOffices() {
+// Pass optional t() from useTranslation() for translated fallbacks
+export function usePrivateOffices(t) {
   const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const intervalRef = useRef(null);
@@ -21,18 +22,20 @@ export function usePrivateOffices() {
         const roomsResponse = await api.get('/api/rooms');
 
         if (roomsResponse.success && roomsResponse.data) {
+          const defaultName = t?.('client.privateOffices.defaultOfficeName') ?? 'Private Office';
+          const defaultDesc = t?.('client.privateOffices.defaultDescription') ?? 'Modern, well-equipped private office designed for productivity and comfort.';
+          const defaultBadge = t?.('client.privateOffices.defaultBadge') ?? 'Guest favorite';
+
           const roomsData = roomsResponse.data
             .filter((room) => room.status !== 'Occupied') // hide occupied rooms
             .map((room) => ({
               id: room.id,
-              name: room.name || 'Private Office',
-              title: room.name || 'Private Office',
-              description:
-                room.inclusions ||
-                'Modern, well-equipped private office designed for productivity and comfort.',
+              name: room.name || defaultName,
+              title: room.name || defaultName,
+              description: room.inclusions || defaultDesc,
               image: room.image || '/images/inspirelogo.png',
               rating: 4.95, // Default rating
-              badge: 'Guest favorite',
+              badge: defaultBadge,
               rentFee: room.rentFee || 0,
               currency: room.currency || 'PHP',
               rentFeePeriod: room.rentFeePeriod || 'per hour',
@@ -64,7 +67,7 @@ export function usePrivateOffices() {
       }
       // document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, []);
+  }, [t]);
 
   return { rooms, loading };
 }
