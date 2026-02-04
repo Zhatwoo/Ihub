@@ -12,6 +12,7 @@ import PaymentModal from './components/PaymentModal';
 import BillsHistoryModal from './components/BillsHistoryModal';
 import BillsListModal from './components/BillsListModal';
 import BillDetailModal from './components/BillDetailModal';
+import ExportPDFModal from './components/ExportPDFModal';
 
 export default function Billing() {
   const [billingRecords, setBillingRecords] = useState([]);
@@ -34,6 +35,8 @@ export default function Billing() {
   const [billsListModalOpen, setBillsListModalOpen] = useState(false);
   const [billDetailModalOpen, setBillDetailModalOpen] = useState(false);
   const [selectedBillForDetail, setSelectedBillForDetail] = useState(null);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [allClients, setAllClients] = useState([]);
 
   // Fetch billing data
   useEffect(() => {
@@ -45,6 +48,23 @@ export default function Billing() {
         const recordsResponse = await api.get('/api/admin/billing/all', { skipCache: true });
         if (recordsResponse.success) {
           setBillingRecords(recordsResponse.data || []);
+          
+          // Extract unique clients for export modal
+          const uniqueClients = [];
+          const seenUserIds = new Set();
+          
+          (recordsResponse.data || []).forEach(record => {
+            if (!seenUserIds.has(record.userId)) {
+              seenUserIds.add(record.userId);
+              uniqueClients.push({
+                userId: record.userId,
+                name: record.name, // Use 'name' field from backend response
+                serviceType: record.serviceType
+              });
+            }
+          });
+          
+          setAllClients(uniqueClients);
         }
 
         // Fetch billing statistics
@@ -259,6 +279,16 @@ export default function Billing() {
               </svg>
             </div>
             <div className="flex gap-2 w-full sm:w-auto flex-wrap">
+              <button
+                onClick={() => setExportModalOpen(true)}
+                className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-md hover:shadow-lg flex items-center gap-2"
+                title="Export billing report to PDF"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                PDF
+              </button>
               <select
                 value={selectedServiceType || ''}
                 onChange={(e) => setSelectedServiceType(e.target.value || null)}
@@ -394,28 +424,33 @@ export default function Billing() {
                         >
                           Edit
                         </button>
-                        {(record.status === 'unpaid' || record.status === 'overdue') && !record.allBillsPaid && (
-                          <button
-                            onClick={() => handlePayClick(record)}
-                            className="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-lg transition-colors"
-                            title="Record payment"
-                          >
-                            Pay
-                          </button>
-                        )}
-                        {record.allBillsPaid && (
-                          <button
-                            disabled
-                            className="px-3 py-1.5 bg-green-300 text-white text-xs font-semibold rounded-lg cursor-not-allowed opacity-50"
-                            title="All bills paid"
-                          >
-                            Pay
-                          </button>
-                        )}
                         <button
-                          onClick={() => handleBillsClick(record)}
-                          className="px-3 py-1.5 bg-gray-600 hover:bg-gray-700 text-white text-xs font-semibold rounded-lg transition-colors"
-                          title="View all bills"
+                          onClick={() => (record.status === 'unpaid' || record.status === 'overdue') && !record.allBillsPaid && handlePayClick(record)}
+                          disabled={record.status === 'inactive' || record.status === 'paid' || record.allBillsPaid}
+                          className={`px-3 py-1.5 text-white text-xs font-semibold rounded-lg transition-colors ${
+                            record.status === 'inactive' || record.status === 'paid' || record.allBillsPaid
+                              ? 'bg-green-300 cursor-not-allowed opacity-50' 
+                              : 'bg-green-600 hover:bg-green-700'
+                          }`}
+                          title={
+                            record.status === 'inactive' 
+                              ? 'Bill is inactive - edit to activate' 
+                              : record.allBillsPaid || record.status === 'paid'
+                              ? 'All bills paid'
+                              : 'Record payment'
+                          }
+                        >
+                          Pay
+                        </button>
+                        <button
+                          onClick={() => record.status !== 'inactive' && handleBillsClick(record)}
+                          disabled={record.status === 'inactive'}
+                          className={`px-3 py-1.5 text-white text-xs font-semibold rounded-lg transition-colors ${
+                            record.status === 'inactive' 
+                              ? 'bg-gray-300 cursor-not-allowed opacity-50' 
+                              : 'bg-gray-600 hover:bg-gray-700'
+                          }`}
+                          title={record.status === 'inactive' ? 'Bill is inactive - edit to activate' : 'View all bills'}
                         >
                           Bills
                         </button>
@@ -455,6 +490,12 @@ export default function Billing() {
         isOpen={billDetailModalOpen}
         onClose={() => setBillDetailModalOpen(false)}
         bill={selectedBillForDetail}
+      />
+
+      <ExportPDFModal
+        isOpen={exportModalOpen}
+        onClose={() => setExportModalOpen(false)}
+        allClients={allClients}
       />
 
     </div>

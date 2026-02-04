@@ -196,11 +196,38 @@ export default function DedicatedDesk() {
               setActiveTab('list');
             }, 1500);
           } else {
-            setAlertModal({ show: true, type: 'error', title: 'Error', message: response.message || 'Failed to approve request. Please try again.' });
+            // Handle conflict error (desk already occupied)
+            const errorMessage = response.message || 'Failed to approve request. Please try again.';
+            setAlertModal({ 
+              show: true, 
+              type: 'error', 
+              title: response.error === 'Conflict' ? 'Desk Already Occupied' : 'Error', 
+              message: errorMessage 
+            });
+            
+            // Refresh requests to show any auto-rejected requests
+            if (response.error === 'Conflict') {
+              const updatedRequests = await fetchAllRequests();
+              setRequests(updatedRequests);
+            }
           }
         } catch (error) {
           console.error('Error accepting request:', error);
-          setAlertModal({ show: true, type: 'error', title: 'Error', message: error.message || 'Failed to approve request. Please try again.' });
+          const errorMessage = error.response?.data?.message || error.message || 'Failed to approve request. Please try again.';
+          const errorTitle = error.response?.data?.error === 'Conflict' ? 'Desk Already Occupied' : 'Error';
+          
+          setAlertModal({ 
+            show: true, 
+            type: 'error', 
+            title: errorTitle, 
+            message: errorMessage 
+          });
+          
+          // Refresh requests if it was a conflict error
+          if (error.response?.data?.error === 'Conflict') {
+            const updatedRequests = await fetchAllRequests();
+            setRequests(updatedRequests);
+          }
         }
       },
       onCancel: () => setConfirmModal({ ...confirmModal, show: false })

@@ -420,6 +420,64 @@ export const updateRequestStatus = async (req, res) => {
 
     const currentRequest = requestDoc.data();
     
+    // CRITICAL: Check if room is already occupied before approving
+    if (status === 'approved' && currentRequest.roomId && currentRequest.status !== 'approved') {
+      // Check if room is already occupied
+      const roomRef = firestore.collection('privateOfficeRooms').doc('data').collection('office').doc(currentRequest.roomId);
+      console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/office/${currentRequest.roomId} - checking occupancy...`);
+      const roomDoc = await roomRef.get();
+      
+      if (roomDoc.exists) {
+        const roomData = roomDoc.data();
+        if (roomData.status === 'Occupied') {
+          return res.status(409).json({
+            success: false,
+            error: 'Conflict',
+            message: `Room ${currentRequest.room || currentRequest.roomId} is already occupied by ${roomData.occupiedBy || 'another tenant'}. Please choose a different room.`
+          });
+        }
+      }
+
+      // Check for other approved bookings by getting all users and checking their approved office bookings
+      // This avoids collection group queries entirely
+      try {
+        const usersSnapshot = await firestore
+          .collection('accounts')
+          .doc('client')
+          .collection('users')
+          .get();
+
+        for (const userDoc of usersSnapshot.docs) {
+          // Skip the current user
+          if (userDoc.id === userId) continue;
+
+          const officeBookingsSnapshot = await firestore
+            .collection('accounts')
+            .doc('client')
+            .collection('users')
+            .doc(userDoc.id)
+            .collection('request')
+            .doc('office')
+            .collection('bookings')
+            .get();
+
+          for (const bookingDoc of officeBookingsSnapshot.docs) {
+            const bookingData = bookingDoc.data();
+            if (bookingData.status === 'approved' && bookingData.roomId === currentRequest.roomId) {
+              return res.status(409).json({
+                success: false,
+                error: 'Conflict',
+                message: `Room ${currentRequest.room || currentRequest.roomId} is already booked by ${bookingData.clientName || 'another tenant'}. Please choose a different room.`
+              });
+            }
+          }
+        }
+      } catch (checkError) {
+        console.error('Error checking existing bookings:', checkError);
+        // If check fails, allow the operation to proceed (fail open)
+      }
+    }
+    
     // Update request status
     const updateData = {
       status,
@@ -561,6 +619,57 @@ export const updateRequestStatus = async (req, res) => {
         }
       } catch (billError) {
         console.error('❌ Error creating bill:', billError.message);
+      }
+    }
+
+    // Auto-reject other pending requests for the same room
+    if (status === 'approved' && currentRequest.roomId) {
+      try {
+        // Get all users and check their pending office bookings
+        const usersSnapshot = await firestore
+          .collection('accounts')
+          .doc('client')
+          .collection('users')
+          .get();
+
+        const batch = firestore.batch();
+        let rejectedCount = 0;
+
+        for (const userDoc of usersSnapshot.docs) {
+          const officeBookingsSnapshot = await firestore
+            .collection('accounts')
+            .doc('client')
+            .collection('users')
+            .doc(userDoc.id)
+            .collection('request')
+            .doc('office')
+            .collection('bookings')
+            .get();
+
+          for (const bookingDoc of officeBookingsSnapshot.docs) {
+            // Skip the current booking
+            if (bookingDoc.id === bookingId && userDoc.id === userId) continue;
+
+            const bookingData = bookingDoc.data();
+            // Check if this pending request is for the same room
+            if (bookingData.status === 'pending' && bookingData.roomId === currentRequest.roomId) {
+              batch.update(bookingDoc.ref, {
+                status: 'rejected',
+                adminNotes: `Automatically rejected: Room ${currentRequest.room || currentRequest.roomId} has been assigned to another tenant.`,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+              });
+              rejectedCount++;
+            }
+          }
+        }
+
+        if (rejectedCount > 0) {
+          await batch.commit();
+          console.log(`Auto-rejected ${rejectedCount} pending request(s) for room ${currentRequest.roomId}`);
+        }
+      } catch (autoRejectError) {
+        console.error('Error auto-rejecting other requests:', autoRejectError);
+        // Don't fail the main operation if auto-reject fails
       }
     }
 
