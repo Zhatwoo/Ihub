@@ -54,6 +54,16 @@ export const getAllBilling = async (req, res) => {
         
         // Create a billing record for each resource
         for (const [resource, resourceBills] of Object.entries(billsByResource)) {
+          // Sort bills by createdAt to get the latest bill first
+          const sortedBills = resourceBills.sort((a, b) => {
+            const aDate = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+            const bDate = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+            return bDate - aDate; // Descending order (latest first)
+          });
+          
+          // Always use the latest bill (most recent by createdAt)
+          const displayBill = sortedBills[0];
+          
           // Check if there are any overdue, unpaid, or inactive bills for this resource
           const hasOverdueBills = resourceBills.some(bill => bill.status === 'overdue');
           const hasUnpaidBills = resourceBills.some(bill => bill.status === 'unpaid');
@@ -69,20 +79,7 @@ export const getAllBilling = async (req, res) => {
             overallStatus = 'inactive';
           }
           
-          console.log(`[getAllBilling] User ${userId}, Resource ${resource} status: ${overallStatus}`);
-          
-          // Find the bill to display details from (prioritize overdue > unpaid > inactive > paid)
-          let displayBill = resourceBills.find(bill => bill.status === 'overdue');
-          if (!displayBill) {
-            displayBill = resourceBills.find(bill => bill.status === 'unpaid');
-          }
-          if (!displayBill) {
-            displayBill = resourceBills.find(bill => bill.status === 'inactive');
-          }
-          if (!displayBill) {
-            // If no overdue, unpaid, or inactive, get the most recent paid bill
-            displayBill = resourceBills.find(bill => bill.status === 'paid');
-          }
+          console.log(`[getAllBilling] User ${userId}, Resource ${resource} - Latest bill status: ${displayBill.status}, Overall status: ${overallStatus}`);
           
           if (displayBill) {
             // Convert Firestore Timestamp to Date
@@ -175,6 +172,16 @@ export const getAllBilling = async (req, res) => {
         
         // Create a billing record for each resource
         for (const [resource, resourceBills] of Object.entries(billsByResource)) {
+          // Sort bills by createdAt to get the latest bill first
+          const sortedBills = resourceBills.sort((a, b) => {
+            const aDate = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || 0);
+            const bDate = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || 0);
+            return bDate - aDate; // Descending order (latest first)
+          });
+          
+          // Always use the latest bill (most recent by createdAt)
+          const displayBill = sortedBills[0];
+          
           const hasOverdueBills = resourceBills.some(bill => bill.status === 'overdue');
           const hasUnpaidBills = resourceBills.some(bill => bill.status === 'unpaid');
           const hasInactiveBills = resourceBills.some(bill => bill.status === 'inactive');
@@ -188,18 +195,7 @@ export const getAllBilling = async (req, res) => {
             overallStatus = 'inactive';
           }
           
-          console.log(`[getAllBilling] Virtual office tenant ${tenantId}, Resource ${resource} status: ${overallStatus}`);
-          
-          let displayBill = resourceBills.find(bill => bill.status === 'overdue');
-          if (!displayBill) {
-            displayBill = resourceBills.find(bill => bill.status === 'unpaid');
-          }
-          if (!displayBill) {
-            displayBill = resourceBills.find(bill => bill.status === 'inactive');
-          }
-          if (!displayBill) {
-            displayBill = resourceBills.find(bill => bill.status === 'paid');
-          }
+          console.log(`[getAllBilling] Virtual office tenant ${tenantId}, Resource ${resource} - Latest bill status: ${displayBill.status}, Overall status: ${overallStatus}`);
           
           if (displayBill) {
             const dueDate = displayBill.dueDate?.toDate ? displayBill.dueDate.toDate() : (displayBill.dueDate ? new Date(displayBill.dueDate) : new Date());
@@ -606,7 +602,9 @@ export const updateBill = async (req, res) => {
     if (currentBill.status === 'inactive') {
       updateData.status = 'unpaid';
       updateData.activatedAt = admin.firestore.FieldValue.serverTimestamp();
-      console.log('[updateBill] 🔄 Activating bill: changing status from inactive to unpaid');
+      // Update startDate to current date when activating
+      updateData.startDate = admin.firestore.FieldValue.serverTimestamp();
+      console.log('[updateBill] 🔄 Activating bill: changing status from inactive to unpaid and updating startDate to current date');
     }
 
     await billRef.update(updateData);

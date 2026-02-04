@@ -153,14 +153,16 @@ const processResourceBills = async (db, userId, resource, resourceBills, now, us
     if (feePeriod === '5 minutes') {
       newStartDate.setMinutes(newStartDate.getMinutes() + 1); // Start 1 minute after due date
     } else {
-      newStartDate.setDate(newStartDate.getDate() + 1); // Start day after previous due date
+      // Use UTC to avoid timezone issues
+      newStartDate.setUTCDate(newStartDate.getUTCDate() + 1); // Start day after previous due date
     }
 
     const newDueDate = new Date(newStartDate);
     if (feePeriod === '5 minutes') {
       newDueDate.setMinutes(newDueDate.getMinutes() + 5);
     } else {
-      newDueDate.setDate(newDueDate.getDate() + daysToAdd);
+      // Use UTC to avoid timezone issues
+      newDueDate.setUTCDate(newDueDate.getUTCDate() + daysToAdd);
     }
 
     // Check if a bill already exists for this period (within tolerance for time-based periods)
@@ -250,14 +252,16 @@ const processVirtualOfficeResourceBills = async (db, clientId, resource, resourc
     if (feePeriod === '5 minutes') {
       newStartDate.setMinutes(newStartDate.getMinutes() + 1);
     } else {
-      newStartDate.setDate(newStartDate.getDate() + 1);
+      // Use UTC to avoid timezone issues
+      newStartDate.setUTCDate(newStartDate.getUTCDate() + 1);
     }
 
     const newDueDate = new Date(newStartDate);
     if (feePeriod === '5 minutes') {
       newDueDate.setMinutes(newDueDate.getMinutes() + 5);
     } else {
-      newDueDate.setDate(newDueDate.getDate() + daysToAdd);
+      // Use UTC to avoid timezone issues
+      newDueDate.setUTCDate(newDueDate.getUTCDate() + daysToAdd);
     }
 
     // Check if a bill already exists for this period
