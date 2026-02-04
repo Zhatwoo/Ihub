@@ -303,12 +303,12 @@ export default function AdminDashboard() {
       </div>
 
       {/* Dashboard Cards Grid */}
-      <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="mt-8 grid grid-cols-1 lg:grid-cols-3 gap-4 xl:gap-6">
         {/* Tenant Distribution Card */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg">
-          <h2 className="text-xl font-bold text-slate-800 mb-4">Tenant Distribution</h2>
-          <div className="flex items-center gap-4">
-            <div style={{ width: '250px', height: '250px' }}>
+        <div className="bg-white rounded-2xl p-4 xl:p-6 shadow-lg animate-fadeIn opacity-0" style={{ animationDelay: '0.1s', animationFillMode: 'forwards' }}>
+          <h2 className="text-base xl:text-xl font-bold text-slate-800 mb-3 xl:mb-4">Tenant Distribution</h2>
+          <div className="flex flex-col lg:flex-row items-center justify-center gap-3 xl:gap-4">
+            <div className="w-full max-w-[180px] xl:max-w-[220px] aspect-square">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -332,7 +332,7 @@ export default function AdminDashboard() {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    outerRadius={90}
+                    outerRadius="80%"
                     fill="#8884d8"
                     dataKey="value"
                     onMouseEnter={onPieEnter}
@@ -374,27 +374,27 @@ export default function AdminDashboard() {
             </div>
             
             {/* Legend */}
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-2 xl:gap-3 w-full lg:w-auto">
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-sm bg-green-500"></div>
-                <span className="text-slate-700 text-sm font-medium">Dedicated Desk</span>
+                <div className="w-2.5 h-2.5 xl:w-3 xl:h-3 rounded-sm bg-green-500 flex-shrink-0"></div>
+                <span className="text-slate-700 text-xs xl:text-sm font-medium">Dedicated Desk</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-sm bg-violet-500"></div>
-                <span className="text-slate-700 text-sm font-medium">Virtual Office</span>
+                <div className="w-2.5 h-2.5 xl:w-3 xl:h-3 rounded-sm bg-violet-500 flex-shrink-0"></div>
+                <span className="text-slate-700 text-xs xl:text-sm font-medium">Virtual Office</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-sm bg-blue-500"></div>
-                <span className="text-slate-700 text-sm font-medium">Private Office</span>
+                <div className="w-2.5 h-2.5 xl:w-3 xl:h-3 rounded-sm bg-blue-500 flex-shrink-0"></div>
+                <span className="text-slate-700 text-xs xl:text-sm font-medium">Private Office</span>
               </div>
             </div>
           </div>
         </div>
 
         {/* Top Services Card */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg">
-          <h2 className="text-xl font-bold text-slate-800 mb-4">Top Services</h2>
-          <div className="flex flex-col gap-3">
+        <div className="bg-white rounded-2xl p-4 xl:p-6 shadow-lg animate-fadeIn opacity-0" style={{ animationDelay: '0.2s', animationFillMode: 'forwards' }}>
+          <h2 className="text-base xl:text-xl font-bold text-slate-800 mb-3 xl:mb-4">Top Services</h2>
+          <div className="flex flex-col gap-2 xl:gap-3">
             {[
               { name: 'Dedicated Desk', count: dedicatedDeskStats.tenantCount || 0, color: 'green', bgColor: 'bg-green-500', lightBg: 'bg-green-50', borderColor: 'border-green-200', textColor: 'text-green-700' },
               { name: 'Virtual Office', count: virtualOfficeStats.totalClients || 0, color: 'violet', bgColor: 'bg-violet-500', lightBg: 'bg-violet-50', borderColor: 'border-violet-200', textColor: 'text-violet-700' },
@@ -402,41 +402,41 @@ export default function AdminDashboard() {
             ]
               .sort((a, b) => b.count - a.count)
               .map((service, index) => (
-                <div key={service.name} className={`${service.lightBg} rounded-xl p-4 border-2 ${service.borderColor} flex items-center justify-between gap-3`}>
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white border-2 border-gray-200">
-                      <span className="text-sm font-bold text-slate-700">#{index + 1}</span>
+                <div key={service.name} className={`${service.lightBg} rounded-lg xl:rounded-xl p-3 xl:p-4 border-2 ${service.borderColor} flex items-center justify-between gap-2`}>
+                  <div className="flex items-center gap-2 xl:gap-3 min-w-0">
+                    <div className="flex items-center justify-center w-6 h-6 xl:w-8 xl:h-8 rounded-full bg-white border-2 border-gray-200 flex-shrink-0">
+                      <span className="text-xs xl:text-sm font-bold text-slate-700">#{index + 1}</span>
                     </div>
-                    <div className={`text-sm font-semibold ${service.textColor}`}>{service.name}</div>
+                    <div className={`text-xs xl:text-sm font-semibold ${service.textColor} truncate`}>{service.name}</div>
                   </div>
-                  <div className={`text-xs ${service.textColor} font-medium`}>{service.count} occupants</div>
+                  <div className={`text-xs xl:text-sm ${service.textColor} font-medium whitespace-nowrap flex-shrink-0`}>{service.count} occupants</div>
                 </div>
               ))}
           </div>
         </div>
 
         {/* Billing Stats Card */}
-        <div className="bg-white rounded-2xl p-6 shadow-lg">
-          <h2 className="text-xl font-bold text-slate-800 mb-4">Billing Overview</h2>
-          <div className="grid grid-cols-2 gap-4">
+        <div className="bg-white rounded-2xl p-4 xl:p-6 shadow-lg animate-fadeIn opacity-0" style={{ animationDelay: '0.3s', animationFillMode: 'forwards' }}>
+          <h2 className="text-base xl:text-xl font-bold text-slate-800 mb-3 xl:mb-4">Billing Overview</h2>
+          <div className="grid grid-cols-2 gap-2 xl:gap-4">
             {/* Row 1 */}
-            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-xl p-4 border-2 border-green-200">
-              <div className="text-xs text-green-600 font-medium mb-1">Total Revenue</div>
-              <div className="text-2xl font-bold text-green-700">₱{(billingStats.totalRevenue || 0).toLocaleString()}</div>
+            <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg xl:rounded-xl p-3 xl:p-4 border-2 border-green-200">
+              <div className="text-[10px] xl:text-xs text-green-600 font-medium mb-1">Total Revenue</div>
+              <div className="text-base xl:text-2xl font-bold text-green-700 break-words leading-tight">₱{(billingStats.totalRevenue || 0).toLocaleString()}</div>
             </div>
-            <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-xl p-4 border-2 border-red-200">
-              <div className="text-xs text-red-600 font-medium mb-1">Outstanding</div>
-              <div className="text-2xl font-bold text-red-700">₱{(billingStats.unpaidAmount || 0).toLocaleString()}</div>
+            <div className="bg-gradient-to-br from-red-50 to-red-100 rounded-lg xl:rounded-xl p-3 xl:p-4 border-2 border-red-200">
+              <div className="text-[10px] xl:text-xs text-red-600 font-medium mb-1">Outstanding</div>
+              <div className="text-base xl:text-2xl font-bold text-red-700 break-words leading-tight">₱{(billingStats.unpaidAmount || 0).toLocaleString()}</div>
             </div>
             
             {/* Row 2 */}
-            <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-xl p-4 border-2 border-yellow-200">
-              <div className="text-xs text-yellow-600 font-medium mb-1">Unpaid Bills</div>
-              <div className="text-2xl font-bold text-yellow-700">{billingStats.unpaidCount || 0}</div>
+            <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 rounded-lg xl:rounded-xl p-3 xl:p-4 border-2 border-yellow-200">
+              <div className="text-[10px] xl:text-xs text-yellow-600 font-medium mb-1">Unpaid Bills</div>
+              <div className="text-base xl:text-2xl font-bold text-yellow-700 leading-tight">{billingStats.unpaidCount || 0}</div>
             </div>
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl p-4 border-2 border-gray-200">
-              <div className="text-xs text-gray-600 font-medium mb-1">Inactive</div>
-              <div className="text-2xl font-bold text-gray-700">{billingStats.inactiveCount || 0}</div>
+            <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg xl:rounded-xl p-3 xl:p-4 border-2 border-gray-200">
+              <div className="text-[10px] xl:text-xs text-gray-600 font-medium mb-1">Inactive</div>
+              <div className="text-base xl:text-2xl font-bold text-gray-700 leading-tight">{billingStats.inactiveCount || 0}</div>
             </div>
           </div>
         </div>

@@ -421,6 +421,65 @@ export const updateDeskRequestStatus = async (req, res) => {
 
     const deskRequestData = deskRequestDoc.data();
 
+    // CRITICAL: Check if desk is already occupied before approving
+    if (status === 'approved' && assignedDesk) {
+      // Check employee assignments
+      const empAssignmentRef = firestore
+        .collection('accounts')
+        .doc('desk-emp')
+        .collection('assignments')
+        .doc(assignedDesk);
+      
+      const empAssignmentDoc = await empAssignmentRef.get();
+      
+      if (empAssignmentDoc.exists) {
+        return res.status(409).json({
+          success: false,
+          error: 'Conflict',
+          message: `Desk ${assignedDesk} is already assigned to an employee. Please choose a different desk.`
+        });
+      }
+
+      // Check tenant assignments by getting all users and checking their approved desk requests
+      // This avoids collection group queries entirely
+      try {
+        const usersSnapshot = await firestore
+          .collection('accounts')
+          .doc('client')
+          .collection('users')
+          .get();
+
+        for (const userDoc of usersSnapshot.docs) {
+          // Skip the current user
+          if (userDoc.id === userId) continue;
+
+          const deskRequestsSnapshot = await firestore
+            .collection('accounts')
+            .doc('client')
+            .collection('users')
+            .doc(userDoc.id)
+            .collection('request')
+            .doc('desk')
+            .collection('requests')
+            .get();
+
+          for (const requestDoc of deskRequestsSnapshot.docs) {
+            const requestData = requestDoc.data();
+            if (requestData.status === 'approved' && requestData.assignedDesk === assignedDesk) {
+              return res.status(409).json({
+                success: false,
+                error: 'Conflict',
+                message: `Desk ${assignedDesk} is already assigned to ${requestData.name || 'another tenant'}. Please choose a different desk.`
+              });
+            }
+          }
+        }
+      } catch (checkError) {
+        console.error('Error checking existing assignments:', checkError);
+        // If check fails, allow the operation to proceed (fail open)
+      }
+    }
+
     // Extract company and contact from request data
     const requestedBy = deskRequestData.requestedBy || {};
     const company = deskRequestData.company || requestedBy.companyName || userData.companyName || '';
@@ -445,6 +504,62 @@ export const updateDeskRequestStatus = async (req, res) => {
     }
 
     await deskRequestRef.update(updateData);
+
+    // Auto-reject other pending requests for the same desk
+    if (status === 'approved' && assignedDesk) {
+      try {
+        // Get all users and check their pending desk requests
+        const usersSnapshot = await firestore
+          .collection('accounts')
+          .doc('client')
+          .collection('users')
+          .get();
+
+        const batch = firestore.batch();
+        let rejectedCount = 0;
+
+        for (const userDoc of usersSnapshot.docs) {
+          const deskRequestsSnapshot = await firestore
+            .collection('accounts')
+            .doc('client')
+            .collection('users')
+            .doc(userDoc.id)
+            .collection('request')
+            .doc('desk')
+            .collection('requests')
+            .get();
+
+          for (const requestDoc of deskRequestsSnapshot.docs) {
+            // Skip the current request
+            if (requestDoc.id === requestId && userDoc.id === userId) continue;
+
+            const requestData = requestDoc.data();
+            // Check if this pending request is for the same desk
+            // Check multiple possible field names: deskId (from client), requestedDesk, assignedDesk
+            if (requestData.status === 'pending' && 
+                (requestData.deskId === assignedDesk || 
+                 requestData.requestedDesk === assignedDesk || 
+                 requestData.assignedDesk === assignedDesk)) {
+              batch.update(requestDoc.ref, {
+                status: 'rejected',
+                adminNotes: `Automatically rejected: Desk ${assignedDesk} has been assigned to another tenant.`,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+              });
+              rejectedCount++;
+              console.log(`Auto-rejecting request ${requestDoc.id} for user ${userDoc.id} (desk: ${requestData.deskId || requestData.requestedDesk || requestData.assignedDesk})`);
+            }
+          }
+        }
+
+        if (rejectedCount > 0) {
+          await batch.commit();
+          console.log(`Auto-rejected ${rejectedCount} pending request(s) for desk ${assignedDesk}`);
+        }
+      } catch (autoRejectError) {
+        console.error('Error auto-rejecting other requests:', autoRejectError);
+        // Don't fail the main operation if auto-reject fails
+      }
+    }
 
     // Create initial bill if approving and occupant is a Tenant
     if (status === 'approved' && assignedDesk && (deskRequestData.occupantType || 'Tenant') === 'Tenant') {

@@ -29,6 +29,8 @@ import {
   updateBill,
   createBill
 } from '../controllers/Admin/Billing/billingController.js';
+import { exportBillingPDF } from '../controllers/Admin/Billing/exportPDFController.js';
+import { exportSingleBillPDF, exportMultipleBillsPDF } from '../controllers/Admin/Billing/exportSingleBillPDFController.js';
 
 const router = express.Router();
 
@@ -66,5 +68,8 @@ router.get('/billing/user/:userId/bills', getUserBills);
 router.post('/billing/:userId/create', createBill);
 router.post('/billing/:userId/:billId/record-payment', recordPayment);
 router.put('/billing/:userId/:billId/update', updateBill);
+router.post('/billing/export-pdf', exportBillingPDF);
+router.get('/billing/:userId/:billId/export-pdf', exportSingleBillPDF);
+router.post('/billing/export-multiple-bills-pdf', exportMultipleBillsPDF);
 
 export default router;
