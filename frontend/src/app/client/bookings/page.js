@@ -183,8 +183,8 @@ export default function Bookings() {
           });
         }
 
-        // Fetch schedules/bookings from backend API
-        const schedulesResponse = await api.get(`/api/schedules/user/${userId}`);
+        // Fetch private office bookings from client API (Firestore: accounts/client/users/{userId}/request/office/bookings)
+        const schedulesResponse = await api.get(`/api/client/private-office/user/${userId}/bookings`).catch(() => ({ success: false, data: [] }));
         const scheduleBookings = [];
         
         if (schedulesResponse.success && schedulesResponse.data) {
@@ -356,8 +356,11 @@ export default function Bookings() {
     setDeletingBookingId(booking.id);
 
     try {
-      // Delete schedule via backend API
-      const response = await api.delete(`/api/schedules/${booking.id}`);
+      // Delete via correct API: privateroom uses client private-office endpoint
+      const deleteUrl = booking.type === 'privateroom' && userId
+        ? `/api/client/private-office/bookings/${userId}/${booking.id}`
+        : `/api/schedules/${booking.id}`;
+      const response = await api.delete(deleteUrl);
       
       if (response.success) {
         // Optimistically remove booking from UI immediately

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import Image from 'next/image';
 import Link from 'next/link';
 import { League_Spartan } from 'next/font/google';
 import { motion, useInView } from 'framer-motion';
@@ -100,57 +99,31 @@ export default function Hero() {
             animate={{ x: 0, opacity: 1 }}
             transition={{ duration: 0.8, ease: 'easeOut', delay: 0.4 }}
           >
-            {/* Mid Image */}
+            {/* Mid Image - Placeholder */}
             <motion.div 
-              className="absolute bottom-[15%] left-[12%] w-[362.25px] lg:w-[410.55px] h-[301.875px] lg:h-[338.1px] rounded-2xl overflow-hidden z-60 border-8 border-white cursor-pointer"
+              className="absolute bottom-[15%] left-[12%] w-[362.25px] lg:w-[410.55px] h-[301.875px] lg:h-[338.1px] rounded-2xl overflow-hidden z-60 border-8 border-white cursor-pointer bg-slate-200 flex items-center justify-center"
               whileHover={{ y: -20, zIndex: 100, scale: 1.05 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
             >
-              <div className="relative w-full h-full">
-                <Image
-                  src="/images/desk2.png"
-                  alt="Modern office workspace"
-                  fill
-                  className="object-cover object-center"
-                  style={{ objectPosition: 'center 60%' }}
-                  priority
-                  sizes="(max-width: 1024px) 362px, 411px"
-                />
-              </div>
+              <span className="text-slate-500 text-sm font-medium">Placeholder</span>
             </motion.div>
 
-            {/* Top Image */}
+            {/* Top Image - Placeholder */}
             <motion.div 
-              className="absolute top-[5%] right-[-27%] w-[362.25px] lg:w-[410.55px] h-[301.875px] lg:h-[338.1px] rounded-2xl overflow-hidden z-30 border-8 border-[#0F766E] cursor-pointer"
+              className="absolute top-[5%] right-[-27%] w-[362.25px] lg:w-[410.55px] h-[301.875px] lg:h-[338.1px] rounded-2xl overflow-hidden z-30 border-8 border-[#0F766E] cursor-pointer bg-slate-200 flex items-center justify-center"
               whileHover={{ y: -20, zIndex: 100, scale: 1.05 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
             >
-              <div className="relative w-full h-full">
-                <Image
-                  src="/images/Virtual (1).png"
-                  alt="Virtual office space"
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 1024px) 362px, 411px"
-                />
-              </div>
+              <span className="text-slate-500 text-sm font-medium">Placeholder</span>
             </motion.div>
 
-            {/* Bottom Image */}
+            {/* Bottom Image - Placeholder */}
             <motion.div 
-              className="absolute bottom-[5%] right-[-37%] w-[362.25px] lg:w-[410.55px] h-[301.875px] lg:h-[338.1px] rounded-2xl overflow-hidden z-50 border-8 border-white cursor-pointer"
+              className="absolute bottom-[5%] right-[-37%] w-[362.25px] lg:w-[410.55px] h-[301.875px] lg:h-[338.1px] rounded-2xl overflow-hidden z-50 border-8 border-white cursor-pointer bg-slate-200 flex items-center justify-center"
               whileHover={{ y: -20, zIndex: 100, scale: 1.05 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
             >
-              <div className="relative w-full h-full">
-                <Image
-                  src="/images/Dedicated.png"
-                  alt="Dedicated workspace"
-                  fill
-                  className="object-cover"
-                  sizes="(max-width: 1024px) 362px, 411px"
-                />
-              </div>
+              <span className="text-slate-500 text-sm font-medium">Placeholder</span>
             </motion.div>
           </motion.div>
         </div>
