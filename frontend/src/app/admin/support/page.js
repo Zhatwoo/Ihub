@@ -1,14 +1,167 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { api } from '@/lib/api';
 import { BiSupport, BiMessageDetail, BiTime, BiUser, BiCheck, BiX } from 'react-icons/bi';
+
+// Ticket Detail Modal Component
+function TicketDetailModal({ ticket, isOpen, onClose }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!isOpen || !mounted || !ticket) return null;
+
+  const getStatusColor = (status) => {
+    const colors = {
+      'open': 'bg-yellow-100 text-yellow-700',
+      'in-progress': 'bg-blue-100 text-blue-700',
+      'resolved': 'bg-green-100 text-green-700',
+      'closed': 'bg-gray-100 text-gray-700'
+    };
+    return colors[status] || 'bg-gray-100 text-gray-700';
+  };
+
+  const getPriorityColor = (priority) => {
+    const colors = {
+      'high': 'bg-red-100 text-red-700',
+      'medium': 'bg-orange-100 text-orange-700',
+      'low': 'bg-green-100 text-green-700'
+    };
+    return colors[priority] || 'bg-gray-100 text-gray-700';
+  };
+
+  const formatDate = (dateValue) => {
+    if (!dateValue) return 'N/A';
+    const date = new Date(dateValue);
+    if (isNaN(date.getTime())) return 'N/A';
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  return createPortal(
+    <div 
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10000] p-4 animate-[fadeIn_0.2s_ease]"
+      onClick={onClose}
+    >
+      {/* Modal */}
+      <div 
+        className="relative bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[85vh] overflow-hidden flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-2xl font-bold text-slate-800">Ticket Details</h3>
+              <p className="text-sm text-gray-500 mt-1">#{ticket.id?.slice(0, 8)}</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${getStatusColor(ticket.status)}`}>
+                {ticket.status}
+              </span>
+              <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${getPriorityColor(ticket.priority)}`}>
+                {ticket.priority}
+              </span>
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-600 transition-colors p-1 hover:bg-gray-100 rounded-full"
+                aria-label="Close"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Left Column */}
+            <div className="space-y-4">
+              {/* Client Information */}
+              <div className="p-4 bg-gray-50 rounded-lg">
+                <h4 className="text-xs font-bold text-gray-700 mb-2 uppercase">Client Information</h4>
+                <div className="space-y-1 text-sm">
+                  <p><span className="text-gray-600">Name:</span> <span className="font-semibold">{ticket.clientName || 'N/A'}</span></p>
+                  <p><span className="text-gray-600">Company:</span> <span className="font-semibold">{ticket.companyName || 'N/A'}</span></p>
+                  <p><span className="text-gray-600">Email:</span> <span className="font-semibold">{ticket.email || 'N/A'}</span></p>
+                  <p><span className="text-gray-600">Contact:</span> <span className="font-semibold">{ticket.contactNumber || 'N/A'}</span></p>
+                </div>
+              </div>
+
+              {/* Ticket Information */}
+              <div className="p-4 bg-blue-50 rounded-lg">
+                <h4 className="text-xs font-bold text-gray-700 mb-2 uppercase">Ticket Information</h4>
+                <div className="space-y-1 text-sm">
+                  <p><span className="text-gray-600">Status:</span> <span className="font-semibold capitalize">{ticket.status}</span></p>
+                  <p><span className="text-gray-600">Priority:</span> <span className="font-semibold capitalize">{ticket.priority}</span></p>
+                  <p><span className="text-gray-600">Created:</span> <span className="font-semibold">{formatDate(ticket.createdAt)}</span></p>
+                  {ticket.updatedAt && (
+                    <p><span className="text-gray-600">Updated:</span> <span className="font-semibold">{formatDate(ticket.updatedAt)}</span></p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column */}
+            <div className="space-y-4">
+              {/* Subject */}
+              <div className="p-4 bg-teal-50 rounded-lg">
+                <h4 className="text-xs font-bold text-gray-700 mb-2 uppercase">Subject</h4>
+                <p className="text-sm font-semibold text-gray-900">{ticket.subject}</p>
+              </div>
+
+              {/* Description */}
+              <div className="p-4 bg-purple-50 rounded-lg">
+                <h4 className="text-xs font-bold text-gray-700 mb-2 uppercase">Description</h4>
+                <div className="text-sm text-gray-900 whitespace-pre-wrap max-h-64 overflow-y-auto">
+                  {ticket.message}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-6 border-t border-gray-200 bg-gray-50">
+          <div className="flex justify-end gap-3">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
+            >
+              Close
+            </button>
+            <button
+              className="px-4 py-2 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors"
+            >
+              Update Status
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
 
 export default function CustomerSupport() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedTicket, setSelectedTicket] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const [stats, setStats] = useState({
     total: 0,
     open: 0,
@@ -72,8 +225,24 @@ export default function CustomerSupport() {
     return matchesFilter && matchesSearch;
   });
 
+  const handleTicketClick = (ticket) => {
+    setSelectedTicket(ticket);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedTicket(null);
+  };
+
   return (
     <div className="space-y-6">
+      {/* Ticket Detail Modal */}
+      <TicketDetailModal
+        ticket={selectedTicket}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+      />
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -232,14 +401,15 @@ export default function CustomerSupport() {
                   <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
                     Created
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                    Actions
-                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {filteredTickets.map((ticket) => (
-                  <tr key={ticket.id} className="hover:bg-gray-50 transition-colors">
+                  <tr 
+                    key={ticket.id} 
+                    onClick={() => handleTicketClick(ticket)}
+                    className="hover:bg-gray-50 transition-colors cursor-pointer"
+                  >
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       #{ticket.id?.slice(0, 8)}
                     </td>
@@ -251,7 +421,6 @@ export default function CustomerSupport() {
                     </td>
                     <td className="px-6 py-4">
                       <div className="text-sm text-gray-900 font-medium">{ticket.subject}</div>
-                      <div className="text-sm text-gray-500 truncate max-w-xs">{ticket.message}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(ticket.priority)}`}>
@@ -265,11 +434,6 @@ export default function CustomerSupport() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(ticket.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      <button className="text-teal-600 hover:text-teal-700 font-semibold">
-                        View
-                      </button>
                     </td>
                   </tr>
                 ))}
