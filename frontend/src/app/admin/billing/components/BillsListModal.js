@@ -89,10 +89,15 @@ export default function BillsListModal({ isOpen, onClose, bill, onBillClick }) {
       const blob = await response.blob();
       console.log('[BillsListModal] Blob size:', blob.size);
       
+      // Format filename with client name
+      const clientName = bill.name || bill.clientName || 'Client';
+      const sanitizedClientName = clientName.replace(/[^a-zA-Z0-9\s]/g, '').trim();
+      const filename = `${sanitizedClientName}, Multiple Bills.pdf`;
+      
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `bills-${bill.userId}-${new Date().toISOString().split('T')[0]}.pdf`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);

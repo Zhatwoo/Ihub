@@ -30,7 +30,16 @@ import {
   createBill
 } from '../controllers/Admin/Billing/billingController.js';
 import { exportBillingPDF } from '../controllers/Admin/Billing/exportPDFController.js';
-import { exportSingleBillPDF, exportMultipleBillsPDF } from '../controllers/Admin/Billing/exportSingleBillPDFController.js';
+import { exportSingleBillPDF, exportMultipleBillsPDF, exportSelectedBillsPDF } from '../controllers/Admin/Billing/exportSingleBillPDFController.js';
+import { filterBills } from '../controllers/Admin/Billing/filterBillsController.js';
+import {
+  getAllTickets,
+  getTicketStats,
+  getTicketById,
+  updateTicketStatus,
+  addTicketReply,
+  getTicketReplies
+} from '../controllers/Admin/Customer Support/supportController.js';
 
 const router = express.Router();
 
@@ -71,5 +80,15 @@ router.put('/billing/:userId/:billId/update', updateBill);
 router.post('/billing/export-pdf', exportBillingPDF);
 router.get('/billing/:userId/:billId/export-pdf', exportSingleBillPDF);
 router.post('/billing/export-multiple-bills-pdf', exportMultipleBillsPDF);
+router.get('/billing/filter-bills', filterBills);
+router.post('/billing/export-selected-bills-pdf', exportSelectedBillsPDF);
+
+// Customer Support routes
+router.get('/support/tickets', getAllTickets);
+router.get('/support/stats', getTicketStats);
+router.get('/support/tickets/:ticketId', getTicketById);
+router.put('/support/tickets/:ticketId/status', updateTicketStatus);
+router.post('/support/tickets/:ticketId/reply', addTicketReply);
+router.get('/support/tickets/:ticketId/replies', getTicketReplies);
 
 export default router;

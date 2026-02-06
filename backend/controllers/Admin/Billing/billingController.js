@@ -61,8 +61,24 @@ export const getAllBilling = async (req, res) => {
             return bDate - aDate; // Descending order (latest first)
           });
           
-          // Always use the latest bill (most recent by createdAt)
-          const displayBill = sortedBills[0];
+          // For display, prioritize the oldest unpaid/overdue bill by dueDate
+          // This ensures the Pay button shows the furthest overdue bill first
+          const unpaidOrOverdueBills = resourceBills.filter(bill => 
+            bill.status === 'unpaid' || bill.status === 'overdue'
+          );
+          
+          let displayBill;
+          if (unpaidOrOverdueBills.length > 0) {
+            // Sort unpaid/overdue bills by dueDate (ascending - oldest first)
+            displayBill = unpaidOrOverdueBills.sort((a, b) => {
+              const aDate = a.dueDate?.toDate ? a.dueDate.toDate() : new Date(a.dueDate || 0);
+              const bDate = b.dueDate?.toDate ? b.dueDate.toDate() : new Date(b.dueDate || 0);
+              return aDate - bDate; // Ascending order (oldest first)
+            })[0];
+          } else {
+            // If no unpaid/overdue bills, use the latest bill
+            displayBill = sortedBills[0];
+          }
           
           // Check if there are any overdue, unpaid, or inactive bills for this resource
           const hasOverdueBills = resourceBills.some(bill => bill.status === 'overdue');
@@ -79,7 +95,7 @@ export const getAllBilling = async (req, res) => {
             overallStatus = 'inactive';
           }
           
-          console.log(`[getAllBilling] User ${userId}, Resource ${resource} - Latest bill status: ${displayBill.status}, Overall status: ${overallStatus}`);
+          console.log(`[getAllBilling] User ${userId}, Resource ${resource} - Display bill status: ${displayBill.status}, Overall status: ${overallStatus}`);
           
           if (displayBill) {
             // Convert Firestore Timestamp to Date
@@ -179,8 +195,24 @@ export const getAllBilling = async (req, res) => {
             return bDate - aDate; // Descending order (latest first)
           });
           
-          // Always use the latest bill (most recent by createdAt)
-          const displayBill = sortedBills[0];
+          // For display, prioritize the oldest unpaid/overdue bill by dueDate
+          // This ensures the Pay button shows the furthest overdue bill first
+          const unpaidOrOverdueBills = resourceBills.filter(bill => 
+            bill.status === 'unpaid' || bill.status === 'overdue'
+          );
+          
+          let displayBill;
+          if (unpaidOrOverdueBills.length > 0) {
+            // Sort unpaid/overdue bills by dueDate (ascending - oldest first)
+            displayBill = unpaidOrOverdueBills.sort((a, b) => {
+              const aDate = a.dueDate?.toDate ? a.dueDate.toDate() : new Date(a.dueDate || 0);
+              const bDate = b.dueDate?.toDate ? b.dueDate.toDate() : new Date(b.dueDate || 0);
+              return aDate - bDate; // Ascending order (oldest first)
+            })[0];
+          } else {
+            // If no unpaid/overdue bills, use the latest bill
+            displayBill = sortedBills[0];
+          }
           
           const hasOverdueBills = resourceBills.some(bill => bill.status === 'overdue');
           const hasUnpaidBills = resourceBills.some(bill => bill.status === 'unpaid');
@@ -195,7 +227,7 @@ export const getAllBilling = async (req, res) => {
             overallStatus = 'inactive';
           }
           
-          console.log(`[getAllBilling] Virtual office tenant ${tenantId}, Resource ${resource} - Latest bill status: ${displayBill.status}, Overall status: ${overallStatus}`);
+          console.log(`[getAllBilling] Virtual office tenant ${tenantId}, Resource ${resource} - Display bill status: ${displayBill.status}, Overall status: ${overallStatus}`);
           
           if (displayBill) {
             const dueDate = displayBill.dueDate?.toDate ? displayBill.dueDate.toDate() : (displayBill.dueDate ? new Date(displayBill.dueDate) : new Date());

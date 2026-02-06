@@ -10,6 +10,7 @@ import AdminAuthGuard from '@/components/AdminAuthGuard.jsx';
 
 // React Icons - Material Design Icons
 import { MdDashboard, MdBusiness, MdTv, MdPeople, MdCreditCard, MdDesktopMac, MdApartment } from 'react-icons/md';
+import { BiSupport } from 'react-icons/bi';
 
 const navItems = [
   { name: 'Dashboard', href: '/admin', icon: MdDashboard },
@@ -18,6 +19,7 @@ const navItems = [
   { name: 'Virtual Office', href: '/admin/virtual-office', icon: MdTv },
   { name: 'Tenants', href: '/admin/tenants', icon: MdPeople },
   { name: 'Billing', href: '/admin/billing', icon: MdCreditCard },
+  { name: 'Customer Support', href: '/admin/support', icon: BiSupport },
 ];
 
 export default function AdminLayout({ children }) {
