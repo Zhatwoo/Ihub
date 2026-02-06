@@ -19,7 +19,7 @@ import virtualOfficeRoutes from './routes/virtualOffice.js';
 import deskAssignmentsRoutes from './routes/deskAssignments.js';
 import uploadRoutes from './routes/upload.js';
 import emailRoutes from './routes/emails.js';
-import clientRoutes from './controllers/Client/index.js';
+import clientRoutes from './routes/client.js';
 import { startBillingService } from './services/billingRecurringService.js';
 
 // Load environment variables

@@ -2,162 +2,194 @@
 
 import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
+import { api } from '@/lib/api';
 
 export default function ExportPDFModal({ isOpen, onClose, allClients }) {
   const [mounted, setMounted] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState('');
-  const [selectedService, setSelectedService] = useState('');
+  const [selectedUser, setSelectedUser] = useState('');
+  const [selectedServiceType, setSelectedServiceType] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [selectedUsers, setSelectedUsers] = useState([]);
-  const [selectedServiceFilter, setSelectedServiceFilter] = useState('all');
+  const [filteredBills, setFilteredBills] = useState([]);
+  const [selectedBills, setSelectedBills] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Group clients by service type
-  const groupedClients = {
-    'dedicated-desk': allClients.filter(c => c.serviceType === 'dedicated-desk').sort((a, b) => (a.name || '').localeCompare(b.name || '')),
-    'private-office': allClients.filter(c => c.serviceType === 'private-office').sort((a, b) => (a.name || '').localeCompare(b.name || '')),
-    'virtual-office': allClients.filter(c => c.serviceType === 'virtual-office').sort((a, b) => (a.name || '').localeCompare(b.name || ''))
-  };
+  // Fetch bills when filters change
+  const handleFetchBills = async () => {
+    try {
+      setLoading(true);
+      setFilteredBills([]);
+      setSelectedBills([]);
 
-  const serviceLabels = {
-    'dedicated-desk': 'Dedicated Desk',
-    'private-office': 'Private Office',
-    'virtual-office': 'Virtual Office'
-  };
+      // Build query parameters
+      const params = new URLSearchParams();
+      if (selectedUser) params.append('userId', selectedUser);
+      if (selectedStatus) params.append('status', selectedStatus);
+      if (selectedServiceType) params.append('serviceType', selectedServiceType);
+      if (dateFrom) params.append('dateFrom', dateFrom);
+      if (dateTo) params.append('dateTo', dateTo);
 
-  // Get filtered clients based on service filter dropdown
-  const getFilteredClients = () => {
-    if (selectedServiceFilter === 'all') {
-      return allClients;
+      const response = await api.get(`/api/admin/billing/filter-bills?${params.toString()}`, { skipCache: true });
+      
+      if (response.success) {
+        setFilteredBills(response.data || []);
+      } else {
+        alert('Failed to fetch bills');
+      }
+    } catch (error) {
+      console.error('Error fetching bills:', error);
+      alert('Failed to fetch bills');
+    } finally {
+      setLoading(false);
     }
-    return groupedClients[selectedServiceFilter] || [];
   };
 
-  const handleUserToggle = (userId) => {
-    setSelectedUsers(prev => 
-      prev.includes(userId) 
-        ? prev.filter(id => id !== userId)
-        : [...prev, userId]
+  const handleBillToggle = (billId) => {
+    setSelectedBills(prev => 
+      prev.includes(billId) 
+        ? prev.filter(id => id !== billId)
+        : [...prev, billId]
     );
   };
 
   const handleSelectAll = () => {
-    const filteredClients = getFilteredClients();
-    const allUserIds = filteredClients.map(c => c.userId);
-    
-    // Check if all filtered users are already selected
-    const allSelected = allUserIds.every(id => selectedUsers.includes(id));
-    
-    if (allSelected) {
-      // Deselect all filtered users
-      setSelectedUsers(prev => prev.filter(id => !allUserIds.includes(id)));
+    if (selectedBills.length === filteredBills.length) {
+      setSelectedBills([]);
     } else {
-      // Select all filtered users (merge with existing)
-      setSelectedUsers(prev => [...new Set([...prev, ...allUserIds])]);
+      setSelectedBills(filteredBills.map(bill => `${bill.userId}-${bill.billId}`));
     }
-  };
-
-  const handleSelectAllForService = (serviceType) => {
-    const serviceUsers = groupedClients[serviceType].map(c => c.userId);
-    const allSelected = serviceUsers.every(id => selectedUsers.includes(id));
-    
-    if (allSelected) {
-      // Deselect all users from this service
-      setSelectedUsers(prev => prev.filter(id => !serviceUsers.includes(id)));
-    } else {
-      // Select all users from this service
-      setSelectedUsers(prev => [...new Set([...prev, ...serviceUsers])]);
-    }
-  };
-
-  const isServiceAllSelected = (serviceType) => {
-    const serviceUsers = groupedClients[serviceType].map(c => c.userId);
-    return serviceUsers.length > 0 && serviceUsers.every(id => selectedUsers.includes(id));
   };
 
   const handleExport = async () => {
-    try {
-      const filters = {
-        users: selectedUsers.length > 0 ? selectedUsers : 'all',
-        status: selectedStatus || 'all',
-        service: selectedService || 'all',
-        dateFrom,
-        dateTo
-      };
-      
-      console.log('Exporting PDF with filters:', filters);
+    if (selectedBills.length === 0) {
+      alert('Please select at least one bill to export');
+      return;
+    }
 
-      // Call the export API
-      const response = await fetch('/api/admin/billing/export-pdf', {
+    try {
+      setExporting(true);
+      
+      const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${API_URL}/api/admin/billing/export-selected-bills-pdf`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(filters),
+        body: JSON.stringify({
+          bills: filteredBills.filter(bill => selectedBills.includes(`${bill.userId}-${bill.billId}`))
+        }),
       });
 
       if (!response.ok) {
         throw new Error('Failed to generate PDF');
       }
 
-      // Get the PDF blob
       const blob = await response.blob();
       
-      // Create a download link
+      // Format filename based on selection
+      let filename;
+      if (selectedBills.length === 1) {
+        // Single bill - use client name and date range
+        const selectedBill = filteredBills.find(bill => selectedBills.includes(`${bill.userId}-${bill.billId}`));
+        if (selectedBill) {
+          const formatDateForFilename = (dateValue) => {
+            if (!dateValue) return '';
+            const date = new Date(dateValue);
+            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          };
+          const startDateFormatted = formatDateForFilename(selectedBill.startDate);
+          const dueDateFormatted = formatDateForFilename(selectedBill.dueDate);
+          const sanitizedClientName = (selectedBill.clientName || 'Client').replace(/[^a-zA-Z0-9\s]/g, '').trim();
+          filename = `${sanitizedClientName}, ${startDateFormatted} - ${dueDateFormatted}.pdf`;
+        } else {
+          filename = `billing-report-${new Date().toISOString().split('T')[0]}.pdf`;
+        }
+      } else {
+        // Multiple bills - use "Selected Bills" and date
+        const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        filename = `Selected Bills, ${today}.pdf`;
+      }
+      
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `billing-report-${new Date().toISOString().split('T')[0]}.pdf`;
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
-      
-      // Cleanup
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
       
-      console.log('PDF downloaded successfully');
-      
-      // Close modal after successful export
       onClose();
     } catch (error) {
       console.error('Error exporting PDF:', error);
       alert('Failed to export PDF. Please try again.');
+    } finally {
+      setExporting(false);
     }
   };
 
   const handleReset = () => {
     setSelectedStatus('');
-    setSelectedService('');
+    setSelectedUser('');
+    setSelectedServiceType('');
     setDateFrom('');
     setDateTo('');
-    setSelectedUsers([]);
-    setSelectedServiceFilter('all');
+    setFilteredBills([]);
+    setSelectedBills([]);
+  };
+
+  const getStatusColor = (status) => {
+    const colorMap = {
+      'paid': 'bg-green-100 text-green-700',
+      'unpaid': 'bg-yellow-100 text-yellow-700',
+      'overdue': 'bg-red-100 text-red-700',
+      'inactive': 'bg-gray-100 text-gray-700'
+    };
+    return colorMap[status] || 'bg-gray-100 text-gray-700';
+  };
+
+  const getServiceTypeColor = (serviceType) => {
+    const colorMap = {
+      'dedicated-desk': 'bg-green-100 text-green-700',
+      'private-office': 'bg-blue-100 text-blue-700',
+      'virtual-office': 'bg-violet-100 text-violet-700'
+    };
+    return colorMap[serviceType] || 'bg-gray-100 text-gray-700';
   };
 
   if (!isOpen || !mounted) return null;
 
-  const filteredClients = getFilteredClients();
-  const allFilteredSelected = filteredClients.length > 0 && filteredClients.every(c => selectedUsers.includes(c.userId));
-
   return createPortal(
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[9999] p-4" onClick={onClose}>
-      <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden shadow-2xl animate-[slideUp_0.3s_ease]" onClick={(e) => e.stopPropagation()}>
+      <div className="bg-white rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden shadow-2xl animate-[slideUp_0.3s_ease] flex flex-col" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-blue-100">
-          <h2 className="text-2xl font-bold text-slate-800">Export Billing Report (PDF)</h2>
+          <h2 className="text-2xl font-bold text-slate-800">Export Bills to PDF</h2>
           <div className="flex items-center gap-3">
             <button
               onClick={handleExport}
-              className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg hover:shadow-xl flex items-center gap-2"
+              disabled={selectedBills.length === 0 || exporting}
+              className="px-6 py-2.5 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors shadow-lg hover:shadow-xl flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              Export PDF
+              {exporting ? (
+                <>
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                  Export PDF ({selectedBills.length})
+                </>
+              )}
             </button>
             <button
               onClick={onClose}
@@ -171,49 +203,76 @@ export default function ExportPDFModal({ isOpen, onClose, allClients }) {
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
-          <div className="space-y-6">
-            {/* Date Range */}
+        <div className="p-6 flex-1 overflow-hidden flex flex-col">
+          <div className="space-y-6 flex-1 overflow-hidden flex flex-col">
+            {/* Filters */}
             <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-              <h3 className="text-lg font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                </svg>
-                Date Range
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">From Date</label>
-                  <input
-                    type="date"
-                    value={dateFrom}
-                    onChange={(e) => setDateFrom(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">To Date</label>
-                  <input
-                    type="date"
-                    value={dateTo}
-                    onChange={(e) => setDateTo(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  />
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-slate-800">Filter Bills</h3>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleFetchBills}
+                    disabled={loading}
+                    className="px-6 py-2.5 bg-teal-600 text-white rounded-lg font-semibold hover:bg-teal-700 transition-colors flex items-center gap-2 disabled:opacity-50"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Fetching...
+                      </>
+                    ) : (
+                      <>
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                        </svg>
+                        Fetch Bills
+                      </>
+                    )}
+                  </button>
+                  <button
+                    onClick={handleReset}
+                    className="px-6 py-2.5 bg-gray-200 text-gray-700 rounded-lg font-semibold hover:bg-gray-300 transition-colors"
+                  >
+                    Reset
+                  </button>
                 </div>
               </div>
-            </div>
-
-            {/* Bill Status and Service Type in one row */}
-            <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Bill Status */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                {/* User Filter */}
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    Bill Status
-                  </h3>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">User</label>
+                  <select
+                    value={selectedUser}
+                    onChange={(e) => setSelectedUser(e.target.value)}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-slate-900"
+                  >
+                    <option value="">All Users</option>
+                    {allClients.map(client => (
+                      <option key={client.userId} value={client.userId}>
+                        {client.name} ({client.serviceType})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Service Type Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Service Type</label>
+                  <select
+                    value={selectedServiceType}
+                    onChange={(e) => setSelectedServiceType(e.target.value)}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-slate-900"
+                  >
+                    <option value="">All Services</option>
+                    <option value="dedicated-desk">Dedicated Desk</option>
+                    <option value="private-office">Private Office</option>
+                    <option value="virtual-office">Virtual Office</option>
+                  </select>
+                </div>
+
+                {/* Status Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
                   <select
                     value={selectedStatus}
                     onChange={(e) => setSelectedStatus(e.target.value)}
@@ -227,141 +286,115 @@ export default function ExportPDFModal({ isOpen, onClose, allClients }) {
                   </select>
                 </div>
 
-                {/* Service Type */}
+                {/* Date From */}
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                    </svg>
-                    Service Type
-                  </h3>
-                  <select
-                    value={selectedService}
-                    onChange={(e) => setSelectedService(e.target.value)}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-slate-900"
-                  >
-                    <option value="">All Services</option>
-                    <option value="dedicated-desk">Dedicated Desk</option>
-                    <option value="private-office">Private Office</option>
-                    <option value="virtual-office">Virtual Office</option>
-                  </select>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">From Date</label>
+                  <input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+
+                {/* Date To */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">To Date</label>
+                  <input
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => setDateTo(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
                 </div>
               </div>
             </div>
 
-            {/* Users Filter */}
-            <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-              <h3 className="text-lg font-semibold text-slate-800 mb-3 flex items-center gap-2">
-                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-                Users
-              </h3>
-              
-              {/* Service Filter Dropdown */}
-              <select
-                value={selectedServiceFilter}
-                onChange={(e) => setSelectedServiceFilter(e.target.value)}
-                className="w-full px-4 py-2.5 mb-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-slate-900"
-              >
-                <option value="all">All Services</option>
-                <option value="dedicated-desk">Dedicated Desk</option>
-                <option value="private-office">Private Office</option>
-                <option value="virtual-office">Virtual Office</option>
-              </select>
+            {/* Bills List */}
+            {filteredBills.length > 0 && (
+              <div className="bg-gray-50 rounded-xl p-4 border border-gray-200 flex-1 overflow-hidden flex flex-col">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-slate-800">
+                    Found {filteredBills.length} bill(s)
+                  </h3>
+                  <button
+                    onClick={handleSelectAll}
+                    className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-semibold hover:bg-blue-200 transition-colors text-sm"
+                  >
+                    {selectedBills.length === filteredBills.length ? 'Deselect All' : 'Select All'}
+                  </button>
+                </div>
 
-              {/* Select All for filtered view */}
-              <div className="bg-white rounded-lg p-3 mb-3 border border-gray-300">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={allFilteredSelected}
-                    onChange={handleSelectAll}
-                    className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <span className="text-base font-bold text-blue-600">Select All</span>
-                </label>
-              </div>
+                <div className="space-y-3 overflow-y-auto flex-1">
+                  {filteredBills.map((bill) => {
+                    const billKey = `${bill.userId}-${bill.billId}`;
+                    const isSelected = selectedBills.includes(billKey);
+                    const dueDate = bill.dueDate ? new Date(bill.dueDate) : null;
+                    const startDate = bill.startDate ? new Date(bill.startDate) : null;
+                    
+                    const serviceTypeLabel = bill.serviceType === 'dedicated-desk' ? 'Dedicated Desk' : 
+                                            bill.serviceType === 'private-office' ? 'Private Office' : 
+                                            bill.serviceType === 'virtual-office' ? 'Virtual Office' : 'N/A';
 
-              {/* Users List */}
-              <div className="space-y-3 max-h-80 overflow-y-auto">
-                {selectedServiceFilter === 'all' ? (
-                  // Show grouped by service
-                  Object.entries(groupedClients).map(([serviceType, clients]) => (
-                    clients.length > 0 && (
-                      <div key={serviceType}>
-                        {/* Service Header with Select All */}
-                        <div className="bg-gray-200 rounded-lg p-3 flex items-center justify-between mb-2">
-                          <h4 className="text-sm font-bold text-slate-700 uppercase">{serviceLabels[serviceType]}</h4>
-                          <label className="flex items-center gap-2 cursor-pointer">
-                            <input
-                              type="checkbox"
-                              checked={isServiceAllSelected(serviceType)}
-                              onChange={() => handleSelectAllForService(serviceType)}
-                              className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                            />
-                            <span className="text-xs font-semibold text-slate-600">Select All</span>
-                          </label>
-                        </div>
-                        {/* Users in this service */}
-                        <div className="space-y-2 ml-4">
-                          {clients.map(client => (
-                            <div key={client.userId} className="bg-white rounded-lg p-3 border border-gray-200">
-                              <label className="flex items-center gap-3 cursor-pointer">
-                                <input
-                                  type="checkbox"
-                                  checked={selectedUsers.includes(client.userId)}
-                                  onChange={() => handleUserToggle(client.userId)}
-                                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                                />
-                                <div className="flex-1">
-                                  <div className="text-sm font-semibold text-slate-800">{client.name || 'Unnamed Client'}</div>
-                                </div>
-                              </label>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )
-                  ))
-                ) : (
-                  // Show only selected service
-                  <div className="space-y-2">
-                    {filteredClients.map(client => (
-                      <div key={client.userId} className="bg-white rounded-lg p-3 border border-gray-200">
-                        <label className="flex items-center gap-3 cursor-pointer">
+                    return (
+                      <div
+                        key={billKey}
+                        className={`p-4 rounded-lg border-2 transition-all cursor-pointer ${
+                          isSelected 
+                            ? 'border-blue-500 bg-blue-50' 
+                            : 'border-gray-200 bg-white hover:border-blue-300'
+                        }`}
+                        onClick={() => handleBillToggle(billKey)}
+                      >
+                        <div className="flex items-center gap-3">
                           <input
                             type="checkbox"
-                            checked={selectedUsers.includes(client.userId)}
-                            onChange={() => handleUserToggle(client.userId)}
-                            className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            checked={isSelected}
+                            onChange={() => handleBillToggle(billKey)}
+                            className="w-5 h-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                            onClick={(e) => e.stopPropagation()}
                           />
-                          <div className="flex-1">
-                            <div className="text-sm font-semibold text-slate-800">{client.name || 'Unnamed Client'}</div>
+                          <div className="flex-1 flex items-center justify-between gap-4">
+                            {/* Left side - Client info */}
+                            <div className="flex-shrink-0">
+                              <p className="font-semibold text-slate-800">{bill.clientName}</p>
+                              <p className="text-sm text-gray-600">{bill.assignedResource}</p>
+                            </div>
+                            
+                            {/* Middle - Details in horizontal layout */}
+                            <div className="flex items-center gap-4 text-sm text-gray-600 flex-wrap">
+                              <span className={`text-xs font-medium px-2 py-1 rounded ${getServiceTypeColor(bill.serviceType)}`}>{serviceTypeLabel}</span>
+                              <span>Start: {startDate ? startDate.toLocaleDateString() : 'N/A'}</span>
+                              <span>Due: {dueDate ? dueDate.toLocaleDateString() : 'N/A'}</span>
+                              <span>Period: {bill.feePeriod || 'N/A'}</span>
+                            </div>
+                            
+                            {/* Right side - Amount and status */}
+                            <div className="text-right flex-shrink-0">
+                              <p className="text-lg font-bold text-slate-800">
+                                ₱{((bill.amount || 0) + (bill.cusaFee || 0) + (bill.parkingFee || 0)).toLocaleString()}
+                              </p>
+                              <span className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(bill.status)}`}>
+                                {bill.status}
+                              </span>
+                            </div>
                           </div>
-                        </label>
+                        </div>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
+            )}
 
-        {/* Footer */}
-        <div className="flex items-center justify-between p-6 border-t border-gray-200 bg-gray-50">
-          <button
-            onClick={handleReset}
-            className="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium transition-colors"
-          >
-            Reset Filters
-          </button>
-          <div className="text-sm text-gray-600">
-            {selectedUsers.length > 0 ? `${selectedUsers.length} user(s)` : 'All users'} • 
-            {selectedStatus ? ` Status: ${selectedStatus}` : ' All statuses'} • 
-            {selectedService ? ` Service: ${selectedService.replace('-', ' ')}` : ' All services'}
-            {(dateFrom || dateTo) && ' • Date range set'}
+            {!loading && filteredBills.length === 0 && (
+              <div className="text-center py-12 bg-gray-50 rounded-xl">
+                <svg className="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                <p className="text-gray-600 font-semibold">Click "Fetch Bills" to load bills with your filters</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
