@@ -30,13 +30,13 @@ export default function VirtualOfficeHeader() {
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Left side - Logo and Brand */}
         <div className="flex items-center gap-2 sm:gap-[0.7875rem]">
-          <div className="relative w-8 h-8 sm:w-[2.75625rem] sm:h-[2.75625rem]">
+          <div className="relative w-8 h-8 sm:w-[2.75625rem] sm:h-[2.75625rem] rounded-full overflow-hidden flex-shrink-0">
             <Image
-              src="/LOGOS/Gemini_Generated_Image_lf2zu3lf2zu3lf2z.png"
-              alt="I-Hub Logo"
+              src="/LOGOS/0-02-06-8297a0147f35064df629e355bd3410a9b77af838168434dc8807d9d30680c9a8_220d8f6c77e.jpg"
+              alt="I-Hub - INSPIRE HUB"
               width={44}
               height={44}
-              className="object-contain"
+              className="h-full w-full object-cover"
               priority
             />
           </div>

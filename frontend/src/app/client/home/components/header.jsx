@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { usePathname, useRouter } from 'next/navigation';
 import { api } from '@/lib/api';
 import { useTranslation } from '@/lib/TranslationContext';
@@ -76,7 +77,16 @@ export default function Header() {
     >
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         <Link href="/client" className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-xl shadow-lg">🏢</div>
+          <div className="relative w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+            <Image
+              src="/LOGOS/0-02-06-8297a0147f35064df629e355bd3410a9b77af838168434dc8807d9d30680c9a8_220d8f6c77e.jpg"
+              alt="I-Hub - INSPIRE HUB"
+              width={40}
+              height={40}
+              className="h-full w-full object-cover"
+              priority
+            />
+          </div>
           <span className="text-xl font-bold text-white">{t('common.appName')}</span>
         </Link>
         <nav className="flex items-center gap-1">
