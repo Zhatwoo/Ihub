@@ -51,6 +51,17 @@ input[type="number"] {
   to { opacity: 1; transform: translateX(0); }
 }
 
+@keyframes slideInFromLeft {
+  from { 
+    opacity: 0; 
+    transform: translateX(-30px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateX(0); 
+  }
+}
+
 @keyframes slideInRight {
   from { opacity: 0; transform: translateX(20px); }
   to { opacity: 1; transform: translateX(0); }
@@ -336,4 +347,13 @@ input[type="range"].slider::-moz-range-thumb {
   cursor: pointer;
   border: 2px solid #ffffff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Smooth transitions for Recharts pie chart sectors */
+.recharts-pie-sector {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.recharts-sector {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }

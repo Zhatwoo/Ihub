@@ -6,6 +6,7 @@ import { League_Spartan } from 'next/font/google';
 import { availableSpaces } from './DidicatedDesk';
 import { api, getUserFromCookie } from '@/lib/api';
 import { showToast } from '@/components/Toast';
+import { useTranslation } from '@/lib/TranslationContext';
 import Part1 from '@/app/admin/dedicated-desk/components/parts/Part1';
 import Part2 from '@/app/admin/dedicated-desk/components/parts/Part2';
 import Part3 from '@/app/admin/dedicated-desk/components/parts/Part3';
@@ -22,7 +23,15 @@ const leagueSpartan = League_Spartan({
   variable: '--font-league-spartan',
 });
 
+const sectionTitleToKey = {
+  'Section A': 'client.sectionA', 'Section B': 'client.sectionB', 'Section C': 'client.sectionC',
+  'Section D': 'client.sectionD', 'Section E': 'client.sectionE', 'Section F': 'client.sectionF',
+  'Section G': 'client.sectionG', 'Section H': 'client.sectionH',
+  'Click to View All Desks': 'client.viewAllDesks',
+};
+
 export default function DedicatedDeskSection() {
+  const { t } = useTranslation();
   const carouselRef = useRef(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [showFullFloorPlan, setShowFullFloorPlan] = useState(false);
@@ -103,11 +112,13 @@ export default function DedicatedDeskSection() {
   useEffect(() => {
     const fetchDeskAssignments = async () => {
       try {
-        const response = await api.get('/api/desk-assignments');
+        const response = await api.get('/api/admin/dedicated-desk/assignments');
         if (response.success && response.data) {
           const assignments = {};
-          response.data.forEach((assignment) => {
-            assignments[assignment.id] = assignment;
+          response.data.assignments.forEach((assignment) => {
+            // Use deskTag as key so floor plan can find it
+            const key = assignment.deskTag || assignment.assignedDesk || assignment.desk || assignment.id;
+            assignments[key] = assignment;
           });
           setDeskAssignments(assignments);
         }
@@ -301,12 +312,12 @@ export default function DedicatedDeskSection() {
       <div className="max-w-[90%] mx-auto px-4">
         <div className="relative">
           <div className="flex items-center justify-between mb-8">
-            <h2 className={`${leagueSpartan.className} text-3xl font-bold text-slate-800`}>Dedicated Desk</h2>
+            <h2 className={`${leagueSpartan.className} text-3xl font-bold text-slate-800`}>{t('client.dedicatedDesk.title')}</h2>
             <div className="flex gap-2">
               <button
                 onClick={() => scrollCarousel('left')}
                 className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-                aria-label="Scroll left"
+                aria-label={t('client.dedicatedDeskSection.scrollLeft')}
               >
                 <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -315,7 +326,7 @@ export default function DedicatedDeskSection() {
               <button
                 onClick={() => scrollCarousel('right')}
                 className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-                aria-label="Scroll right"
+                aria-label={t('client.dedicatedDeskSection.scrollRight')}
               >
                 <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -327,7 +338,10 @@ export default function DedicatedDeskSection() {
             ref={carouselRef}
             className="flex gap-6 overflow-x-auto hide-scrollbar pb-4 scroll-smooth"
           >
-            {availableSpaces.map((space) => (
+            {availableSpaces.map((space) => {
+              const titleText = sectionTitleToKey[space.title] ? t(sectionTitleToKey[space.title]) : space.title;
+              const locationText = t('client.dedicatedDeskLocation');
+              return (
               <div
                 key={space.id}
                 onClick={() => handleCardClick(space)}
@@ -337,7 +351,7 @@ export default function DedicatedDeskSection() {
                   <div className="relative h-[200px]">
                     <Image
                       src={space.image}
-                      alt={space.title}
+                      alt={titleText}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-300"
                       unoptimized
@@ -345,17 +359,17 @@ export default function DedicatedDeskSection() {
                   </div>
                 ) : (
                   <div className="flex-1 flex items-center justify-center bg-gray-50 min-h-[200px]">
-                    <h3 className="text-lg font-semibold text-slate-800 text-center px-4">{space.title}</h3>
+                    <h3 className="text-lg font-semibold text-slate-800 text-center px-4">{titleText}</h3>
                   </div>
                 )}
                 {space.image && (
                   <div className="p-4 bg-white">
-                    <h3 className="text-lg font-semibold text-slate-800 mb-2">{space.title}</h3>
-                    <p className="text-sm text-gray-600 mb-1">{space.location}</p>
+                    <h3 className="text-lg font-semibold text-slate-800 mb-2">{titleText}</h3>
+                    <p className="text-sm text-gray-600 mb-1">{locationText}</p>
                   </div>
                 )}
               </div>
-            ))}
+            );})}
           </div>
         </div>
       </div>
@@ -374,14 +388,14 @@ export default function DedicatedDeskSection() {
             <div className="sticky top-0 bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between z-10">
               <div className="flex-1 min-w-0 pr-2">
                 <h2 className={`${leagueSpartan.className} text-lg sm:text-xl md:text-2xl font-bold text-slate-800 truncate`}>
-                  {selectedSpace.title}
+                  {sectionTitleToKey[selectedSpace.title] ? t(sectionTitleToKey[selectedSpace.title]) : selectedSpace.title}
                 </h2>
-                <p className="text-xs sm:text-sm text-gray-600 truncate">{selectedSpace.location}</p>
+                <p className="text-xs sm:text-sm text-gray-600 truncate">{t('client.dedicatedDeskLocation')}</p>
               </div>
               <button
                 onClick={closeModal}
                 className="w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors"
-                aria-label="Close modal"
+                aria-label={t('client.dedicatedDeskSection.closeModal')}
               >
                 <svg className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -421,13 +435,12 @@ export default function DedicatedDeskSection() {
               <div className="w-full lg:w-96 bg-white border-t lg:border-t-0 lg:border-l border-gray-200 p-4 sm:p-6 flex flex-col">
                 <div className="flex-1 overflow-y-auto">
                   <h3 className={`${leagueSpartan.className} text-lg sm:text-xl font-bold text-slate-800 mb-3 sm:mb-4`}>
-                    Desk Information
+                    {t('client.dedicatedDeskSection.deskInformation')}
                   </h3>
                   
-                  {/* Selected Desk Display */}
                   {selectedDesk ? (
                     <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-teal-50 rounded-lg border border-teal-200">
-                      <p className="text-xs sm:text-sm text-gray-600 mb-1">Selected Desk</p>
+                      <p className="text-xs sm:text-sm text-gray-600 mb-1">{t('client.dedicatedDeskSection.selectedDesk')}</p>
                       <p className={`${leagueSpartan.className} text-xl sm:text-2xl font-bold text-teal-700`}>
                         {selectedDesk}
                       </p>
@@ -435,44 +448,41 @@ export default function DedicatedDeskSection() {
                   ) : (
                     <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-gray-50 rounded-lg border border-gray-200">
                       <p className="text-xs sm:text-sm text-gray-500 text-center">
-                        Click on a desk to select
+                        {t('client.dedicatedDeskSection.clickDeskToSelect')}
                       </p>
                     </div>
                   )}
 
-                  {/* Desk Location */}
                   <div className="mb-4 sm:mb-6">
-                    <p className="text-xs sm:text-sm text-gray-600 mb-2">Location</p>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-2">{t('client.dedicatedDeskSection.location')}</p>
                     <p className="text-sm sm:text-base font-semibold text-slate-800">
-                      {selectedSpace.location}
+                      {t('client.dedicatedDeskLocation')}
                     </p>
                     <p className="text-xs sm:text-sm text-gray-600 mt-1">
-                      {selectedSpace.title}
+                      {sectionTitleToKey[selectedSpace.title] ? t(sectionTitleToKey[selectedSpace.title]) : selectedSpace.title}
                     </p>
                   </div>
 
-                  {/* Section Info */}
                   <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-gray-50 rounded-lg">
-                    <p className="text-xs sm:text-sm text-gray-600 mb-2">Section Details</p>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-2">{t('client.dedicatedDeskSection.sectionDetails')}</p>
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <span className="text-xs sm:text-sm text-gray-600">Section:</span>
-                        <span className="text-xs sm:text-sm font-semibold text-slate-800">{selectedSpace.title}</span>
+                        <span className="text-xs sm:text-sm text-gray-600">{t('client.dedicatedDeskSection.sectionLabel')}</span>
+                        <span className="text-xs sm:text-sm font-semibold text-slate-800">{sectionTitleToKey[selectedSpace.title] ? t(sectionTitleToKey[selectedSpace.title]) : selectedSpace.title}</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-xs sm:text-sm text-gray-600">Rating:</span>
+                        <span className="text-xs sm:text-sm text-gray-600">{t('client.dedicatedDeskSection.ratingLabel')}</span>
                         <span className="text-xs sm:text-sm font-semibold text-slate-800">{selectedSpace.rating} ⭐</span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-xs sm:text-sm text-gray-600">Status:</span>
-                        <span className="text-xs sm:text-sm font-semibold text-green-600">Available</span>
+                        <span className="text-xs sm:text-sm text-gray-600">{t('client.dedicatedDeskSection.statusLabel')}</span>
+                        <span className="text-xs sm:text-sm font-semibold text-green-600">{t('client.dedicatedDeskSection.available')}</span>
                       </div>
                     </div>
                   </div>
 
-                  {/* Photo/Image Display */}
                   <div className="mb-4 sm:mb-6">
-                    <p className="text-xs sm:text-sm text-gray-600 mb-2">Section Photo</p>
+                    <p className="text-xs sm:text-sm text-gray-600 mb-2">{t('client.dedicatedDeskSection.sectionPhoto')}</p>
                     <div className="relative w-full h-48 sm:h-64 rounded-lg overflow-hidden border-2 sm:border-4 border-purple-500">
                       <Image
                         src={selectedSpace.image}
@@ -497,10 +507,10 @@ export default function DedicatedDeskSection() {
                     }`}
                   >
                     {isSubmitting 
-                      ? 'Submitting...' 
+                      ? t('client.dedicatedDeskSection.submitting') 
                       : !currentUser 
-                        ? 'Please Log In' 
-                        : `Request Desk ${selectedDesk || ''}`
+                        ? t('client.dedicatedDeskSection.pleaseLogIn') 
+                        : `${t('client.dedicatedDeskSection.requestDesk')} ${selectedDesk || ''}`
                     }
                   </button>
                 </div>
@@ -524,14 +534,14 @@ export default function DedicatedDeskSection() {
             <div className="sticky top-0 bg-white border-b-2 border-gray-200 px-6 py-4 flex items-center justify-between z-10 shrink-0">
               <div className="flex-1">
                 <h2 className={`${leagueSpartan.className} text-2xl font-bold text-slate-800`}>
-                  Full Floor Plan - All Desks
+                  {t('client.dedicatedDeskSection.fullFloorPlanTitle')}
                 </h2>
-                <p className="text-sm text-gray-600 mt-1">View all available desks across all sections</p>
+                <p className="text-sm text-gray-600 mt-1">{t('client.dedicatedDeskSection.fullFloorPlanSubtitle')}</p>
               </div>
               <button
                 onClick={closeFullFloorPlan}
                 className="w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-gray-600 hover:text-gray-800 transition-all shrink-0"
-                aria-label="Close modal"
+                aria-label={t('client.dedicatedDeskSection.closeModal')}
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />

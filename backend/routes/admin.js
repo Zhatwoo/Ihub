@@ -22,22 +22,24 @@ import {
   getAllOccupants 
 } from '../controllers/Admin/Virtual Office/virtualOfficeController.js';
 import { 
-  getBillingDashboard, 
-  getInvoices,
-  getBillingStats
+  getAllBilling, 
+  getBillingStats, 
+  getUserBills, 
+  recordPayment, 
+  updateBill,
+  createBill
 } from '../controllers/Admin/Billing/billingController.js';
+import { exportBillingPDF } from '../controllers/Admin/Billing/exportPDFController.js';
+import { exportSingleBillPDF, exportMultipleBillsPDF, exportSelectedBillsPDF } from '../controllers/Admin/Billing/exportSingleBillPDFController.js';
+import { filterBills } from '../controllers/Admin/Billing/filterBillsController.js';
 import {
-  getPrivateOfficeBillingDetails,
-  updatePrivateOfficeBillingDetails
-} from '../controllers/Admin/Billing/privateOfficeBillingController.js';
-import {
-  getVirtualOfficeBillingDetails,
-  updateVirtualOfficeBillingDetails
-} from '../controllers/Admin/Billing/virtualOfficeBillingController.js';
-import {
-  getDedicatedDeskBillingDetails,
-  updateDedicatedDeskBillingDetails
-} from '../controllers/Admin/Billing/dedicatedDeskBillingController.js';
+  getAllTickets,
+  getTicketStats,
+  getTicketById,
+  updateTicketStatus,
+  addTicketReply,
+  getTicketReplies
+} from '../controllers/Admin/Customer Support/supportController.js';
 
 const router = express.Router();
 
@@ -69,20 +71,24 @@ router.get('/virtual-office/occupants', getAllOccupants);
 router.put('/virtual-office/clients/:clientId/status', updateClientStatus);
 
 // Billing routes
-router.get('/billing/dashboard', getBillingDashboard);
-router.get('/billing/invoices', getInvoices);
+router.get('/billing/all', getAllBilling);
 router.get('/billing/stats', getBillingStats);
+router.get('/billing/user/:userId/bills', getUserBills);
+router.post('/billing/:userId/create', createBill);
+router.post('/billing/:userId/:billId/record-payment', recordPayment);
+router.put('/billing/:userId/:billId/update', updateBill);
+router.post('/billing/export-pdf', exportBillingPDF);
+router.get('/billing/:userId/:billId/export-pdf', exportSingleBillPDF);
+router.post('/billing/export-multiple-bills-pdf', exportMultipleBillsPDF);
+router.get('/billing/filter-bills', filterBills);
+router.post('/billing/export-selected-bills-pdf', exportSelectedBillsPDF);
 
-// Private Office billing routes
-router.get('/billing/private-office/:billingId/details', getPrivateOfficeBillingDetails);
-router.put('/billing/private-office/:billingId/details', updatePrivateOfficeBillingDetails);
-
-// Virtual Office billing routes
-router.get('/billing/virtual-office/:billingId/details', getVirtualOfficeBillingDetails);
-router.put('/billing/virtual-office/:billingId/details', updateVirtualOfficeBillingDetails);
-
-// Dedicated Desk billing routes
-router.get('/billing/dedicated-desk/:billingId/details', getDedicatedDeskBillingDetails);
-router.put('/billing/dedicated-desk/:billingId/details', updateDedicatedDeskBillingDetails);
+// Customer Support routes
+router.get('/support/tickets', getAllTickets);
+router.get('/support/stats', getTicketStats);
+router.get('/support/tickets/:ticketId', getTicketById);
+router.put('/support/tickets/:ticketId/status', updateTicketStatus);
+router.post('/support/tickets/:ticketId/reply', addTicketReply);
+router.get('/support/tickets/:ticketId/replies', getTicketReplies);
 
 export default router;

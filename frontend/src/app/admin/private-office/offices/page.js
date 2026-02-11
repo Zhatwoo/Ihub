@@ -15,7 +15,7 @@ export default function PrivateOffices() {
   const [showViewModal, setShowViewModal] = useState(false);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [editingRoom, setEditingRoom] = useState(null);
-  const [formData, setFormData] = useState({ name: '', rentFee: '', currency: 'PHP', rentFeePeriod: 'per hour', description: '', inclusions: '', occupiedBy: null });
+  const [formData, setFormData] = useState({ name: '', rentFee: '', currency: 'PHP', rentFeePeriod: 'Monthly', description: '', inclusions: '', occupiedBy: null });
   const [searchTerm, setSearchTerm] = useState('');
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
@@ -160,7 +160,7 @@ export default function PrivateOffices() {
   };
 
   const resetForm = () => {
-    setFormData({ name: '', rentFee: '', currency: 'PHP', rentFeePeriod: 'per hour', description: '', inclusions: '', occupiedBy: null });
+    setFormData({ name: '', rentFee: '', currency: 'PHP', rentFeePeriod: 'Monthly', description: '', inclusions: '', occupiedBy: null });
     setImageFile(null);
     setImagePreview(null);
     setEditingRoom(null);
@@ -174,7 +174,7 @@ export default function PrivateOffices() {
       name: selectedRoom.name, 
       rentFee: selectedRoom.rentFee?.toString() || '', 
       currency: selectedRoom.currency || 'PHP', 
-      rentFeePeriod: selectedRoom.rentFeePeriod || 'per hour', 
+      rentFeePeriod: selectedRoom.rentFeePeriod || 'Monthly', 
       description: selectedRoom.description || '', 
       inclusions: selectedRoom.inclusions || '',
       occupiedBy: selectedRoom.occupiedBy || null
@@ -244,7 +244,7 @@ export default function PrivateOffices() {
 
   const openAddModal = () => { 
     setEditingRoom(null); 
-    setFormData({ name: '', rentFee: '', currency: 'PHP', rentFeePeriod: 'per hour', description: '', inclusions: '', occupiedBy: null }); 
+    setFormData({ name: '', rentFee: '', currency: 'PHP', rentFeePeriod: 'Monthly', description: '', inclusions: '', occupiedBy: null }); 
     setImageFile(null); 
     setImagePreview(null); 
     setShowFormModal(true); 
@@ -409,18 +409,9 @@ export default function PrivateOffices() {
                     <label className="block text-slate-800 mb-2 font-semibold text-xs sm:text-sm">Rent Fee</label>
                     <div className="flex flex-col gap-2">
                       <div className="flex gap-2">
-                        <select 
-                          name="currency" 
-                          value={formData.currency} 
-                          onChange={handleChange} 
-                          className="w-24 px-2 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all cursor-pointer"
-                        >
-                          <option value="PHP">₱ PHP</option>
-                          <option value="USD">$ USD</option>
-                          <option value="EUR">€ EUR</option>
-                          <option value="GBP">£ GBP</option>
-                          <option value="JPY">¥ JPY</option>
-                        </select>
+                        <div className="w-24 px-2 py-2.5 sm:py-3 border-2 border-gray-300 rounded-xl text-sm text-slate-900 bg-gray-300 cursor-not-allowed flex items-center justify-center font-semibold">
+                          ₱ PHP
+                        </div>
                         <input 
                           type="number" 
                           name="rentFee" 
@@ -440,10 +431,10 @@ export default function PrivateOffices() {
                         onChange={handleChange} 
                         className="w-full px-3 py-2.5 sm:py-3 border-2 border-gray-200 rounded-xl text-sm text-slate-900 bg-gray-50 focus:outline-none focus:border-teal-600 focus:bg-white transition-all cursor-pointer"
                       >
-                        <option value="per hour">Per Hour</option>
-                        <option value="per day">Per Day</option>
-                        <option value="per month">Per Month</option>
-                        <option value="per year">Per Year</option>
+                        <option value="Monthly">Monthly</option>
+                        <option value="Quarterly">Quarterly (3 months)</option>
+                        <option value="Semiannually">Semiannually (6 months)</option>
+                        <option value="Annually">Annually</option>
                       </select>
                     </div>
                   </div>

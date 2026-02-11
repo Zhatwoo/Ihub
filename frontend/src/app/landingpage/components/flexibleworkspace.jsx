@@ -1,9 +1,12 @@
+'use client';
+
 import Image from 'next/image';
 import { League_Spartan, Roboto } from 'next/font/google';
 import {
   ThreeDScrollTriggerContainer,
   ThreeDScrollTriggerColumn,
 } from './ThreeDScrollTriggerVertical';
+import { useTranslation } from '@/lib/TranslationContext';
 
 const leagueSpartan = League_Spartan({
   subsets: ['latin'],
@@ -18,6 +21,7 @@ const roboto = Roboto({
 });
 
 export default function FlexibleWorkspace() {
+  const { t } = useTranslation();
   return (
     <section className="relative bg-[#F8FAFC] overflow-hidden">
       <ThreeDScrollTriggerContainer>
@@ -185,12 +189,12 @@ export default function FlexibleWorkspace() {
           <div className="space-y-2 sm:space-y-3 ml-0 lg:ml-[30%] text-left lg:text-right scale-100 lg:scale-[1.2] mt-4 lg:mt-0">
             <div>
               <h2 className={`${leagueSpartan.className} text-xl sm:text-2xl lg:text-3xl font-bold text-[#1F2937] mb-2`}>
-                Flexible Workspaces for Modern Professionals
+                {t('landing.flexibleWorkspace.heading')}
               </h2>
               <div className="w-20 sm:w-24 h-1 bg-[#0F766E] lg:ml-auto"></div>
             </div>
             <p className={`${roboto.className} text-sm sm:text-base lg:text-lg text-[#1F2937] leading-relaxed max-w-lg lg:ml-auto`}>
-              Whether you're a freelancer, a startup, or remote team, our beautifully furnished desks are ready to support your productivity. Enjoy a comfortable environment, and a vibrant community all at an affordable rate.
+              {t('landing.flexibleWorkspace.body')}
             </p>
           </div>
         </div>

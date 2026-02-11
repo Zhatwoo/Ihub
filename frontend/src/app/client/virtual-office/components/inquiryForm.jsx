@@ -4,8 +4,10 @@ import { useState, useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import ConfirmationModal from '@/app/landingpage/components/ConfirmationModal';
 import { api } from '@/lib/api';
+import { useTranslation } from '@/lib/TranslationContext';
 
 export default function InquiryForm() {
+  const { t } = useTranslation();
   const formRef = useRef(null);
   const titleRef = useRef(null);
   const isFormInView = useInView(formRef, { once: true, amount: 0.2 });
@@ -44,8 +46,8 @@ export default function InquiryForm() {
         setModal({
           isOpen: true,
           type: 'error',
-          title: 'Missing Information',
-          message: 'Please fill in all required fields (Full Name, Email, Phone Number, and Preferred Start Date).',
+          title: t('client.virtualOffice.missingInfoTitle'),
+          message: t('client.virtualOffice.missingInfoMessage'),
         });
         setLoading(false);
         return;
@@ -54,12 +56,11 @@ export default function InquiryForm() {
       const response = await api.post('/api/emails/inquiry', formData);
 
       if (response.success) {
-        // Success
         setModal({
           isOpen: true,
           type: 'success',
-          title: 'Inquiry Sent Successfully!',
-          message: response.message || 'Thank you for your interest in our Virtual Office solution! We have received your inquiry and will get back to you soon.',
+          title: t('client.virtualOffice.successTitle'),
+          message: response.message || t('client.virtualOffice.successMessage'),
         });
 
         // Reset form
@@ -79,8 +80,8 @@ export default function InquiryForm() {
       setModal({
         isOpen: true,
         type: 'error',
-        title: 'Failed to Send Inquiry',
-        message: error.message || 'There was an error sending your inquiry. Please try again later.',
+        title: t('client.virtualOffice.failedTitle'),
+        message: error.message || t('client.virtualOffice.failedMessage'),
       });
     } finally {
       setLoading(false);
@@ -102,7 +103,7 @@ export default function InquiryForm() {
           transition={{ duration: 0.6, ease: 'easeOut' }}
           className="text-white text-2xl sm:text-3xl md:text-[2.4796875rem] font-bold text-center mb-6 sm:mb-8 md:mb-[3.9675rem]"
         >
-          Inquiry Form
+          {t('client.virtualOffice.inquiryForm')}
         </motion.h2>
 
         {/* Form */}
@@ -129,7 +130,7 @@ export default function InquiryForm() {
                 transition={{ duration: 0.4, delay: 0.5 }}
               >
                 <label htmlFor="fullName" className="block text-white text-sm sm:text-base md:text-[1.1571875rem] font-medium mb-1 sm:mb-[0.2645rem]">
-                  Full Name<span className="text-red-400 ml-1 sm:ml-[0.13225rem]">*</span>
+                  {t('client.virtualOffice.formFullName')}<span className="text-red-400 ml-1 sm:ml-[0.13225rem]">*</span>
                 </label>
                 <input
                   type="text"
@@ -139,7 +140,7 @@ export default function InquiryForm() {
                   onChange={handleChange}
                   required
                   className="w-full px-3 sm:px-4 md:px-[1.3225rem] py-2 sm:py-3 md:py-[0.991875rem] bg-white rounded-lg border-none outline-none focus:ring-2 focus:ring-[#0F766E] transition-all text-sm sm:text-base md:text-[1.1571875rem] hover:bg-gray-50"
-                  placeholder="Enter your full name"
+                  placeholder={t('client.virtualOffice.placeholderFullName')}
                 />
               </motion.div>
 
@@ -150,7 +151,7 @@ export default function InquiryForm() {
                 transition={{ duration: 0.4, delay: 0.6 }}
               >
                 <label htmlFor="inquiry-email" className="block text-white text-sm sm:text-base md:text-[1.1571875rem] font-medium mb-1 sm:mb-[0.2645rem]">
-                  Email Address<span className="text-red-400 ml-1 sm:ml-[0.13225rem]">*</span>
+                  {t('client.virtualOffice.formEmailAddress')}<span className="text-red-400 ml-1 sm:ml-[0.13225rem]">*</span>
                 </label>
                 <input
                   type="email"
@@ -160,7 +161,7 @@ export default function InquiryForm() {
                   onChange={handleChange}
                   required
                   className="w-full px-3 sm:px-4 md:px-[1.3225rem] py-2 sm:py-3 md:py-[0.991875rem] bg-white rounded-lg border-none outline-none focus:ring-2 focus:ring-[#0F766E] transition-all text-sm sm:text-base md:text-[1.1571875rem] hover:bg-gray-50"
-                  placeholder="Enter your email address"
+                  placeholder={t('client.virtualOffice.placeholderEmail')}
                 />
               </motion.div>
 
@@ -171,7 +172,7 @@ export default function InquiryForm() {
                 transition={{ duration: 0.4, delay: 0.7 }}
               >
                 <label htmlFor="phoneNumber" className="block text-white text-sm sm:text-base md:text-[1.1571875rem] font-medium mb-1 sm:mb-[0.2645rem]">
-                  Phone Number<span className="text-red-400 ml-1 sm:ml-[0.13225rem]">*</span>
+                  {t('client.virtualOffice.formPhoneNumber')}<span className="text-red-400 ml-1 sm:ml-[0.13225rem]">*</span>
                 </label>
                 <input
                   type="tel"
@@ -181,7 +182,7 @@ export default function InquiryForm() {
                   onChange={handleChange}
                   required
                   className="w-full px-3 sm:px-4 md:px-[1.3225rem] py-2 sm:py-3 md:py-[0.991875rem] bg-white rounded-lg border-none outline-none focus:ring-2 focus:ring-[#0F766E] transition-all text-sm sm:text-base md:text-[1.1571875rem] hover:bg-gray-50"
-                  placeholder="Enter your phone number"
+                  placeholder={t('client.virtualOffice.placeholderPhone')}
                 />
               </motion.div>
             </motion.div>
@@ -200,7 +201,7 @@ export default function InquiryForm() {
                 transition={{ duration: 0.4, delay: 0.5 }}
               >
                 <label htmlFor="company" className="block text-white text-sm sm:text-base md:text-[1.1571875rem] font-medium mb-1 sm:mb-[0.2645rem]">
-                  Company
+                  {t('client.virtualOffice.formCompany')}
                 </label>
                 <input
                   type="text"
@@ -209,7 +210,7 @@ export default function InquiryForm() {
                   value={formData.company}
                   onChange={handleChange}
                   className="w-full px-3 sm:px-4 md:px-[1.3225rem] py-2 sm:py-3 md:py-[0.991875rem] bg-white rounded-lg border-none outline-none focus:ring-2 focus:ring-[#0F766E] transition-all text-sm sm:text-base md:text-[1.1571875rem] hover:bg-gray-50"
-                  placeholder="Enter your company name"
+                  placeholder={t('client.virtualOffice.placeholderCompany')}
                 />
               </motion.div>
 
@@ -220,7 +221,7 @@ export default function InquiryForm() {
                 transition={{ duration: 0.4, delay: 0.6 }}
               >
                 <label htmlFor="position" className="block text-white text-sm sm:text-base md:text-[1.1571875rem] font-medium mb-1 sm:mb-[0.2645rem]">
-                  Position
+                  {t('client.virtualOffice.formPosition')}
                 </label>
                 <input
                   type="text"
@@ -229,7 +230,7 @@ export default function InquiryForm() {
                   value={formData.position}
                   onChange={handleChange}
                   className="w-full px-3 sm:px-4 md:px-[1.3225rem] py-2 sm:py-3 md:py-[0.991875rem] bg-white rounded-lg border-none outline-none focus:ring-2 focus:ring-[#0F766E] transition-all text-sm sm:text-base md:text-[1.1571875rem] hover:bg-gray-50"
-                  placeholder="Enter your position"
+                  placeholder={t('client.virtualOffice.placeholderPosition')}
                 />
               </motion.div>
 
@@ -240,7 +241,7 @@ export default function InquiryForm() {
                 transition={{ duration: 0.4, delay: 0.7 }}
               >
                 <label htmlFor="preferredStartDate" className="block text-white text-sm sm:text-base md:text-[1.1571875rem] font-medium mb-1 sm:mb-[0.2645rem]">
-                  Preferred Start Date<span className="text-red-400 ml-1 sm:ml-[0.13225rem]">*</span>
+                  {t('client.virtualOffice.formPreferredStartDate')}<span className="text-red-400 ml-1 sm:ml-[0.13225rem]">*</span>
                 </label>
                 <input
                   type="date"
@@ -269,7 +270,7 @@ export default function InquiryForm() {
               whileTap={{ scale: loading ? 1 : 0.95 }}
               className="w-full sm:w-auto px-6 sm:px-8 md:px-[3.9675rem] py-3 sm:py-4 md:py-[1.3225rem] bg-[#0F766E] text-white font-semibold rounded-lg hover:bg-[#0d7a71] transition-all duration-300 shadow-lg text-base sm:text-lg md:text-[1.3225rem] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Sending...' : 'Inquire'}
+              {loading ? t('client.virtualOffice.sending') : t('client.virtualOffice.inquireButton')}
             </motion.button>
           </motion.div>
         </motion.form>

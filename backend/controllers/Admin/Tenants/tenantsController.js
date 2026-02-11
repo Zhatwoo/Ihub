@@ -59,18 +59,45 @@ export const getTenantStats = async (req, res) => {
     }
 
     try {
-      virtualOfficeSnapshot = await firestore.collection('virtual-office-clients').get();
-      console.log(`📖 FIRESTORE READ: virtual-office-clients - ${virtualOfficeSnapshot.docs.length} documents`);
+      virtualOfficeSnapshot = await firestore.collection('accounts').doc('virtual-tenants').collection('tenants').get();
+      console.log(`📖 FIRESTORE READ: virtual office tenants - ${virtualOfficeSnapshot.docs.length} documents`);
     } catch (err) {
       console.warn('⚠️ Could not fetch virtual-office-clients:', err.message);
       virtualOfficeSnapshot = { docs: [] };
     }
 
     try {
-      deskAssignmentsSnapshot = await firestore.collection('desk-assignments').get();
-      console.log(`📖 FIRESTORE READ: desk-assignments - ${deskAssignmentsSnapshot.docs.length} documents`);
+      // Fetch desk assignments from approved requests using collection group
+      console.log('📖 FIRESTORE READ: Fetching approved desk requests using collection group...');
+      const requestsSnapshot = await firestore
+        .collectionGroup('requests')
+        .get(); // Remove .where() to avoid index requirement
+      console.log(`📖 FIRESTORE READ: collectionGroup("requests") - ${requestsSnapshot.docs.length} documents`);
+      
+      // Filter to only desk requests (path must contain /request/desk/requests/) AND status is approved
+      deskAssignmentsSnapshot = {
+        docs: requestsSnapshot.docs
+          .filter(doc => {
+            const path = doc.ref.path;
+            const data = doc.data();
+            // Path must contain: /request/ AND /desk/ AND /requests/ AND status must be approved
+            return path.includes('/request/') && path.includes('/desk/') && path.includes('/requests/') && data.status === 'approved';
+          })
+          .map(doc => ({
+            id: doc.id,
+            data: () => {
+              const data = doc.data();
+              return {
+                ...data,
+                desk: data.assignedDesk || data.desk || doc.id,
+                deskTag: data.assignedDesk || data.deskTag || data.desk || doc.id
+              };
+            }
+          }))
+      };
+      console.log(`📖 FIRESTORE READ: Filtered to ${deskAssignmentsSnapshot.docs.length} desk assignments`);
     } catch (err) {
-      console.warn('⚠️ Could not fetch desk-assignments:', err.message);
+      console.warn('⚠️ Could not fetch desk assignments:', err.message);
       deskAssignmentsSnapshot = { docs: [] };
     }
 
@@ -78,7 +105,7 @@ export const getTenantStats = async (req, res) => {
     const schedules = schedulesSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     const virtualOfficeClients = virtualOfficeSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     const deskAssignments = deskAssignmentsSnapshot.docs.map(doc => {
-      const data = doc.data();
+      const data = typeof doc.data === 'function' ? doc.data() : doc;
       return {
         id: doc.id,
         ...data,
@@ -136,8 +163,17 @@ export const getTenantStats = async (req, res) => {
       }));
 
     // Process Dedicated Desk tenants - ONLY show "Tenant" type, exclude "Employee" type
+    console.log('📊 DEBUG getTenantStats: Processing desk assignments:', deskAssignments.length);
+    console.log('📊 DEBUG getTenantStats: Desk assignments sample:', deskAssignments.slice(0, 3).map(a => ({ id: a.id, type: a.type, name: a.name, desk: a.desk })));
+    
     const dedicatedDeskTenants = deskAssignments
-      .filter(a => a.type === 'Tenant') // Only include Tenant type
+      .filter(a => {
+        const isTenant = a.type === 'Tenant';
+        if (!isTenant) {
+          console.log(`📊 DEBUG getTenantStats: Filtering out ${a.id} with type="${a.type}"`);
+        }
+        return isTenant;
+      })
       .map(assignment => ({
         id: assignment.id,
         type: 'dedicated-desk',
@@ -151,6 +187,9 @@ export const getTenantStats = async (req, res) => {
         status: 'active',
         createdAt: assignment.assignedAt || assignment.createdAt || null
       }));
+    
+    console.log('📊 DEBUG getTenantStats: Filtered dedicated desk tenants:', dedicatedDeskTenants.length);
+    console.log('📊 DEBUG getTenantStats: Dedicated desk tenants:', dedicatedDeskTenants);
 
     // Calculate counts
     const stats = {
@@ -208,18 +247,45 @@ export const getFilteredTenants = async (req, res) => {
     }
 
     try {
-      virtualOfficeSnapshot = await firestore.collection('virtual-office-clients').get();
-      console.log(`📖 FIRESTORE READ: virtual-office-clients - ${virtualOfficeSnapshot.docs.length} documents`);
+      virtualOfficeSnapshot = await firestore.collection('accounts').doc('virtual-tenants').collection('tenants').get();
+      console.log(`📖 FIRESTORE READ: virtual office tenants - ${virtualOfficeSnapshot.docs.length} documents`);
     } catch (err) {
       console.warn('⚠️ Could not fetch virtual-office-clients:', err.message);
       virtualOfficeSnapshot = { docs: [] };
     }
 
     try {
-      deskAssignmentsSnapshot = await firestore.collection('desk-assignments').get();
-      console.log(`📖 FIRESTORE READ: desk-assignments - ${deskAssignmentsSnapshot.docs.length} documents`);
+      // Fetch desk assignments from approved requests using collection group
+      console.log('📖 FIRESTORE READ: Fetching approved desk requests using collection group...');
+      const requestsSnapshot = await firestore
+        .collectionGroup('requests')
+        .get(); // Remove .where() to avoid index requirement
+      console.log(`📖 FIRESTORE READ: collectionGroup("requests") - ${requestsSnapshot.docs.length} documents`);
+      
+      // Filter to only desk requests (path must contain /request/desk/requests/) AND status is approved
+      deskAssignmentsSnapshot = {
+        docs: requestsSnapshot.docs
+          .filter(doc => {
+            const path = doc.ref.path;
+            const data = doc.data();
+            // Path must contain: /request/ AND /desk/ AND /requests/ AND status must be approved
+            return path.includes('/request/') && path.includes('/desk/') && path.includes('/requests/') && data.status === 'approved';
+          })
+          .map(doc => ({
+            id: doc.id,
+            data: () => {
+              const data = doc.data();
+              return {
+                ...data,
+                desk: data.assignedDesk || data.desk || doc.id,
+                deskTag: data.assignedDesk || data.deskTag || data.desk || doc.id
+              };
+            }
+          }))
+      };
+      console.log(`📖 FIRESTORE READ: Filtered to ${deskAssignmentsSnapshot.docs.length} desk assignments`);
     } catch (err) {
-      console.warn('⚠️ Could not fetch desk-assignments:', err.message);
+      console.warn('⚠️ Could not fetch desk assignments:', err.message);
       deskAssignmentsSnapshot = { docs: [] };
     }
 
@@ -268,7 +334,7 @@ export const getFilteredTenants = async (req, res) => {
 
     // Process desk assignments
     const deskAssignments = deskAssignmentsSnapshot.docs.map(doc => {
-      const data = doc.data();
+      const data = typeof doc.data === 'function' ? doc.data() : doc;
       return {
         id: doc.id,
         ...data,
@@ -377,3 +443,4 @@ export const getFilteredTenants = async (req, res) => {
     });
   }
 };
+

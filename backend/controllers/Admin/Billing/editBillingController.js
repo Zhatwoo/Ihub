@@ -132,15 +132,25 @@ export const getBillingDetails = async (req, res) => {
         };
       }
     } else if (serviceType === 'dedicated-desk') {
-      const doc = await firestore
-        .collection('desk-assignments')
-        .doc(billingId)
+      // Fetch from approved desk requests using collection group query
+      console.log('📖 FIRESTORE READ: Searching for approved desk request...');
+      const requestsSnapshot = await firestore
+        .collectionGroup('requests')
+        .where('status', '==', 'approved')
         .get();
-
-      if (doc.exists) {
+      
+      // Find the matching desk assignment by ID or assignedDesk
+      const matchingDoc = requestsSnapshot.docs.find(doc => {
+        const path = doc.ref.path;
         const data = doc.data();
+        return path.includes('/request/desk/') && 
+               (doc.id === billingId || data.assignedDesk === billingId || data.desk === billingId);
+      });
+
+      if (matchingDoc) {
+        const data = matchingDoc.data();
         billingData = convertTimestamps({
-          id: doc.id,
+          id: matchingDoc.id,
           ...data,
           type: 'dedicated-desk'
         });
@@ -150,7 +160,7 @@ export const getBillingDetails = async (req, res) => {
           email: billingData.email || '',
           contactNumber: billingData.contactNumber || billingData.phone || '',
           companyName: billingData.company || billingData.companyName || '',
-          desk: billingData.desk || billingData.deskTag || '',
+          desk: billingData.assignedDesk || billingData.desk || billingData.deskTag || '',
           status: 'active'
         };
 
@@ -224,9 +234,30 @@ export const updateBillingDetails = async (req, res) => {
         .collection('virtual-office-clients')
         .doc(billingId);
     } else if (serviceType === 'dedicated-desk') {
-      updateRef = firestore
-        .collection('desk-assignments')
-        .doc(billingId);
+      // Update approved desk request
+      console.log('📖 FIRESTORE READ: Searching for approved desk request to update...');
+      const requestsSnapshot = await firestore
+        .collectionGroup('requests')
+        .where('status', '==', 'approved')
+        .get();
+      
+      // Find the matching desk assignment by ID or assignedDesk
+      const matchingDoc = requestsSnapshot.docs.find(doc => {
+        const path = doc.ref.path;
+        const data = doc.data();
+        return path.includes('/request/desk/') && 
+               (doc.id === billingId || data.assignedDesk === billingId || data.desk === billingId);
+      });
+
+      if (!matchingDoc) {
+        return res.status(404).json({
+          success: false,
+          error: 'Not Found',
+          message: 'Desk assignment not found'
+        });
+      }
+
+      updateRef = matchingDoc.ref;
     } else {
       return res.status(400).json({
         success: false,
@@ -245,6 +276,72 @@ export const updateBillingDetails = async (req, res) => {
       parkingFee: req.body.parkingFee || 0,
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
+
+    // For dedicated-desk and virtual-office, activate any inactive bills by changing status to unpaid
+    if (serviceType === 'dedicated-desk' || serviceType === 'virtual-office') {
+      try {
+        let billsRef;
+        let userId;
+
+        if (serviceType === 'dedicated-desk') {
+          // Extract userId from the desk request path
+          const pathParts = updateRef.path.split('/');
+          console.log(`📍 Desk request path: ${updateRef.path}`);
+          console.log(`📍 Path parts:`, pathParts);
+          const userIdIndex = pathParts.indexOf('users') + 1;
+          userId = pathParts[userIdIndex];
+          console.log(`📍 Extracted userId: ${userId}`);
+          
+          if (!userId) {
+            console.error('⚠️ Could not extract userId from path');
+            throw new Error('Could not extract userId from desk request path');
+          }
+          
+          billsRef = firestore
+            .collection('accounts')
+            .doc('client')
+            .collection('users')
+            .doc(userId)
+            .collection('bills');
+        } else if (serviceType === 'virtual-office') {
+          console.log(`📍 Virtual office billingId: ${billingId}`);
+          billsRef = firestore
+            .collection('accounts')
+            .doc('virtual-tenants')
+            .collection('tenants')
+            .doc(billingId)
+            .collection('bills');
+        }
+
+        console.log(`📖 FIRESTORE READ: Searching for inactive bills...`);
+        // Find and activate inactive bills
+        const inactiveBillsSnapshot = await billsRef
+          .where('status', '==', 'inactive')
+          .get();
+
+        console.log(`📊 Found ${inactiveBillsSnapshot.size} inactive bill(s)`);
+
+        if (!inactiveBillsSnapshot.empty) {
+          const batch = firestore.batch();
+          inactiveBillsSnapshot.docs.forEach(billDoc => {
+            console.log(`🔄 Activating bill ${billDoc.id}`);
+            batch.update(billDoc.ref, {
+              status: 'unpaid',
+              activatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+          });
+
+          await batch.commit();
+          console.log(`✅ Activated ${inactiveBillsSnapshot.size} inactive bill(s) for ${serviceType}/${billingId}`);
+        } else {
+          console.log(`ℹ️ No inactive bills found for ${serviceType}/${billingId}`);
+        }
+      } catch (billError) {
+        console.error('⚠️ Error activating bills:', billError);
+        console.error('⚠️ Error stack:', billError.stack);
+        // Don't fail the main update if bill activation fails
+      }
+    }
 
     console.log(`✅ Updated billing details for ${serviceType}/${billingId}`);
 
@@ -271,3 +368,5 @@ export const updateBillingDetails = async (req, res) => {
     });
   }
 };
+
+

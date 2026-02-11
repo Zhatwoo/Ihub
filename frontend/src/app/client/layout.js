@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Header from './home/components/header.jsx';
+import SupportButton from './tickets/SupportButton.jsx';
 
 export default function ClientLayout({ children }) {
   const pathname = usePathname();
@@ -12,6 +13,9 @@ export default function ClientLayout({ children }) {
     <div className="min-h-screen bg-slate-50">
       {!isVirtualOffice && <Header />}
       <main>{children}</main>
+      
+      {/* Floating Support Button */}
+      <SupportButton />
     </div>
   );
 }

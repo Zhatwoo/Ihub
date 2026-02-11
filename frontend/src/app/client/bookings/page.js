@@ -6,6 +6,7 @@ import { League_Spartan, Roboto } from 'next/font/google';
 import { motion } from 'framer-motion';
 import { showToast } from '@/components/Toast';
 import ConfirmDialog from '@/components/ConfirmDialog';
+import { useTranslation } from '@/lib/TranslationContext';
 
 const leagueSpartan = League_Spartan({
   subsets: ['latin'],
@@ -18,6 +19,7 @@ const roboto = Roboto({
 });
 
 export default function Bookings() {
+  const { t } = useTranslation();
   const [bookings, setBookings] = useState([]);
   const [rooms, setRooms] = useState([]);
   const [currentUser, setCurrentUser] = useState(null);
@@ -183,8 +185,8 @@ export default function Bookings() {
           });
         }
 
-        // Fetch schedules/bookings from backend API
-        const schedulesResponse = await api.get(`/api/schedules/user/${userId}`);
+        // Fetch private office bookings from client API (Firestore: accounts/client/users/{userId}/request/office/bookings)
+        const schedulesResponse = await api.get(`/api/client/private-office/user/${userId}/bookings`).catch(() => ({ success: false, data: [] }));
         const scheduleBookings = [];
         
         if (schedulesResponse.success && schedulesResponse.data) {
@@ -296,15 +298,18 @@ export default function Bookings() {
   }, []);
 
   const getStatusBadge = (status) => {
+    const key = (status || 'pending')?.toLowerCase();
     const styles = {
-      pending: { bg: 'bg-yellow-100', text: 'text-yellow-700', icon: '⏳', label: 'Pending' },
-      upcoming: { bg: 'bg-blue-100', text: 'text-blue-700', icon: '📅', label: 'Upcoming' },
-      ongoing: { bg: 'bg-teal-100', text: 'text-teal-700', icon: '▶️', label: 'Ongoing' },
-      active: { bg: 'bg-green-100', text: 'text-green-700', icon: '✓', label: 'Active' },
-      approved: { bg: 'bg-green-100', text: 'text-green-700', icon: '✓', label: 'Approved' },
-      confirmed: { bg: 'bg-green-100', text: 'text-green-700', icon: '✓', label: 'Confirmed' },
+      pending: { bg: 'bg-yellow-100', text: 'text-yellow-700', icon: '⏳', labelKey: 'pending' },
+      upcoming: { bg: 'bg-blue-100', text: 'text-blue-700', icon: '📅', labelKey: 'upcoming' },
+      ongoing: { bg: 'bg-teal-100', text: 'text-teal-700', icon: '▶️', labelKey: 'ongoing' },
+      active: { bg: 'bg-green-100', text: 'text-green-700', icon: '✓', labelKey: 'active' },
+      approved: { bg: 'bg-green-100', text: 'text-green-700', icon: '✓', labelKey: 'approved' },
+      confirmed: { bg: 'bg-green-100', text: 'text-green-700', icon: '✓', labelKey: 'confirmed' },
+      rejected: { bg: 'bg-red-100', text: 'text-red-700', icon: '✕', labelKey: 'rejected' },
+      cancelled: { bg: 'bg-gray-100', text: 'text-gray-700', icon: '✕', labelKey: 'cancelled' },
     };
-    return styles[status?.toLowerCase()] || { bg: 'bg-gray-100', text: 'text-gray-700', icon: '📋', label: status || 'Pending' };
+    return styles[key] || { bg: 'bg-gray-100', text: 'text-gray-700', icon: '📋', labelKey: 'pending' };
   };
 
   // Get room data for a booking
@@ -343,7 +348,7 @@ export default function Bookings() {
     // Show confirmation dialog instead of native confirm()
     setConfirmDialog({
       isOpen: true,
-      message: `Are you sure you want to cancel this booking for ${booking.room}? This action cannot be undone.`,
+      message: t('client.bookings.cancelConfirm'),
       booking: booking,
     });
   };
@@ -356,8 +361,11 @@ export default function Bookings() {
     setDeletingBookingId(booking.id);
 
     try {
-      // Delete schedule via backend API
-      const response = await api.delete(`/api/schedules/${booking.id}`);
+      // Delete via correct API: privateroom uses client private-office endpoint
+      const deleteUrl = booking.type === 'privateroom' && userId
+        ? `/api/client/private-office/bookings/${userId}/${booking.id}`
+        : `/api/schedules/${booking.id}`;
+      const response = await api.delete(deleteUrl);
       
       if (response.success) {
         // Optimistically remove booking from UI immediately
@@ -410,7 +418,7 @@ export default function Bookings() {
       <div className="min-h-[calc(100vh-80px)] flex items-center justify-center px-4">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#0F766E] mx-auto mb-4"></div>
-          <p className={`${roboto.className} text-gray-600`}>Loading your bookings...</p>
+          <p className={`${roboto.className} text-gray-600`}>{t('client.bookings.loading')}</p>
         </div>
       </div>
     );
@@ -422,10 +430,10 @@ export default function Bookings() {
         {/* Header */}
         <div className="mb-6 lg:mb-8">
           <h1 className={`${leagueSpartan.className} text-3xl sm:text-4xl lg:text-5xl font-bold text-slate-800 mb-2`}>
-            Active Bookings
+            {t('client.bookings.title')}
           </h1>
           <p className={`${roboto.className} text-gray-600 text-base lg:text-lg`}>
-            View and manage your current reservations
+            {t('client.bookings.subtitle')}
           </p>
         </div>
 
@@ -438,7 +446,7 @@ export default function Bookings() {
           >
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <p className={`${roboto.className} text-white/90 text-sm mb-1`}>Total Active Bookings</p>
+                <p className={`${roboto.className} text-white/90 text-sm mb-1`}>{t('client.bookings.totalActive')}</p>
                 <p className={`${leagueSpartan.className} text-4xl font-bold text-white`}>{bookings.length}</p>
               </div>
               <div className="mt-4 sm:mt-0">
@@ -446,7 +454,7 @@ export default function Bookings() {
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <span className={`${roboto.className} text-sm`}>All systems operational</span>
+                  <span className={`${roboto.className} text-sm`}>{t('client.bookings.allSystems')}</span>
                 </div>
               </div>
             </div>
@@ -462,10 +470,10 @@ export default function Bookings() {
           >
             <div className="text-6xl mb-4">📅</div>
             <h3 className={`${leagueSpartan.className} text-2xl font-semibold text-slate-800 mb-2`}>
-              No Active Bookings
+              {t('client.bookings.noBookings')}
             </h3>
             <p className={`${roboto.className} text-gray-600 max-w-md mx-auto`}>
-              You don't have any active bookings at the moment. Book a room to get started!
+              {t('client.bookings.noBookingsDesc')}
             </p>
           </motion.div>
         ) : (
@@ -488,7 +496,7 @@ export default function Bookings() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className={`${leagueSpartan.className} text-xl font-bold text-white`}>
-                            {booking.room || (booking.type === 'desk' ? 'Dedicated Desk' : booking.type === 'virtual-office' ? 'Virtual Office' : 'Private Room')}
+                            {booking.room || (booking.type === 'desk' ? t('client.bookings.dedicatedDesk') : booking.type === 'virtual-office' ? t('client.bookings.virtualOffice') : t('client.bookings.privateRoom'))}
                           </h3>
                           {booking.type && (
                             <span className={`${roboto.className} text-xs px-2 py-0.5 rounded-full ${
@@ -498,17 +506,17 @@ export default function Bookings() {
                                 ? 'bg-teal-500/20 text-teal-200'
                                 : 'bg-purple-500/20 text-purple-200'
                             }`}>
-                              {booking.type === 'desk' ? 'Desk' : booking.type === 'virtual-office' ? 'Virtual Office' : 'Private Room'}
+                              {booking.type === 'desk' ? t('client.bookings.desk') : booking.type === 'virtual-office' ? t('client.bookings.virtualOffice') : t('client.bookings.privateRoom')}
                             </span>
                           )}
                         </div>
                         <p className={`${roboto.className} text-white/80 text-sm`}>
-                          {booking.clientName || 'Booking'}
+                          {booking.clientName || t('client.bookings.booking')}
                         </p>
                       </div>
                       <span className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1.5 whitespace-nowrap ${status.bg} ${status.text}`}>
                         <span>{status.icon}</span>
-                        {status.label}
+                        {t('client.bookings.' + (status.labelKey || 'pending'))}
                       </span>
                     </div>
                   </div>
@@ -518,7 +526,7 @@ export default function Bookings() {
                     {/* Date & Time */}
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <p className={`${roboto.className} text-xs text-gray-500 mb-1`}>Start Date</p>
+                        <p className={`${roboto.className} text-xs text-gray-500 mb-1`}>{t('client.bookings.startDate')}</p>
                         <p className={`${leagueSpartan.className} text-base font-semibold text-slate-800`}>
                           {formatDate(booking.startDate)}
                         </p>
@@ -530,7 +538,7 @@ export default function Bookings() {
                       </div>
                       {booking.endDate && (
                         <div>
-                          <p className={`${roboto.className} text-xs text-gray-500 mb-1`}>End Date</p>
+                          <p className={`${roboto.className} text-xs text-gray-500 mb-1`}>{t('client.bookings.endDate')}</p>
                           <p className={`${leagueSpartan.className} text-base font-semibold text-slate-800`}>
                             {formatDate(booking.endDate)}
                           </p>
@@ -693,7 +701,7 @@ export default function Bookings() {
                               : 'bg-red-500 text-white hover:bg-red-600 shadow-md hover:shadow-lg'
                           }`}
                         >
-                          {deletingBookingId === booking.id ? 'Canceling...' : 'Cancel Booking'}
+                          {deletingBookingId === booking.id ? t('client.bookings.canceling') : t('client.bookings.cancelBooking')}
                         </button>
                       </div>
                     </>
@@ -710,10 +718,10 @@ export default function Bookings() {
         isOpen={confirmDialog.isOpen}
         onConfirm={handleConfirmCancel}
         onCancel={handleCancelConfirm}
-        title="Cancel Booking"
+        title={t('client.bookings.cancelBooking')}
         message={confirmDialog.message}
-        confirmText="OK"
-        cancelText="Cancel"
+        confirmText={t('client.bookings.confirmCancel')}
+        cancelText={t('client.bookings.cancel')}
         confirmColor="#0F766E"
         type="warning"
       />

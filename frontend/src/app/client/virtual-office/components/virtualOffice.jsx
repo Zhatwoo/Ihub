@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion, useInView } from 'framer-motion';
 import { useRef, useState, useEffect } from 'react';
+import { useTranslation } from '@/lib/TranslationContext';
 
 const leagueSpartan = League_Spartan({
   subsets: ['latin'],
@@ -12,6 +13,7 @@ const leagueSpartan = League_Spartan({
 });
 
 export default function VirtualOfficeHero() {
+  const { t } = useTranslation();
   const heroRef = useRef(null);
   const textRef = useRef(null);
   const backgroundRef = useRef(null);
@@ -72,9 +74,9 @@ export default function VirtualOfficeHero() {
               initial={{ opacity: 0, y: -50, scale: 0.9 }}
               animate={isHeroInView ? { opacity: 1, y: 0, scale: 1 } : { opacity: 0, y: -50, scale: 0.9 }}
               transition={{ duration: 0.8, ease: 'easeOut' }}
-              className={`text-white text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-bold mb-2 sm:mb-4 ${leagueSpartan.className}`}
+              className={`text-white text-3xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-semibold mb-2 sm:mb-4 ${leagueSpartan.className}`}
             >
-              Virtual Office
+              {t('client.virtualOffice.title')}
             </motion.h1>
             <motion.p 
               initial={{ opacity: 0, y: 30 }}
@@ -82,11 +84,11 @@ export default function VirtualOfficeHero() {
               transition={{ duration: 0.8, ease: 'easeOut', delay: 0.2 }}
               className={`text-white text-base sm:text-xl md:text-2xl lg:text-3xl xl:text-4xl leading-relaxed text-left sm:text-center ${leagueSpartan.className}`}
             >
-              <span className="block sm:inline">Professional business address and</span>
+              <span className="block sm:inline">{t('client.virtualOffice.subtitle1')}</span>
               <span className="hidden sm:inline"><br/></span>
-              <span className="block sm:inline"> support services for your growing</span>
+              <span className="block sm:inline">{t('client.virtualOffice.subtitle2')}</span>
               <span className="hidden sm:inline"><br/></span>
-              <span className="block sm:inline"> enterprise</span>
+              <span className="block sm:inline">{t('client.virtualOffice.subtitle3')}</span>
             </motion.p>
             <motion.div 
               initial={{ opacity: 0, scale: 0.8 }}
@@ -98,7 +100,7 @@ export default function VirtualOfficeHero() {
                 href="#inquiry-form"
                 className={`bg-white text-[#0F766E] px-6 py-2 sm:px-8 sm:py-3 md:px-10 md:py-4 lg:px-12 lg:py-5 rounded-lg font-semibold text-base sm:text-lg md:text-xl lg:text-2xl hover:bg-teal-50 transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-110 active:scale-95 ${leagueSpartan.className}`}
               >
-                Inquire
+                {t('client.virtualOffice.inquire')}
               </Link>
             </motion.div>
           </div>
@@ -113,42 +115,10 @@ export default function VirtualOfficeHero() {
           background: '#FFFFFF',
         }}
       >
-        {/* Green Rectangle Box with Image - Hidden on mobile */}
-        <div className="hidden md:block absolute right-[30%] top-0 lg:right-[30%] lg:top-0 z-100" style={{ transform: 'translateY(-100%)' }}>
-          <div className="bg-transparent p-8 md:p-10 lg:p-12 w-96 h-72 md:w-[480px] md:h-[336px] lg:w-[576px] lg:h-96 relative z-100">
-            <Image
-              src="/bg/image.png"
-              alt="Virtual Office"
-              fill
-              className="object-contain"
-              priority
-            />
-          </div>
-        </div>
+   
 
-        {/* Second Image to the Right - Hidden on mobile */}
-        <div className="hidden md:block absolute right-[calc(5%-8%+5%)] top-0 lg:right-[calc(5%-8%+5%)] lg:top-0 z-101" style={{ transform: 'translateY(-70%)' }}>
-          <div className="bg-transparent p-8 md:p-10 lg:p-12 w-96 h-72 md:w-[480px] md:h-[336px] lg:w-[576px] lg:h-96 relative z-101">
-            <Image
-              src="/bg/image1.png"
-              alt="Virtual Office"
-              fill
-              className="object-contain"
-            />
-          </div>
-        </div>
 
-        {/* Third Image Below Second Image - Hidden on mobile */}
-        <div className="hidden md:block absolute right-[calc(5%-8%+15%)] top-0 lg:right-[calc(5%-8%+15%)] lg:top-0 z-102" style={{ transform: 'translateY(calc(40% + 100% - 450px))' }}>
-          <div className="bg-transparent p-8 md:p-10 lg:p-12 w-96 h-72 md:w-[480px] md:h-[336px] lg:w-[576px] lg:h-96 relative z-102">
-            <Image
-              src="/bg/Image2.png"
-              alt="Virtual Office"
-              fill
-              className="object-contain"
-            />
-          </div>
-        </div>
+
         
         {/* Text in White Background */}
         <div ref={textRef} className="absolute left-4 top-4 sm:left-[10%] sm:top-8 md:top-12 lg:top-16 z-20 right-4 sm:right-auto">
@@ -164,9 +134,9 @@ export default function VirtualOfficeHero() {
               transition={{ duration: 0.8, delay: 0.2 }}
               className={`text-gray-800 text-sm sm:text-base md:text-[1.294rem] lg:text-[1.438rem] xl:text-[1.725rem] leading-relaxed text-left font-bold ${leagueSpartan.className}`}
             >
-              I-Hub's Virtual Office solutions equip your business with the essential tools to thrive. Establish a strong presence with a prestigious 5-star business address, a local phone number, dedicated receptionist services, and comprehensive corporate registration support.
+              {t('client.virtualOffice.body1')}
               <br/><br/>
-              With an I-Hub Virtual Office, you can project the image and enjoy the operational support of a well-established global company—quickly, seamlessly, and at a fraction of the traditional cost.
+              {t('client.virtualOffice.body2')}
             </motion.p>
           </motion.div>
         </div>

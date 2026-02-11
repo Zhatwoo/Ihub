@@ -420,6 +420,64 @@ export const updateRequestStatus = async (req, res) => {
 
     const currentRequest = requestDoc.data();
     
+    // CRITICAL: Check if room is already occupied before approving
+    if (status === 'approved' && currentRequest.roomId && currentRequest.status !== 'approved') {
+      // Check if room is already occupied
+      const roomRef = firestore.collection('privateOfficeRooms').doc('data').collection('office').doc(currentRequest.roomId);
+      console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/office/${currentRequest.roomId} - checking occupancy...`);
+      const roomDoc = await roomRef.get();
+      
+      if (roomDoc.exists) {
+        const roomData = roomDoc.data();
+        if (roomData.status === 'Occupied') {
+          return res.status(409).json({
+            success: false,
+            error: 'Conflict',
+            message: `Room ${currentRequest.room || currentRequest.roomId} is already occupied by ${roomData.occupiedBy || 'another tenant'}. Please choose a different room.`
+          });
+        }
+      }
+
+      // Check for other approved bookings by getting all users and checking their approved office bookings
+      // This avoids collection group queries entirely
+      try {
+        const usersSnapshot = await firestore
+          .collection('accounts')
+          .doc('client')
+          .collection('users')
+          .get();
+
+        for (const userDoc of usersSnapshot.docs) {
+          // Skip the current user
+          if (userDoc.id === userId) continue;
+
+          const officeBookingsSnapshot = await firestore
+            .collection('accounts')
+            .doc('client')
+            .collection('users')
+            .doc(userDoc.id)
+            .collection('request')
+            .doc('office')
+            .collection('bookings')
+            .get();
+
+          for (const bookingDoc of officeBookingsSnapshot.docs) {
+            const bookingData = bookingDoc.data();
+            if (bookingData.status === 'approved' && bookingData.roomId === currentRequest.roomId) {
+              return res.status(409).json({
+                success: false,
+                error: 'Conflict',
+                message: `Room ${currentRequest.room || currentRequest.roomId} is already booked by ${bookingData.clientName || 'another tenant'}. Please choose a different room.`
+              });
+            }
+          }
+        }
+      } catch (checkError) {
+        console.error('Error checking existing bookings:', checkError);
+        // If check fails, allow the operation to proceed (fail open)
+      }
+    }
+    
     // Update request status
     const updateData = {
       status,
@@ -427,8 +485,11 @@ export const updateRequestStatus = async (req, res) => {
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     };
 
-    // If approving, update room status and save rentFee
+    // If approving, update room status, save rentFee, and create bill
     if (status === 'approved' && currentRequest.status !== 'approved') {
+      let rentFee = 0;
+      let rentFeePeriod = 'Monthly';
+      
       if (currentRequest.roomId && currentRequest.clientName) {
         try {
           const roomRef = firestore.collection('privateOfficeRooms').doc('data').collection('office').doc(currentRequest.roomId);
@@ -439,8 +500,10 @@ export const updateRequestStatus = async (req, res) => {
           if (roomDoc.exists) {
             const roomData = roomDoc.data();
             // Save rentFee from room to booking
-            updateData.rentFee = roomData.rentFee || 0;
-            updateData.rentFeePeriod = roomData.rentFeePeriod || 'Monthly';
+            rentFee = roomData.rentFee || 0;
+            rentFeePeriod = roomData.rentFeePeriod || 'Monthly';
+            updateData.rentFee = rentFee;
+            updateData.rentFeePeriod = rentFeePeriod;
             
             await roomRef.update({
               status: 'Occupied',
@@ -448,11 +511,165 @@ export const updateRequestStatus = async (req, res) => {
               updatedAt: admin.firestore.FieldValue.serverTimestamp()
             });
             console.log(`✅ Room ${currentRequest.roomId} status updated to Occupied (request approved)`);
-            console.log(`✅ Saved rentFee: ${updateData.rentFee} to booking`);
+            console.log(`✅ Saved rentFee: ${rentFee} to booking`);
           }
         } catch (roomError) {
           console.error('Error updating room status:', roomError);
         }
+      }
+
+      // Create bill in user's bills collection (separate try-catch for better error handling)
+      // For private office, fetch room data to get feePeriod and amount, then auto-activate bill
+      try {
+        // Fetch room data to get feePeriod and rentFee
+        let roomFeePeriod = null;
+        let roomAmount = 0;
+        
+        if (currentRequest.roomId) {
+          const roomRef = firestore.collection('privateOfficeRooms').doc('data').collection('office').doc(currentRequest.roomId);
+          console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/office/${currentRequest.roomId} - fetching for bill...`);
+          const roomDoc = await roomRef.get();
+          
+          if (roomDoc.exists) {
+            const roomData = roomDoc.data();
+            roomFeePeriod = roomData.rentFeePeriod || roomData.feePeriod || null;
+            roomAmount = roomData.rentFee || roomData.amount || 0;
+            console.log(`✅ Fetched room data: feePeriod=${roomFeePeriod}, amount=${roomAmount}`);
+          }
+        }
+
+        const billRef = firestore
+          .collection('accounts')
+          .doc('client')
+          .collection('users')
+          .doc(userId)
+          .collection('bills')
+          .doc();
+
+        // Use current time if startDate is not provided or is invalid
+        let startDate = new Date();
+        if (currentRequest.startDate) {
+          const requestStartDate = new Date(currentRequest.startDate);
+          // Check if the date is valid and not just a date without time (which defaults to midnight)
+          if (!isNaN(requestStartDate.getTime())) {
+            startDate = requestStartDate;
+          }
+        }
+        
+        // If the startDate is at midnight (00:00), use current time instead
+        if (startDate.getHours() === 0 && startDate.getMinutes() === 0 && startDate.getSeconds() === 0) {
+          startDate = new Date();
+        }
+        
+        console.log(`[Private Office] Using start date: ${startDate.toISOString()}`);
+        
+        // Calculate due date based on feePeriod
+        let dueDate = null;
+        if (roomFeePeriod) {
+          dueDate = new Date(startDate);
+          
+          switch (roomFeePeriod) {
+            case '5 minutes':
+              dueDate.setMinutes(dueDate.getMinutes() + 5);
+              break;
+            case 'Monthly':
+              dueDate.setDate(dueDate.getDate() + 30);
+              break;
+            case 'Quarterly':
+              dueDate.setDate(dueDate.getDate() + 90);
+              break;
+            case 'Semiannually':
+              dueDate.setDate(dueDate.getDate() + 180);
+              break;
+            case 'Annually':
+              dueDate.setDate(dueDate.getDate() + 365);
+              break;
+            default:
+              dueDate.setDate(dueDate.getDate() + 30); // Default to monthly
+          }
+        }
+
+        const billData = {
+          clientName: currentRequest.clientName || '',
+          companyName: currentRequest.companyName || '',
+          email: currentRequest.email || '',
+          contactNumber: currentRequest.contactNumber || '',
+          serviceType: 'private-office',
+          assignedResource: currentRequest.room || '',
+          amount: roomAmount, // Use room's rentFee
+          cusaFee: 0,
+          parkingFee: 0,
+          lateFee: 0,
+          damageFee: 0,
+          feePeriod: roomFeePeriod, // Use room's feePeriod
+          bookingId: bookingId,
+          roomId: currentRequest.roomId || '',
+          startDate: admin.firestore.Timestamp.fromDate(startDate),
+          dueDate: dueDate ? admin.firestore.Timestamp.fromDate(dueDate) : null,
+          status: 'unpaid',
+          createdAt: admin.firestore.FieldValue.serverTimestamp()
+        };
+
+        await billRef.set(billData);
+        
+        if (roomFeePeriod && dueDate) {
+          console.log(`✅ Created activated bill for user ${userId} with feePeriod: ${roomFeePeriod}, amount: ${roomAmount}, due: ${dueDate.toISOString()}`);
+        } else {
+          console.log(`✅ Created bill for user ${userId} (feePeriod or dueDate not set - admin must configure)`);
+        }
+      } catch (billError) {
+        console.error('❌ Error creating bill:', billError.message);
+      }
+    }
+
+    // Auto-reject other pending requests for the same room
+    if (status === 'approved' && currentRequest.roomId) {
+      try {
+        // Get all users and check their pending office bookings
+        const usersSnapshot = await firestore
+          .collection('accounts')
+          .doc('client')
+          .collection('users')
+          .get();
+
+        const batch = firestore.batch();
+        let rejectedCount = 0;
+
+        for (const userDoc of usersSnapshot.docs) {
+          const officeBookingsSnapshot = await firestore
+            .collection('accounts')
+            .doc('client')
+            .collection('users')
+            .doc(userDoc.id)
+            .collection('request')
+            .doc('office')
+            .collection('bookings')
+            .get();
+
+          for (const bookingDoc of officeBookingsSnapshot.docs) {
+            // Skip the current booking
+            if (bookingDoc.id === bookingId && userDoc.id === userId) continue;
+
+            const bookingData = bookingDoc.data();
+            // Check if this pending request is for the same room
+            if (bookingData.status === 'pending' && bookingData.roomId === currentRequest.roomId) {
+              batch.update(bookingDoc.ref, {
+                status: 'rejected',
+                adminNotes: `Automatically rejected: Room ${currentRequest.room || currentRequest.roomId} has been assigned to another tenant.`,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+              });
+              rejectedCount++;
+            }
+          }
+        }
+
+        if (rejectedCount > 0) {
+          await batch.commit();
+          console.log(`Auto-rejected ${rejectedCount} pending request(s) for room ${currentRequest.roomId}`);
+        }
+      } catch (autoRejectError) {
+        console.error('Error auto-rejecting other requests:', autoRejectError);
+        // Don't fail the main operation if auto-reject fails
       }
     }
 

@@ -3,6 +3,7 @@
 import { League_Spartan, Roboto } from 'next/font/google';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from '@/lib/TranslationContext';
 
 const leagueSpartan = League_Spartan({
   subsets: ['latin'],
@@ -23,6 +24,7 @@ const socials = [
 
 export default function Footer() {
   const router = useRouter();
+  const { t } = useTranslation();
 
   const handleSmoothScroll = (e, targetId) => {
     e.preventDefault();
@@ -61,34 +63,33 @@ export default function Footer() {
     <footer className="bg-[#0F766E] text-white py-8 sm:py-12 lg:py-16">
       <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-14 grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-12">
         <div className="space-y-3">
-          <h2 className={`${leagueSpartan.className} text-xl sm:text-2xl lg:text-3xl font-semibold`}>Inspire Hub</h2>
+          <h2 className={`${leagueSpartan.className} text-xl sm:text-2xl lg:text-3xl font-semibold`}>{t('common.appName')}</h2>
           <p className={`${roboto.className} text-xs sm:text-sm lg:text-base text-white/90 leading-relaxed`}>
-            Premium workspaces in Alliance Global Tower with flexible offices, dedicated desks, virtual offices,
-            and thoughtfully designed amenities to keep teams productive.
+            {t('landing.footer.tagline')}
           </p>
           <div className={`${roboto.className} text-xs sm:text-sm lg:text-base space-y-1 text-white/90`}>
-            <p>Alliance Global Tower, Taguig, Metro Manila</p>
-            <p>Contact #: (02) 5322 1002</p>
-            <p>Email: inspire-ihub@gmail.com</p>
+            <p>{t('landing.footer.address')}</p>
+            <p>{t('landing.footer.contactNum')}</p>
+            <p>{t('landing.footer.email')}</p>
           </div>
         </div>
 
         <div className="flex flex-col md:flex-row md:col-span-2 gap-8 sm:gap-12">
           <div className="space-y-3 sm:space-y-4 min-w-[150px] sm:min-w-[180px]">
-            <h3 className={`${leagueSpartan.className} text-base sm:text-lg font-semibold`}>Product</h3>
+            <h3 className={`${leagueSpartan.className} text-base sm:text-lg font-semibold`}>{t('landing.footer.product')}</h3>
             <ul className={`${roboto.className} text-xs sm:text-sm lg:text-base space-y-1.5 sm:space-y-2 text-white/90`}>
-              <li>Dedicated Desks</li>
-              <li>Private Offices</li>
-              <li>Virtual Office</li>
+              <li>{t('landing.footer.dedicatedDesks')}</li>
+              <li>{t('landing.footer.privateOffices')}</li>
+              <li>{t('landing.footer.virtualOffice')}</li>
             </ul>
           </div>
 
           <div className="space-y-3 sm:space-y-4 min-w-[150px] sm:min-w-[180px]">
-            <h3 className={`${leagueSpartan.className} text-base sm:text-lg font-semibold`}>Resources</h3>
+            <h3 className={`${leagueSpartan.className} text-base sm:text-lg font-semibold`}>{t('landing.footer.resources')}</h3>
             <ul className={`${roboto.className} text-xs sm:text-sm lg:text-base space-y-1.5 sm:space-y-2 text-white/90`}>
               <li>
                 <Link href="/landingpage/faq" className="hover:text-white transition-colors">
-                  FAQ
+                  {t('landing.footer.faq')}
                 </Link>
               </li>
               <li>
@@ -97,12 +98,12 @@ export default function Footer() {
                   className="hover:text-white transition-colors"
                   onClick={(e) => handleSmoothScroll(e, 'about-i-hub')}
                 >
-                  About I-Hub
+                  {t('landing.footer.aboutIHub')}
                 </Link>
               </li>
               <li>
                 <Link href="/landingpage/contacts" className="hover:text-white transition-colors">
-                  Contact
+                  {t('landing.footer.contact')}
                 </Link>
               </li>
               <li>
@@ -111,16 +112,16 @@ export default function Footer() {
                   className="hover:text-white transition-colors"
                   onClick={(e) => handleSmoothScroll(e, 'location-map')}
                 >
-                  Location Map
+                  {t('landing.footer.locationMap')}
                 </Link>
               </li>
             </ul>
           </div>
 
           <div className="space-y-3 sm:space-y-4 flex-1">
-            <h3 className={`${leagueSpartan.className} text-base sm:text-lg font-semibold`}>Connect With Us</h3>
+            <h3 className={`${leagueSpartan.className} text-base sm:text-lg font-semibold`}>{t('landing.footer.connectWithUs')}</h3>
             <p className={`${roboto.className} text-xs sm:text-sm lg:text-base text-white/90`}>
-              Follow us for updates and workspace news.
+              {t('landing.footer.followUs')}
             </p>
             <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
               {socials.map((item) => (
@@ -141,16 +142,16 @@ export default function Footer() {
 
       <div className="mt-8 sm:mt-10 border-t border-white/10">
         <div className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-14 py-4 flex flex-col sm:flex-row justify-between items-center text-xs lg:text-sm text-white/80 gap-2">
-          <span className={roboto.className}>© {new Date().getFullYear()} Inspire Hub. All rights reserved.</span>
+          <span className={roboto.className}>© {new Date().getFullYear()} {t('landing.footer.copyright')}</span>
           <div className={`flex items-center gap-3 sm:gap-4 flex-wrap justify-center sm:justify-start ${roboto.className}`}>
             <Link href="/landingpage/policyTermsCokie#privacy" className="hover:text-white transition-colors">
-              Privacy Policy
+              {t('landing.footer.privacyPolicy')}
             </Link>
             <Link href="/landingpage/policyTermsCokie#terms" className="hover:text-white transition-colors">
-              Terms
+              {t('landing.footer.terms')}
             </Link>
             <Link href="/landingpage/policyTermsCokie#cookie" className="hover:text-white transition-colors">
-              Cookie Policy
+              {t('landing.footer.cookiePolicy')}
             </Link>
           </div>
         </div>

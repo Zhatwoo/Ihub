@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from 'react';
 import Image from 'next/image';
 import { League_Spartan, Roboto } from 'next/font/google';
 import { motion, useInView } from 'framer-motion';
+import { useTranslation } from '@/lib/TranslationContext';
 
 const leagueSpartan = League_Spartan({
   subsets: ['latin'],
@@ -18,6 +19,7 @@ const roboto = Roboto({
 });
 
 export default function AboutInspire() {
+  const { t } = useTranslation();
   const sectionRef = useRef(null);
   const isInView = useInView(sectionRef, { once: true, amount: 0.2 });
   
@@ -59,12 +61,7 @@ export default function AboutInspire() {
   }, [bottomLeftSlideshowImages.length]);
 
   return (
-    <section id="about-i-hub" ref={sectionRef} className="relative bg-white py-12 sm:py-16 lg:py-24 overflow-hidden">
-      {/* Top Background - Solid Color */}
-      <div 
-        className="absolute top-0 left-0 right-0 h-1/2 bg-[#1F2937] pointer-events-none z-0"
-      ></div>
-      
+    <section id="about-i-hub" ref={sectionRef} className="relative bg-[#1F2937] py-0 overflow-hidden">
       {/* 2x2 Grid Layout - Full Width */}
       <div className="relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-0 w-full">
           {/* Top-Left: About Inspire Hub Text Panel */}
@@ -75,10 +72,10 @@ export default function AboutInspire() {
             className="bg-[#1F2937] p-6 sm:p-8 lg:p-12 flex flex-col justify-center min-h-[250px] sm:min-h-[300px] lg:min-h-[400px]"
           >
             <h2 className={`${leagueSpartan.className} text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4 sm:mb-6 text-left sm:text-right`}>
-              About Inspire Hub
+              {t('landing.aboutInspire.aboutTitle')}
             </h2>
             <p className={`${roboto.className} text-sm sm:text-base lg:text-lg text-white leading-relaxed text-left sm:text-right`}>
-              At Inspire Hub, we create environments where productivity meets comfort. Our co-working spaces are designed to empower professionals, entrepreneurs, and businesses to thrive in a collaborative and inspiring atmosphere.
+              {t('landing.aboutInspire.aboutBody')}
             </p>
           </motion.div>
 
@@ -150,10 +147,10 @@ export default function AboutInspire() {
             className="bg-[#1F2937] p-6 sm:p-8 lg:p-12 flex flex-col justify-center min-h-[250px] sm:min-h-[300px] lg:min-h-[400px]"
           >
             <h2 className={`${leagueSpartan.className} text-2xl sm:text-3xl lg:text-4xl font-bold text-white mb-4 sm:mb-6`}>
-              Complimentary Amenities
+              {t('landing.aboutInspire.amenitiesTitle')}
             </h2>
             <p className={`${roboto.className} text-sm sm:text-base lg:text-lg text-white leading-relaxed`}>
-              From high-speed internet to free coffee, our complimentary offerings ensure that you can focus on what truly matters—growing your business and connecting with others in a comfortable and productive environment.
+              {t('landing.aboutInspire.amenitiesBody')}
             </p>
           </motion.div>
         </div>

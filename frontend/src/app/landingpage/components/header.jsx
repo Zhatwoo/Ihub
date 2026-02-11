@@ -5,8 +5,11 @@ import Link from 'next/link';
 import Image from 'next/image';
 import LoginModal from '@/app/auth/login';
 import SignUpModal from '@/app/auth/signIn';
+import { useTranslation } from '@/lib/TranslationContext';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 export default function Header() {
+  const { t } = useTranslation();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isSignUpOpen, setIsSignUpOpen] = useState(false);
@@ -59,17 +62,18 @@ export default function Header() {
 
           {/* Desktop Navigation Links - Bold Dark Navy */}
           <nav className={`hidden md:flex items-center gap-6`}>
+            <LanguageSwitcher variant="light" />
             <button
               onClick={() => setIsSignUpOpen(true)}
               className="px-4 py-2 bg-[#0F766E] border-2 border-[#0F766E] text-white font-bold hover:bg-[#0d6b64] hover:border-[#0d6b64] transition-colors duration-200 rounded-lg text-sm"
             >
-              Sign up
+              {t('landing.header.signUp')}
             </button>
             <button
               onClick={() => setIsLoginOpen(true)}
               className="px-4 py-2 bg-[#0F766E] border-2 border-[#0F766E] text-white font-bold hover:bg-[#0d6b64] hover:border-[#0d6b64] transition-colors duration-200 rounded-lg text-sm"
             >
-              Login
+              {t('landing.header.login')}
             </button>
           </nav>
 
@@ -77,7 +81,7 @@ export default function Header() {
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             className="md:hidden text-slate-800 p-2"
-            aria-label="Toggle menu"
+            aria-label={t('landing.header.toggleMenu')}
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               {isMenuOpen ? (
@@ -100,7 +104,7 @@ export default function Header() {
                 }}
                 className="px-4 py-2 bg-[#0F766E] border-2 border-[#0F766E] text-white font-bold hover:bg-[#0d6b64] hover:border-[#0d6b64] transition-all duration-200 rounded-lg text-sm text-center"
               >
-                Sign up
+                {t('landing.header.signUp')}
               </button>
               <button
                 onClick={() => {
@@ -109,7 +113,7 @@ export default function Header() {
                 }}
                 className="px-4 py-2 bg-[#0F766E] border-2 border-[#0F766E] text-white font-bold hover:bg-[#0d6b64] hover:border-[#0d6b64] transition-all duration-200 rounded-lg text-sm text-center"
               >
-                Login
+                {t('landing.header.login')}
               </button>
             </div>
           </nav>

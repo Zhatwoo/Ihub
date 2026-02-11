@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { League_Spartan } from 'next/font/google';
+import { useTranslation } from '@/lib/TranslationContext';
 
 const leagueSpartan = League_Spartan({
   subsets: ['latin'],
@@ -21,6 +22,7 @@ const heroImages = [
 ];
 
 export default function HeroSection() {
+  const { t } = useTranslation();
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
   // Auto-rotate images every 5 seconds
@@ -86,10 +88,10 @@ export default function HeroSection() {
       {/* Text Content Overlay */}
       <div className="relative z-10 max-w-7xl mx-auto px-6 h-full flex items-center justify-center">
         <div className="text-center text-white py-12">
-          <h1 className={`${leagueSpartan.className} text-5xl lg:text-6xl font-bold mb-6 drop-shadow-lg`}>Find Your Perfect Meeting Space</h1>
-          <p className="text-xl lg:text-2xl text-gray-100 mb-10 max-w-3xl mx-auto drop-shadow-md">Book premium private offices and event spaces at Inspire Hub. Professional environments for your business needs.</p>
+          <h1 className={`${leagueSpartan.className} text-5xl lg:text-6xl font-bold mb-6 drop-shadow-lg`}>{t('client.heroSection.title')}</h1>
+          <p className="text-xl lg:text-2xl text-gray-100 mb-10 max-w-3xl mx-auto drop-shadow-md">{t('client.heroSection.description')}</p>
           <Link href="/landingpage/contacts?returnTo=/client/home" className="inline-block px-8 py-4 bg-linear-to-r from-teal-500 to-teal-600 text-white rounded-xl font-semibold text-lg shadow-lg shadow-teal-600/30 hover:-translate-y-1 hover:shadow-xl transition-all">
-            Inquire
+            {t('client.heroSection.inquire')}
           </Link>
         </div>
       </div>

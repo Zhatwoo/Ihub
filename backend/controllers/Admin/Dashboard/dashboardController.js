@@ -16,18 +16,12 @@ export const getDashboardStats = async (req, res) => {
       return sendFirestoreError(res);
     }
 
-    // Fetch all required data (desk requests fetched separately using collection group query)
-    console.log('📖 FIRESTORE READ: Starting dashboard data fetch...');
-    const [roomsSnapshot, oldSchedulesSnapshot, virtualOfficeSnapshot, deskAssignmentsSnapshot] = await Promise.all([
+    // Fetch all required data (desk requests and assignments fetched separately using collection group query)
+    const [roomsSnapshot, oldSchedulesSnapshot, virtualOfficeTenantsSnapshot] = await Promise.all([
       firestore.collection('privateOfficeRooms').doc('data').collection('office').get(),
       firestore.collection('privateOfficeRooms').doc('data').collection('requests').get(),
-      firestore.collection('virtual-office-clients').get(),
-      firestore.collection('desk-assignments').get()
+      firestore.collection('accounts').doc('virtual-tenants').collection('tenants').get()
     ]);
-    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/office - ${roomsSnapshot.docs.length} documents`);
-    console.log(`📖 FIRESTORE READ: privateOfficeRooms/data/requests - ${oldSchedulesSnapshot.docs.length} documents`);
-    console.log(`📖 FIRESTORE READ: virtual-office-clients - ${virtualOfficeSnapshot.docs.length} documents`);
-    console.log(`📖 FIRESTORE READ: desk-assignments - ${deskAssignmentsSnapshot.docs.length} documents`);
 
     // Process rooms data
     const rooms = roomsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -70,24 +64,24 @@ export const getDashboardStats = async (req, res) => {
     }
 
     // Process virtual office data
-    const virtualOfficeClients = virtualOfficeSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-    // Process desk assignments
-    const deskAssignments = deskAssignmentsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const virtualOfficeTenants = virtualOfficeTenantsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
     // OPTIMIZED: Use collection group query to get ALL desk requests in 1 READ!
-    // Note: Can't filter by documentId in collection group, so we get all and filter in memory
-    console.log('📖 FIRESTORE READ: collectionGroup("request") - executing query...');
+    console.log('📖 FIRESTORE READ: collectionGroup("requests") - executing query...');
     const deskRequestsSnapshot = await firestore
-      .collectionGroup('request')
+      .collectionGroup('requests')
       .get();
-    console.log(`📖 FIRESTORE READ: collectionGroup("request") - ${deskRequestsSnapshot.docs.length} total documents read`);
+    console.log(`📖 FIRESTORE READ: collectionGroup("requests") - ${deskRequestsSnapshot.docs.length} total documents read`);
     
-    // Filter to only get documents with ID 'desk' (in memory - still only 1 read!)
-    const deskRequestDocs = deskRequestsSnapshot.docs.filter(doc => doc.id === 'desk');
-    console.log(`📖 FIRESTORE READ: collectionGroup("request") - ${deskRequestDocs.length} desk requests after filtering`);
+    // Filter to only get desk requests (from /request/desk/requests path)
+    const deskRequestDocs = deskRequestsSnapshot.docs.filter(doc => {
+      const path = doc.ref.path;
+      return path.includes('/request/desk/requests/');
+    });
+    console.log(`📖 FIRESTORE READ: collectionGroup("requests") - ${deskRequestDocs.length} desk requests after filtering`);
 
     const deskRequests = [];
+    const deskAssignments = []; // Approved requests = assignments
     const userIds = new Set();
 
     // Process all desk requests from the single query
@@ -98,7 +92,7 @@ export const getDashboardStats = async (req, res) => {
         continue;
       }
 
-      // Extract userId from document path
+      // Extract userId from document path: accounts/client/users/{userId}/request/desk/requests/{requestId}
       const pathParts = deskRequestDoc.ref.path.split('/');
       const userIdIndex = pathParts.indexOf('users');
       const userId = userIdIndex !== -1 && userIdIndex + 1 < pathParts.length 
@@ -109,12 +103,22 @@ export const getDashboardStats = async (req, res) => {
 
       userIds.add(userId);
       
-      deskRequests.push({
-        id: userId,
+      const requestData = {
+        id: deskRequestDoc.id,
         userId: userId,
         ...deskRequestData,
         userInfo: null
-      });
+      };
+      
+      deskRequests.push(requestData);
+      
+      // If approved, also add to assignments
+      if (deskRequestData.status === 'approved') {
+        deskAssignments.push({
+          ...requestData,
+          deskTag: deskRequestData.assignedDesk || deskRequestData.desk || deskRequestDoc.id
+        });
+      }
     }
 
     // Fetch user info in batch (only for users that have requests)
@@ -164,9 +168,19 @@ export const getDashboardStats = async (req, res) => {
     }
 
     // Calculate Private Office stats
+    // Count unique tenants from approved/active schedules only
+    const uniqueTenantIds = new Set();
+    schedules.forEach(schedule => {
+      // Only count tenants with approved/active bookings
+      if (schedule.userId && ['approved', 'upcoming', 'ongoing', 'active', 'completed'].includes(schedule.status)) {
+        uniqueTenantIds.add(schedule.userId);
+      }
+    });
+    
     const privateOfficeStats = {
-      totalRooms: rooms.length,
+      totalRooms: rooms.length, // Total offices (occupied + vacant)
       totalBookings: schedules.length,
+      totalTenants: uniqueTenantIds.size, // Number of unique occupants with approved bookings
       approved: schedules.filter(s => ['approved', 'upcoming', 'ongoing', 'active', 'completed'].includes(s.status)).length,
       rejected: schedules.filter(s => s.status === 'rejected').length,
       pending: schedules.filter(s => s.status === 'pending').length,
@@ -175,23 +189,23 @@ export const getDashboardStats = async (req, res) => {
         .slice(0, 5)
     };
 
-    // Calculate Virtual Office stats (Virtual Office clients only)
+    // Calculate Virtual Office stats (Virtual Office tenants only)
     const virtualOfficeStats = {
-      totalClients: virtualOfficeClients.length,
-      recentClients: virtualOfficeClients
+      totalClients: virtualOfficeTenants.length,
+      recentClients: virtualOfficeTenants
         .sort((a, b) => new Date(b.createdAt || b.dateStart || 0) - new Date(a.createdAt || a.dateStart || 0))
         .slice(0, 5),
-      // Virtual Office clients only for "Tenants" view
-      allTenants: virtualOfficeClients.map(client => ({
-        id: client.id,
-        name: client.fullName || 'N/A',
-        email: client.email || 'N/A',
-        phone: client.phoneNumber || 'N/A',
-        company: client.company || 'N/A',
-        position: client.position || 'N/A',
+      // Virtual Office tenants only for "Tenants" view
+      allTenants: virtualOfficeTenants.map(tenant => ({
+        id: tenant.id,
+        name: tenant.fullName || 'N/A',
+        email: tenant.email || 'N/A',
+        phone: tenant.phoneNumber || 'N/A',
+        company: tenant.company || 'N/A',
+        position: tenant.position || 'N/A',
         type: 'Virtual Office Client',
-        status: client.status || 'active',
-        startDate: client.dateStart || client.preferredStartDate || client.createdAt,
+        status: tenant.status || 'active',
+        startDate: tenant.dateStart || tenant.preferredStartDate || tenant.createdAt,
         source: 'virtual-office'
       })).sort((a, b) => new Date(b.startDate || 0) - new Date(a.startDate || 0)).slice(0, 10) // Limit for performance
     };
@@ -203,11 +217,59 @@ export const getDashboardStats = async (req, res) => {
     }
 
     // Calculate Dedicated Desk stats
+    // Fetch employee assignments from /accounts/desk-emp/assignments
+    let employeeAssignments = [];
+    try {
+      const employeeAssignmentsSnapshot = await firestore
+        .collection('accounts')
+        .doc('desk-emp')
+        .collection('assignments')
+        .get();
+      
+      employeeAssignments = employeeAssignmentsSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          type: data.type || 'Employee' // Use type from data, fallback to 'Employee'
+        };
+      });
+      
+      console.log(`📖 FIRESTORE READ: accounts/desk-emp/assignments - ${employeeAssignments.length} employee assignments`);
+    } catch (err) {
+      console.warn('⚠️ Could not fetch employee assignments:', err.message);
+    }
+
+    // Process tenant assignments (approved desk requests)
+    const tenantAssignments = deskAssignments.map(assignment => {
+      const data = assignment;
+      return {
+        ...data,
+        type: data.type || 'Tenant' // Use type from data, fallback to 'Tenant'
+      };
+    });
+
+    // Combine all assignments to count by type
+    const allAssignments = [...employeeAssignments, ...tenantAssignments];
+    
+    // Count by actual type field
+    const tenantCount = allAssignments.filter(a => a.type === 'Tenant').length;
+    const employeeCount = allAssignments.filter(a => a.type === 'Employee').length;
+    
+    // Total seats (you can configure this or fetch from a config)
+    const totalSeats = 267; // Configure this based on your actual desk count
+    const occupiedSeats = allAssignments.length;
+
     const dedicatedDeskStats = {
+      totalSeats: totalSeats,
+      occupiedSeats: occupiedSeats,
+      availableSeats: totalSeats - occupiedSeats,
+      tenantCount: tenantCount,
+      employeeCount: employeeCount,
       approved: deskRequests.filter(r => r.status === 'approved').length,
       pending: deskRequests.filter(r => r.status === 'pending').length,
       rejected: deskRequests.filter(r => r.status === 'rejected').length,
-      totalAssigned: deskAssignments.length,
+      totalAssigned: allAssignments.length, // Count of all assignments (tenants + employees)
       recentRequests: deskRequests
         .sort((a, b) => new Date(b.requestDate || b.createdAt || 0) - new Date(a.requestDate || a.createdAt || 0))
         .slice(0, 5)
@@ -222,9 +284,9 @@ export const getDashboardStats = async (req, res) => {
         rawData: {
           rooms,
           schedules: schedules.slice(0, 10), // Limit for performance
-          virtualOfficeClients: virtualOfficeClients.slice(0, 10),
-          deskAssignments: deskAssignments.slice(0, 10),
-          deskRequests: deskRequests.slice(0, 10)
+          virtualOfficeClients: virtualOfficeTenants.slice(0, 10),
+          deskAssignments: allAssignments.slice(0, 20), // All assignments (employees + tenants)
+          deskRequests: deskRequests.slice(0, 20)
         }
       }
     });
@@ -237,3 +299,4 @@ export const getDashboardStats = async (req, res) => {
     });
   }
 };
+

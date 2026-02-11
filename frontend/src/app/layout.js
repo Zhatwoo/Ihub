@@ -1,6 +1,7 @@
 import { Geist, Geist_Mono, League_Spartan } from "next/font/google";
 import "./globals.css";
 import Toast from "@/components/Toast";
+import { ClientProviders } from "@/components/ClientProviders";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,12 +26,15 @@ export const metadata = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${leagueSpartan.variable} antialiased`}
+        suppressHydrationWarning
       >
-        {children}
-        <Toast />
+        <ClientProviders>
+          {children}
+          <Toast />
+        </ClientProviders>
       </body>
     </html>
   );

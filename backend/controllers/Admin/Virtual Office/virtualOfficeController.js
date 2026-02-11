@@ -16,45 +16,58 @@ export const getAllOccupants = async (req, res) => {
       return sendFirestoreError(res);
     }
 
-    // Get virtual office clients and desk assignments
-    const [virtualOfficeSnapshot, deskAssignmentsSnapshot] = await Promise.all([
-      firestore.collection('virtual-office-clients').get(),
-      firestore.collection('desk-assignments').get()
-    ]);
+    // Get virtual office tenants from new path
+    const virtualOfficeTenantsSnapshot = await firestore
+      .collection('accounts')
+      .doc('virtual-tenants')
+      .collection('tenants')
+      .get();
+    
+    // Fetch desk assignments from approved requests using collection group
+    const requestsSnapshot = await firestore
+      .collectionGroup('requests')
+      .where('status', '==', 'approved')
+      .get();
+    
+    // Filter to only desk requests
+    const deskAssignments = requestsSnapshot.docs
+      .filter(doc => doc.ref.path.includes('/request/desk/'))
+      .map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          source: 'desk-assignment',
+          desk: data.assignedDesk || data.desk || doc.id
+        };
+      });
 
-    // Process virtual office clients (tenants)
-    const virtualOfficeClients = virtualOfficeSnapshot.docs.map(doc => ({ 
+    // Process virtual office tenants
+    const virtualOfficeTenants = virtualOfficeTenantsSnapshot.docs.map(doc => ({ 
       id: doc.id, 
       ...doc.data(),
       type: 'Virtual Office Client',
       source: 'virtual-office'
     }));
 
-    // Process desk assignments (employees/tenants)
-    const deskAssignments = deskAssignmentsSnapshot.docs.map(doc => ({ 
-      id: doc.id, 
-      ...doc.data(),
-      source: 'desk-assignment'
-    }));
-
     // Combine all occupants
     const allOccupants = [
-      // Virtual office clients
-      ...virtualOfficeClients.map(client => ({
-        id: client.id,
-        name: client.fullName || 'N/A',
-        email: client.email || 'N/A',
-        phone: client.phoneNumber || 'N/A',
-        company: client.company || 'N/A',
-        position: client.position || 'N/A',
+      // Virtual office tenants
+      ...virtualOfficeTenants.map(tenant => ({
+        id: tenant.id,
+        name: tenant.fullName || 'N/A',
+        email: tenant.email || 'N/A',
+        phone: tenant.phoneNumber || 'N/A',
+        company: tenant.company || 'N/A',
+        position: tenant.position || 'N/A',
         type: 'Virtual Office Client',
-        status: client.status || 'active',
-        startDate: client.dateStart || client.preferredStartDate || client.createdAt,
+        status: tenant.status || 'active',
+        startDate: tenant.dateStart || tenant.preferredStartDate || tenant.createdAt,
         source: 'virtual-office',
         details: {
-          businessType: client.businessType,
-          services: client.services,
-          address: client.address
+          businessType: tenant.businessType,
+          services: tenant.services,
+          address: tenant.address
         }
       })),
       // Desk assignments (tenants and employees)
@@ -82,11 +95,11 @@ export const getAllOccupants = async (req, res) => {
     // Calculate stats
     const stats = {
       total: allOccupants.length,
-      virtualOfficeClients: virtualOfficeClients.length,
+      virtualOfficeClients: virtualOfficeTenants.length,
       deskTenants: deskAssignments.filter(d => d.type === 'Tenant').length,
       deskEmployees: deskAssignments.filter(d => d.type === 'Employee').length,
-      activeClients: virtualOfficeClients.filter(c => c.status === 'active').length,
-      pendingClients: virtualOfficeClients.filter(c => c.status === 'pending').length
+      activeClients: virtualOfficeTenants.filter(c => c.status === 'active').length,
+      pendingClients: virtualOfficeTenants.filter(c => c.status === 'pending').length
     };
 
     res.json({
@@ -119,27 +132,31 @@ export const getVirtualOfficeClients = async (req, res) => {
       return sendFirestoreError(res);
     }
 
-    const clientsSnapshot = await firestore.collection('virtual-office-clients').get();
-    let clients = clientsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const tenantsSnapshot = await firestore
+      .collection('accounts')
+      .doc('virtual-tenants')
+      .collection('tenants')
+      .get();
+    let tenants = tenantsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
     // Apply status filter
     if (status && status !== 'all') {
-      clients = clients.filter(client => client.status === status);
+      tenants = tenants.filter(tenant => tenant.status === status);
     }
 
     // Apply search filter
     if (search) {
       const searchLower = search.toLowerCase();
-      clients = clients.filter(client =>
-        (client.fullName && client.fullName.toLowerCase().includes(searchLower)) ||
-        (client.email && client.email.toLowerCase().includes(searchLower)) ||
-        (client.company && client.company.toLowerCase().includes(searchLower)) ||
-        (client.phoneNumber && client.phoneNumber.toLowerCase().includes(searchLower))
+      tenants = tenants.filter(tenant =>
+        (tenant.fullName && tenant.fullName.toLowerCase().includes(searchLower)) ||
+        (tenant.email && tenant.email.toLowerCase().includes(searchLower)) ||
+        (tenant.company && tenant.company.toLowerCase().includes(searchLower)) ||
+        (tenant.phoneNumber && tenant.phoneNumber.toLowerCase().includes(searchLower))
       );
     }
 
     // Apply sorting
-    clients.sort((a, b) => {
+    tenants.sort((a, b) => {
       let comparison = 0;
       if (sortBy === 'fullName') {
         comparison = (a.fullName || '').localeCompare(b.fullName || '');
@@ -156,21 +173,21 @@ export const getVirtualOfficeClients = async (req, res) => {
     });
 
     // Calculate stats
-    const allClients = clientsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    const allTenants = tenantsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     const stats = {
-      total: allClients.length,
-      inquiry: allClients.filter(c => c.status === 'inquiry').length,
-      active: allClients.filter(c => c.status === 'active').length,
-      inactive: allClients.filter(c => c.status === 'inactive').length,
-      pending: allClients.filter(c => c.status === 'pending').length
+      total: allTenants.length,
+      inquiry: allTenants.filter(c => c.status === 'inquiry').length,
+      active: allTenants.filter(c => c.status === 'active').length,
+      inactive: allTenants.filter(c => c.status === 'inactive').length,
+      pending: allTenants.filter(c => c.status === 'pending').length
     };
 
     res.json({
       success: true,
       data: {
-        clients,
+        clients: tenants,
         stats,
-        totalCount: clients.length
+        totalCount: tenants.length
       }
     });
   } catch (error) {
@@ -194,16 +211,20 @@ export const getAllVirtualOfficeClients = async (req, res) => {
       return sendFirestoreError(res);
     }
     
-    const clientsSnapshot = await firestore.collection('virtual-office-clients').get();
+    const tenantsSnapshot = await firestore
+      .collection('accounts')
+      .doc('virtual-tenants')
+      .collection('tenants')
+      .get();
     
-    const clients = clientsSnapshot.docs.map(doc => ({
+    const tenants = tenantsSnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
 
     res.json({
       success: true,
-      data: clients
+      data: tenants
     });
   } catch (error) {
     console.error('Get all virtual office clients error:', error);
@@ -236,9 +257,14 @@ export const getVirtualOfficeClientById = async (req, res) => {
       return sendFirestoreError(res);
     }
     
-    const clientDoc = await firestore.collection('virtual-office-clients').doc(clientId).get();
+    const tenantDoc = await firestore
+      .collection('accounts')
+      .doc('virtual-tenants')
+      .collection('tenants')
+      .doc(clientId)
+      .get();
 
-    if (!clientDoc.exists) {
+    if (!tenantDoc.exists) {
       return res.status(404).json({
         success: false,
         error: 'Not Found',
@@ -249,8 +275,8 @@ export const getVirtualOfficeClientById = async (req, res) => {
     res.json({
       success: true,
       data: {
-        id: clientDoc.id,
-        ...clientDoc.data()
+        id: tenantDoc.id,
+        ...tenantDoc.data()
       }
     });
   } catch (error) {
@@ -276,40 +302,49 @@ export const getUserVirtualOfficeClients = async (req, res) => {
       return sendFirestoreError(res);
     }
     
-    // Query virtual office clients by userId or email
+    // Query virtual office tenants by userId or email
     const user = req.user; // From authenticate middleware
     const userEmail = user?.email?.toLowerCase();
     const userUid = user?.uid;
     
     // Try to fetch by userId field first
-    let clientsQuery = firestore.collection('virtual-office-clients')
+    let tenantsQuery = firestore
+      .collection('accounts')
+      .doc('virtual-tenants')
+      .collection('tenants')
       .where('userId', '==', userId);
     
-    const snapshot = await clientsQuery.get();
-    let clients = snapshot.docs.map(doc => ({
+    const snapshot = await tenantsQuery.get();
+    let tenants = snapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data()
     }));
     
     // Also check by email if no results and email is available
-    if (clients.length === 0 && userEmail) {
-      const emailQuery = firestore.collection('virtual-office-clients')
+    if (tenants.length === 0 && userEmail) {
+      const emailQuery = firestore
+        .collection('accounts')
+        .doc('virtual-tenants')
+        .collection('tenants')
         .where('email', '==', userEmail);
       
       const emailSnapshot = await emailQuery.get();
-      clients = emailSnapshot.docs.map(doc => ({
+      tenants = emailSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
     }
     
     // Also check by userUid if still no results
-    if (clients.length === 0 && userUid) {
-      const uidQuery = firestore.collection('virtual-office-clients')
+    if (tenants.length === 0 && userUid) {
+      const uidQuery = firestore
+        .collection('accounts')
+        .doc('virtual-tenants')
+        .collection('tenants')
         .where('userId', '==', userUid);
       
       const uidSnapshot = await uidQuery.get();
-      clients = uidSnapshot.docs.map(doc => ({
+      tenants = uidSnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
@@ -317,7 +352,7 @@ export const getUserVirtualOfficeClients = async (req, res) => {
 
     res.json({
       success: true,
-      data: clients
+      data: tenants
     });
   } catch (error) {
     console.error('Get user virtual office clients error:', error);
@@ -350,28 +385,91 @@ export const createVirtualOfficeClient = async (req, res) => {
       return sendFirestoreError(res);
     }
     
-    const clientRef = await firestore.collection('virtual-office-clients').add({
+    // Store tenant under /accounts/virtual-tenants/tenants/{tenantId}
+    const tenantRef = firestore
+      .collection('accounts')
+      .doc('virtual-tenants')
+      .collection('tenants')
+      .doc();
+    
+    const tenantId = tenantRef.id;
+
+    await tenantRef.set({
       ...clientData,
+      serviceType: 'virtual-office',
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
 
-    const newClient = await clientRef.get();
+    const newTenant = await tenantRef.get();
+    const newTenantData = newTenant.data();
+
+    console.log(`✅ Virtual office tenant created with ID: ${tenantId}`);
+
+    // Create initial bill under /accounts/virtual-tenants/tenants/{tenantId}/bills
+    let billCreated = false;
+    let billError = null;
+    
+    try {
+      console.log(`🔄 Creating bill for virtual office tenant ${tenantId}...`);
+      
+      const billRef = firestore
+        .collection('accounts')
+        .doc('virtual-tenants')
+        .collection('tenants')
+        .doc(tenantId)
+        .collection('bills')
+        .doc();
+
+      const startDate = new Date();
+      
+      const billData = {
+        clientName: clientData.fullName || 'N/A',
+        companyName: clientData.company || 'N/A',
+        email: clientData.email || 'N/A',
+        contactNumber: clientData.phoneNumber || 'N/A',
+        serviceType: 'virtual-office',
+        assignedResource: clientData.package || clientData.plan || 'Virtual Office',
+        amount: 0, // Admin must set via Edit Bill
+        cusaFee: 0,
+        parkingFee: 0,
+        lateFee: 0,
+        damageFee: 0,
+        feePeriod: null, // Admin must set via Edit Bill
+        startDate: admin.firestore.Timestamp.fromDate(startDate),
+        dueDate: null, // Admin must set via Edit Bill
+        status: 'inactive', // Newly created bills start as inactive
+        tenantId: tenantId, // Reference to virtual office tenant
+        createdAt: admin.firestore.FieldValue.serverTimestamp()
+      };
+
+      await billRef.set(billData);
+      
+      billCreated = true;
+      console.log(`✅ Created initial bill at /accounts/virtual-tenants/tenants/${tenantId}/bills/${billRef.id}`);
+    } catch (error) {
+      billError = error;
+      console.error('❌ Error creating virtual office bill:', error);
+    }
 
     res.status(201).json({
       success: true,
-      message: 'Virtual office client created successfully',
+      message: billCreated 
+        ? 'Virtual office tenant and bill created successfully' 
+        : `Virtual office tenant created but bill creation failed: ${billError?.message || 'Unknown error'}`,
+      billCreated: billCreated,
+      billError: billError ? billError.message : null,
       data: {
-        id: newClient.id,
-        ...newClient.data()
+        id: newTenant.id,
+        ...newTenantData
       }
     });
   } catch (error) {
-    console.error('Create virtual office client error:', error);
+    console.error('Create virtual office tenant error:', error);
     res.status(500).json({
       success: false,
       error: 'Internal Server Error',
-      message: error.message || 'Failed to create virtual office client'
+      message: error.message || 'Failed to create virtual office tenant'
     });
   }
 };
@@ -389,10 +487,14 @@ export const updateVirtualOfficeClient = async (req, res) => {
       return sendFirestoreError(res);
     }
     
-    const clientRef = firestore.collection('virtual-office-clients').doc(clientId);
-    const clientDoc = await clientRef.get();
+    const tenantRef = firestore
+      .collection('accounts')
+      .doc('virtual-tenants')
+      .collection('tenants')
+      .doc(clientId);
+    const tenantDoc = await tenantRef.get();
 
-    if (!clientDoc.exists) {
+    if (!tenantDoc.exists) {
       return res.status(404).json({
         success: false,
         error: 'Not Found',
@@ -400,19 +502,19 @@ export const updateVirtualOfficeClient = async (req, res) => {
       });
     }
 
-    await clientRef.update({
+    await tenantRef.update({
       ...updateData,
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     });
 
-    const updatedClient = await clientRef.get();
+    const updatedTenant = await tenantRef.get();
 
     res.json({
       success: true,
       message: 'Virtual office client updated successfully',
       data: {
-        id: updatedClient.id,
-        ...updatedClient.data()
+        id: updatedTenant.id,
+        ...updatedTenant.data()
       }
     });
   } catch (error) {
@@ -438,10 +540,14 @@ export const updateClientStatus = async (req, res) => {
       return sendFirestoreError(res);
     }
 
-    const clientRef = firestore.collection('virtual-office-clients').doc(clientId);
-    const clientDoc = await clientRef.get();
+    const tenantRef = firestore
+      .collection('accounts')
+      .doc('virtual-tenants')
+      .collection('tenants')
+      .doc(clientId);
+    const tenantDoc = await tenantRef.get();
 
-    if (!clientDoc.exists) {
+    if (!tenantDoc.exists) {
       return res.status(404).json({
         success: false,
         error: 'Not Found',
@@ -455,7 +561,7 @@ export const updateClientStatus = async (req, res) => {
       updatedAt: admin.firestore.FieldValue.serverTimestamp()
     };
 
-    await clientRef.update(updateData);
+    await tenantRef.update(updateData);
 
     res.json({
       success: true,
@@ -487,10 +593,14 @@ export const deleteVirtualOfficeClient = async (req, res) => {
       return sendFirestoreError(res);
     }
     
-    const clientRef = firestore.collection('virtual-office-clients').doc(clientId);
-    const clientDoc = await clientRef.get();
+    const tenantRef = firestore
+      .collection('accounts')
+      .doc('virtual-tenants')
+      .collection('tenants')
+      .doc(clientId);
+    const tenantDoc = await tenantRef.get();
 
-    if (!clientDoc.exists) {
+    if (!tenantDoc.exists) {
       return res.status(404).json({
         success: false,
         error: 'Not Found',
@@ -498,7 +608,31 @@ export const deleteVirtualOfficeClient = async (req, res) => {
       });
     }
 
-    await clientRef.delete();
+    // Delete associated bills
+    try {
+      const billsSnapshot = await firestore
+        .collection('accounts')
+        .doc('virtual-tenants')
+        .collection('tenants')
+        .doc(clientId)
+        .collection('bills')
+        .get();
+
+      if (billsSnapshot.docs.length > 0) {
+        const batch = firestore.batch();
+        billsSnapshot.docs.forEach(doc => {
+          batch.delete(doc.ref);
+        });
+        await batch.commit();
+        console.log(`✅ Deleted ${billsSnapshot.docs.length} bill(s) for virtual office tenant ${clientId}`);
+      }
+    } catch (billError) {
+      console.error('Error deleting bills:', billError);
+      // Continue even if bill deletion fails
+    }
+
+    // Delete the tenant
+    await tenantRef.delete();
 
     res.json({
       success: true,
@@ -513,3 +647,4 @@ export const deleteVirtualOfficeClient = async (req, res) => {
     });
   }
 };
+
