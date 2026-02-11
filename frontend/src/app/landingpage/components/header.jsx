@@ -47,13 +47,13 @@ export default function Header() {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2">
-            <div className={`transition-[width,height] duration-300 ease-out ${isScrolled ? 'w-[50px] h-[50px]' : 'w-[76px] h-[76px]'}`}>
+            <div className={`rounded-full overflow-hidden flex-shrink-0 transition-[width,height] duration-300 ease-out ${isScrolled ? 'w-[50px] h-[50px]' : 'w-[76px] h-[76px]'}`}>
               <Image
-                src="/Gemini_Generated_Image_6qx9a16qx9a16qx9.png"
-                alt="I-HUB Office Rentals"
+                src="/LOGOS/0-02-06-8297a0147f35064df629e355bd3410a9b77af838168434dc8807d9d30680c9a8_220d8f6c77e.jpg"
+                alt="I-Hub - INSPIRE HUB"
                 width={76}
                 height={76}
-                className="h-full w-full object-contain"
+                className="h-full w-full object-cover"
                 priority
               />
             </div>

@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { Suspense, useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import { api, getUserFromCookie } from '@/lib/api';
 import { useTranslation } from '@/lib/TranslationContext';
 
-export default function PrivateOffices() {
+function PrivateOfficesContent() {
   const { t } = useTranslation();
   const searchParams = useSearchParams();
   // Ref to track rooms polling interval
@@ -1021,4 +1021,11 @@ export default function PrivateOffices() {
   );
 }
 
+export default function PrivateOffices() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center bg-[#0F766E]/5"><div className="text-[#0F766E] font-medium">Loading...</div></div>}>
+      <PrivateOfficesContent />
+    </Suspense>
+  );
+}
 
