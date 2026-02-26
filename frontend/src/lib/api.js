@@ -177,8 +177,10 @@ function removeAdminCacheFromCookie(userId) {
 
 /**
  * Handle API response and errors
+ * @param {Response} response - Fetch response
+ * @param {string} [endpoint] - Request endpoint (e.g. '/api/auth/login') to avoid overriding auth errors
  */
-async function handleResponse(response) {
+async function handleResponse(response, endpoint = '') {
   if (!response.ok) {
     let error;
     try {
@@ -191,13 +193,15 @@ async function handleResponse(response) {
     }
     
     // Handle 401 Unauthorized - token missing or expired
+    const isAuthAttempt = /^\/api\/auth\/(login|signup|register)/.test(endpoint);
     if (response.status === 401) {
-      if (typeof window !== 'undefined') {
+      if (typeof window !== 'undefined' && !isAuthAttempt) {
+        // Don't override for login/signup - use backend message (e.g. "Invalid credentials")
         // Check if user cookie exists - if it does, don't auto-logout (might be temporary issue)
         const user = getUserFromCookie();
         
         if (!user) {
-          // No user cookie - definitely logged out
+          // No user cookie - definitely logged out (but not during login attempt)
           error.message = 'Your session has expired. Please log in again.';
           
           // Only redirect if we're on a protected route
@@ -273,7 +277,7 @@ export const api = {
         },
         ...options
       });
-      const data = await handleResponse(response);
+      const data = await handleResponse(response, endpoint);
       
       // Cache successful response (unless it's a no-cache endpoint)
       if (!noCacheEndpoints.some(ep => endpoint.includes(ep))) {
@@ -313,7 +317,7 @@ export const api = {
         body: JSON.stringify(data),
         ...options
       });
-      const result = await handleResponse(response);
+      const result = await handleResponse(response, endpoint);
       return result;
     } catch (error) {
       // Handle network errors (backend not running, CORS, etc.)
@@ -344,7 +348,7 @@ export const api = {
         body: JSON.stringify(data),
         ...options
       });
-      const result = await handleResponse(response);
+      const result = await handleResponse(response, endpoint);
       return result;
     } catch (error) {
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
@@ -374,7 +378,7 @@ export const api = {
         body: JSON.stringify(data),
         ...options
       });
-      const result = await handleResponse(response);
+      const result = await handleResponse(response, endpoint);
       return result;
     } catch (error) {
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
@@ -402,7 +406,7 @@ export const api = {
         },
         ...options
       });
-      const result = await handleResponse(response);
+      const result = await handleResponse(response, endpoint);
       return result;
     } catch (error) {
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
@@ -432,7 +436,7 @@ export const api = {
         body: formData,
         ...options
       });
-      return handleResponse(response);
+      return handleResponse(response, endpoint);
     } catch (error) {
       // Handle network errors (backend not running, CORS, etc.)
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
@@ -465,7 +469,7 @@ export const api = {
         method: 'POST',
         credentials: 'include'
       });
-      return handleResponse(response);
+      return handleResponse(response, '/api/auth/logout');
     } catch (error) {
       // Cookies are cleared by backend, no need to clear localStorage
       throw error;

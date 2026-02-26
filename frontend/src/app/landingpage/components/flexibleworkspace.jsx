@@ -48,7 +48,7 @@ export default function FlexibleWorkspace() {
                   {/* Image 2 */}
                   <div className="relative w-full h-[200px] lg:h-[220px] rounded-xl overflow-hidden border-4 border-white shrink-0 mb-4">
                     <Image
-                      src="/images/IMG_5266.jpg"
+                      src="/images/DESK/part1/IMG_1112.JPG"
                       alt="Office workspace"
                       fill
                       className="object-cover"
@@ -60,7 +60,7 @@ export default function FlexibleWorkspace() {
                   {/* Image 3 */}
                   <div className="relative w-full h-[200px] lg:h-[220px] rounded-xl overflow-hidden border-4 border-white shrink-0 mb-4">
                     <Image
-                      src="/images/IMG_5268.jpg"
+                      src="/images/IMG_5266.jpg"
                       alt="Office workspace"
                       fill
                       className="object-cover"
@@ -72,7 +72,7 @@ export default function FlexibleWorkspace() {
                   {/* Image 4 */}
                   <div className="relative w-full h-[200px] lg:h-[220px] rounded-xl overflow-hidden border-4 border-white shrink-0 mb-4">
                     <Image
-                      src="/images/IMG_5269.jpg"
+                      src="/images/DESK/part1/IMG_1114.JPG"
                       alt="Office workspace"
                       fill
                       className="object-cover"
@@ -84,7 +84,7 @@ export default function FlexibleWorkspace() {
                   {/* Image 5 */}
                   <div className="relative w-full h-[200px] lg:h-[220px] rounded-xl overflow-hidden border-4 border-white shrink-0 mb-4">
                     <Image
-                      src="/images/IMG_5270.jpg"
+                      src="/images/IMG_5268.jpg"
                       alt="Office workspace"
                       fill
                       className="object-cover"
@@ -96,7 +96,7 @@ export default function FlexibleWorkspace() {
                   {/* Image 6 */}
                   <div className="relative w-full h-[200px] lg:h-[220px] rounded-xl overflow-hidden border-4 border-white shrink-0 mb-4">
                     <Image
-                      src="/images/IMG_5275.jpg"
+                      src="/images/DESK/part2/IMG_1120.JPG"
                       alt="Office workspace"
                       fill
                       className="object-cover"
@@ -125,7 +125,7 @@ export default function FlexibleWorkspace() {
                   {/* Image 2 */}
                   <div className="relative w-full h-[200px] lg:h-[220px] rounded-xl overflow-hidden border-4 border-white shrink-0 mb-4">
                     <Image
-                      src="/images/IMG_5286.jpg"
+                      src="/images/DESK/part2/IMG_1125.JPG"
                       alt="Office workspace"
                       fill
                       className="object-cover"
@@ -137,7 +137,7 @@ export default function FlexibleWorkspace() {
                   {/* Image 3 */}
                   <div className="relative w-full h-[200px] lg:h-[220px] rounded-xl overflow-hidden border-4 border-white shrink-0 mb-4">
                     <Image
-                      src="/images/IMG_5299.jpg"
+                      src="/images/IMG_5286.jpg"
                       alt="Office workspace"
                       fill
                       className="object-cover"
@@ -149,7 +149,7 @@ export default function FlexibleWorkspace() {
                   {/* Image 4 */}
                   <div className="relative w-full h-[200px] lg:h-[220px] rounded-xl overflow-hidden border-4 border-white shrink-0 mb-4">
                     <Image
-                      src="/images/IMG_5296.jpg"
+                      src="/images/DESK/part3/IMG_1128.JPG"
                       alt="Office workspace"
                       fill
                       className="object-cover"
@@ -161,7 +161,7 @@ export default function FlexibleWorkspace() {
                   {/* Image 5 */}
                   <div className="relative w-full h-[200px] lg:h-[220px] rounded-xl overflow-hidden border-4 border-white shrink-0 mb-4">
                     <Image
-                      src="/images/IMG_5307.jpg"
+                      src="/images/IMG_5299.jpg"
                       alt="Office workspace"
                       fill
                       className="object-cover"
@@ -173,7 +173,7 @@ export default function FlexibleWorkspace() {
                   {/* Image 6 */}
                   <div className="relative w-full h-[200px] lg:h-[220px] rounded-xl overflow-hidden border-4 border-white shrink-0 mb-4">
                     <Image
-                      src="/images/IMG_5320.jpg"
+                      src="/images/DESK/part5/IMG_1134.JPG"
                       alt="Office workspace"
                       fill
                       className="object-cover"

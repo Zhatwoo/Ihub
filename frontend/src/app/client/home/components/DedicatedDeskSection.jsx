@@ -30,6 +30,44 @@ const sectionTitleToKey = {
   'Click to View All Desks': 'client.viewAllDesks',
 };
 
+// Section A photos from /images/DESK/part1
+const SECTION_A_PHOTOS = [
+  '/images/DESK/part1/IMG_1112.JPG',
+  '/images/DESK/part1/IMG_1113.JPG',
+  '/images/DESK/part1/IMG_1114.JPG',
+  '/images/DESK/part1/IMG_1118.JPG',
+  '/images/DESK/part1/IMG_1119.JPG',
+];
+
+// Section B photos from /images/DESK/part2
+const SECTION_B_PHOTOS = [
+  '/images/DESK/part2/IMG_1120.JPG',
+  '/images/DESK/part2/IMG_1122 (1).JPG',
+  '/images/DESK/part2/IMG_1125.JPG',
+];
+
+// Section C photos from /images/DESK/part3
+const SECTION_C_PHOTOS = [
+  '/images/DESK/part3/IMG_1128.JPG',
+  '/images/DESK/part3/IMG_1132.JPG',
+];
+
+// Section E photos from /images/DESK/part5
+const SECTION_E_PHOTOS = [
+  '/images/DESK/part5/IMG_1134.JPG',
+  '/images/DESK/part5/IMG_1136.JPG',
+  '/images/DESK/part5/IMG_1138.JPG',
+  '/images/DESK/part5/IMG_1139.JPG',
+  '/images/DESK/part5/IMG_1141.JPG',
+];
+
+const SECTION_PHOTOS_MAP = {
+  'Section A': SECTION_A_PHOTOS,
+  'Section B': SECTION_B_PHOTOS,
+  'Section C': SECTION_C_PHOTOS,
+  'Section E': SECTION_E_PHOTOS,
+};
+
 export default function DedicatedDeskSection() {
   const { t } = useTranslation();
   const carouselRef = useRef(null);
@@ -43,6 +81,7 @@ export default function DedicatedDeskSection() {
   const [userInfo, setUserInfo] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [scaleFactor, setScaleFactor] = useState(0.6);
+  const [sectionPhotoIndex, setSectionPhotoIndex] = useState(0);
 
   // Handle responsive scaling for floor plan
   useEffect(() => {
@@ -167,6 +206,7 @@ export default function DedicatedDeskSection() {
     } else if (space.image) {
       // Show section-specific modal
       setSelectedSpace(space);
+      setSectionPhotoIndex(0);
       setIsModalOpen(true);
     }
   };
@@ -180,6 +220,7 @@ export default function DedicatedDeskSection() {
     setIsModalOpen(false);
     setSelectedSpace(null);
     setSelectedDesk(null);
+    setSectionPhotoIndex(0);
   };
 
   const closeFullFloorPlan = () => {
@@ -483,15 +524,71 @@ export default function DedicatedDeskSection() {
 
                   <div className="mb-4 sm:mb-6">
                     <p className="text-xs sm:text-sm text-gray-600 mb-2">{t('client.dedicatedDeskSection.sectionPhoto')}</p>
-                    <div className="relative w-full h-48 sm:h-64 rounded-lg overflow-hidden border-2 sm:border-4 border-purple-500">
-                      <Image
-                        src={selectedSpace.image}
-                        alt={selectedSpace.title}
-                        fill
-                        className="object-cover"
-                        unoptimized
-                      />
-                    </div>
+                    {(() => {
+                      const sectionPhotos = SECTION_PHOTOS_MAP[selectedSpace.title];
+                      const photos = sectionPhotos || [];
+                      const showCarousel = photos.length > 0;
+                      const safeIndex = Math.min(sectionPhotoIndex, Math.max(0, photos.length - 1));
+                      return showCarousel ? (
+                      <div className="relative w-full rounded-lg overflow-hidden border-2 sm:border-4 border-purple-500">
+                        <div className="relative w-full h-48 sm:h-64 bg-gray-100">
+                          <Image
+                            key={safeIndex}
+                            src={photos[safeIndex]}
+                            alt={`${selectedSpace.title} - Photo ${safeIndex + 1}`}
+                            fill
+                            className="object-cover"
+                            unoptimized
+                          />
+                        </div>
+                        {photos.length > 1 && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => setSectionPhotoIndex((prev) => (prev === 0 ? photos.length - 1 : prev - 1))}
+                              className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/90 hover:bg-white shadow-md flex items-center justify-center text-slate-700 transition-colors"
+                              aria-label={t('client.dedicatedDeskSection.scrollLeft')}
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                              </svg>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSectionPhotoIndex((prev) => (prev === photos.length - 1 ? 0 : prev + 1))}
+                              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white/90 hover:bg-white shadow-md flex items-center justify-center text-slate-700 transition-colors"
+                              aria-label={t('client.dedicatedDeskSection.scrollRight')}
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </button>
+                            <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+                              {photos.map((_, i) => (
+                                <button
+                                  key={i}
+                                  type="button"
+                                  onClick={() => setSectionPhotoIndex(i)}
+                                  className={`w-2 h-2 rounded-full transition-colors ${i === safeIndex ? 'bg-white' : 'bg-white/50'}`}
+                                  aria-label={`Photo ${i + 1}`}
+                                />
+                              ))}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="relative w-full h-48 sm:h-64 rounded-lg overflow-hidden border-2 sm:border-4 border-purple-500">
+                        <Image
+                          src={selectedSpace.image}
+                          alt={selectedSpace.title}
+                          fill
+                          className="object-cover"
+                          unoptimized
+                        />
+                      </div>
+                    );
+                    })()}
                   </div>
                 </div>
 
