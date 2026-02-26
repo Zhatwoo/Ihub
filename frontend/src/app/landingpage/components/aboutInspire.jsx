@@ -23,16 +23,19 @@ export default function AboutInspire() {
   const sectionRef = useRef(null);
   const isInView = useInView(sectionRef, { once: true, amount: 0.2 });
   
-  // Slideshow images for top-right
+  // Slideshow images for top-right (original + DESK mixed)
   const topRightSlideshowImages = [
     '/images/IMG_5319.jpg',
+    '/images/DESK/part1/IMG_1112.JPG',
     '/images/IMG_5315.jpg',
+    '/images/DESK/part2/IMG_1120.JPG',
     '/images/IMG_5311.jpg',
+    '/images/DESK/part5/IMG_1134.JPG',
     '/images/IMG_5309.jpg',
     '/images/IMG_5302.jpg',
   ];
   
-  // Slideshow images for bottom-left
+  // Slideshow images for bottom-left (Complimentary Amenities - original only)
   const bottomLeftSlideshowImages = [
     '/images/IMG_5340.jpg',
     '/images/IMG_5337.jpg',
