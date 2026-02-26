@@ -4,7 +4,7 @@ export const availableSpaces = [
     id: 1,
     title: 'Section A',
     location: 'Alliance Global Tower',
-    image: '/images/IMG_5321.jpg',
+    image: '/images/DESK/part1/IMG_1112.JPG',
     rating: 4.98,
     badge: 'Guest favorite'
   },
@@ -12,7 +12,7 @@ export const availableSpaces = [
     id: 2,
     title: 'Section B',
     location: 'Alliance Global Tower',
-    image: '/images/IMG_5319.jpg',
+    image: '/images/DESK/part2/IMG_1120.JPG',
     rating: 5.0,
     badge: 'Guest favorite'
   },
@@ -20,7 +20,7 @@ export const availableSpaces = [
     id: 3,
     title: 'Section C',
     location: 'Alliance Global Tower',
-    image: '/images/IMG_5318.jpg',
+    image: '/images/DESK/part3/IMG_1128.JPG',
     rating: 4.96,
     badge: 'Guest favorite'
   },
@@ -36,7 +36,7 @@ export const availableSpaces = [
     id: 5,
     title: 'Section E',
     location: 'Alliance Global Tower',
-    image: '/images/IMG_5280.jpg',
+    image: '/images/DESK/part5/IMG_1134.JPG',
     rating: 4.99,
     badge: 'Guest favorite'
   },

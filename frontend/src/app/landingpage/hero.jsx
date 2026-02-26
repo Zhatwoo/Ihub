@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { League_Spartan } from 'next/font/google';
 import { motion, useInView } from 'framer-motion';
 import { useTranslation } from '@/lib/TranslationContext';
@@ -101,31 +102,52 @@ export default function Hero() {
             animate={{ x: 0, opacity: 1 }}
             transition={{ duration: 0.8, ease: 'easeOut', delay: 0.4 }}
           >
-            {/* Mid Image - Placeholder */}
+            {/* Mid Image */}
             <motion.div 
               className="absolute bottom-[15%] left-[12%] w-[362.25px] lg:w-[410.55px] h-[301.875px] lg:h-[338.1px] rounded-2xl overflow-hidden z-60 border-8 border-white cursor-pointer bg-slate-200 flex items-center justify-center"
               whileHover={{ y: -20, zIndex: 100, scale: 1.05 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
             >
-              <span className="text-slate-500 text-sm font-medium">{t('common.placeholder')}</span>
+              <Image
+                src="/images/DESK/part1/IMG_1112.JPG"
+                alt="Inspire Hub workspace"
+                fill
+                className="object-cover"
+                sizes="(max-width: 1024px) 362px, 410px"
+                priority
+              />
             </motion.div>
 
-            {/* Top Image - Placeholder */}
+            {/* Top Image */}
             <motion.div 
               className="absolute top-[5%] right-[-27%] w-[362.25px] lg:w-[410.55px] h-[301.875px] lg:h-[338.1px] rounded-2xl overflow-hidden z-30 border-8 border-[#0F766E] cursor-pointer bg-slate-200 flex items-center justify-center"
               whileHover={{ y: -20, zIndex: 100, scale: 1.05 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
             >
-              <span className="text-slate-500 text-sm font-medium">{t('common.placeholder')}</span>
+              <Image
+                src="/images/DESK/part2/IMG_1120.JPG"
+                alt="Inspire Hub office space"
+                fill
+                className="object-cover"
+                sizes="(max-width: 1024px) 362px, 410px"
+                priority
+              />
             </motion.div>
 
-            {/* Bottom Image - Placeholder */}
+            {/* Bottom Image */}
             <motion.div 
               className="absolute bottom-[5%] right-[-37%] w-[362.25px] lg:w-[410.55px] h-[301.875px] lg:h-[338.1px] rounded-2xl overflow-hidden z-50 border-8 border-white cursor-pointer bg-slate-200 flex items-center justify-center"
               whileHover={{ y: -20, zIndex: 100, scale: 1.05 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
             >
-              <span className="text-slate-500 text-sm font-medium">{t('common.placeholder')}</span>
+              <Image
+                src="/images/DESK/part5/IMG_1134.JPG"
+                alt="Inspire Hub dedicated desks"
+                fill
+                className="object-cover"
+                sizes="(max-width: 1024px) 362px, 410px"
+                priority
+              />
             </motion.div>
           </motion.div>
         </div>
