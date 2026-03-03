@@ -97,14 +97,14 @@ export default function Hero() {
 
           {/* Right Side - Overlapping Images */}
           <motion.div 
-            className="relative h-[300px] sm:h-[400px] md:h-[500px] lg:h-[600px] hidden lg:block 2xl:mt-[10%]"
+            className="relative h-[300px] sm:h-[400px] md:h-[500px] lg:h-[520px] xl:h-[600px] hidden lg:block 2xl:mt-[10%]"
             initial={{ x: '100%', opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ duration: 0.8, ease: 'easeOut', delay: 0.4 }}
           >
             {/* Mid Image */}
             <motion.div 
-              className="absolute bottom-[15%] left-[12%] w-[362.25px] lg:w-[410.55px] h-[301.875px] lg:h-[338.1px] rounded-2xl overflow-hidden z-60 border-8 border-white cursor-pointer bg-slate-200 flex items-center justify-center"
+              className="absolute bottom-[12%] left-[0%] xl:left-[8%] w-[280px] lg:w-[310px] xl:w-[380px] h-[220px] lg:h-[250px] xl:h-[310px] rounded-2xl overflow-hidden z-60 border-6 border-white cursor-pointer bg-slate-200 flex items-center justify-center"
               whileHover={{ y: -20, zIndex: 100, scale: 1.05 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
             >
@@ -120,7 +120,7 @@ export default function Hero() {
 
             {/* Top Image */}
             <motion.div 
-              className="absolute top-[5%] right-[-27%] w-[362.25px] lg:w-[410.55px] h-[301.875px] lg:h-[338.1px] rounded-2xl overflow-hidden z-30 border-8 border-[#0F766E] cursor-pointer bg-slate-200 flex items-center justify-center"
+              className="absolute top-[6%] right-[2%] xl:right-[-6%] w-[280px] lg:w-[310px] xl:w-[380px] h-[220px] lg:h-[250px] xl:h-[310px] rounded-2xl overflow-hidden z-30 border-6 border-[#0F766E] cursor-pointer bg-slate-200 flex items-center justify-center"
               whileHover={{ y: -20, zIndex: 100, scale: 1.05 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
             >
@@ -136,7 +136,7 @@ export default function Hero() {
 
             {/* Bottom Image */}
             <motion.div 
-              className="absolute bottom-[5%] right-[-37%] w-[362.25px] lg:w-[410.55px] h-[301.875px] lg:h-[338.1px] rounded-2xl overflow-hidden z-50 border-8 border-white cursor-pointer bg-slate-200 flex items-center justify-center"
+              className="absolute bottom-[3%] right-[0%] xl:right-[-12%] w-[280px] lg:w-[310px] xl:w-[380px] h-[220px] lg:h-[250px] xl:h-[310px] rounded-2xl overflow-hidden z-50 border-6 border-white cursor-pointer bg-slate-200 flex items-center justify-center"
               whileHover={{ y: -20, zIndex: 100, scale: 1.05 }}
               transition={{ duration: 0.3, ease: 'easeOut' }}
             >
